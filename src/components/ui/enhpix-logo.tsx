@@ -12,14 +12,17 @@ export const EnhpixLogo: React.FC<EnhpixLogoProps> = ({ className = "w-8 h-8" })
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Plus symbol */}
-      <rect x="7.27" y="8.57" width="3.64" height="14.86" fill="#5DADE2" rx="0.5"/>
-      <rect x="3.64" y="12.21" width="3.64" height="3.64" fill="#5DADE2" rx="0.5"/>
-      <rect x="7.27" y="15.85" width="3.64" height="3.64" fill="#5DADE2" rx="0.5"/>
-      <rect x="10.91" y="12.21" width="3.64" height="3.64" fill="#5DADE2" rx="0.5"/>
+      {/* Left Plus - Vertical */}
+      <rect x="7" y="4" width="4" height="24" fill="#5DADE2"/>
+      {/* Left Plus - Horizontal pieces */}
+      <rect x="3" y="10" width="4" height="4" fill="#5DADE2"/>
+      <rect x="11" y="10" width="4" height="4" fill="#5DADE2"/>
+      <rect x="3" y="18" width="4" height="4" fill="#5DADE2"/>
+      <rect x="11" y="18" width="4" height="4" fill="#5DADE2"/>
       
-      {/* Diamond shape */}
-      <path d="M18.2 12.7L21.8 16.3L26.9 11.2L21.8 6.1L26.9 1L18.2 9.7L14.6 6.1L18.2 2.5L14.6 9.7L18.2 13.3L21.8 19.9L26.9 14.8L21.8 19.9L18.2 16.3Z" fill="#5DADE2"/>
+      {/* Right Diamond */}
+      <path d="M20 4L28 12L20 20L24 16L20 28L16 16L24 8Z" fill="#5DADE2"/>
+      <path d="M16 12L24 4L28 8L20 16L28 20L20 28L16 20L24 12Z" fill="#ffffff"/>
     </svg>
   );
 };
