@@ -151,7 +151,11 @@ export const createCheckoutSession = async (data: CheckoutData) => {
 export const redirectToCheckout = async (checkoutData: CheckoutData) => {
   // Track checkout started
   trackConversionStep('checkout_started', checkoutData.planId);
-  trackPaymentEvent('payment_started', checkoutData.planId, checkoutData.amount);
+  
+  // Get plan to track amount
+  const plan = getPlanById(checkoutData.planId);
+  const amount = plan ? (checkoutData.billing === 'yearly' ? plan.priceYearly : plan.priceMonthly) : 0;
+  trackPaymentEvent('payment_started', checkoutData.planId, amount);
 
   try {
     // Create checkout session

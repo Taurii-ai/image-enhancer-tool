@@ -34,6 +34,10 @@ const Index = () => {
   };
 
   const handleImageUpload = async (file: File) => {
+    // Redirect to signup for free trial instead of processing
+    navigate('/login?redirect=upload&trial=true');
+    return;
+    
     try {
       setUploadedFile(file);
       setPreviewUrl(URL.createObjectURL(file));

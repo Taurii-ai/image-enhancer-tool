@@ -12,18 +12,30 @@ interface ImageUploaderProps {
 
 export const ImageUploader = ({ onImageUpload, isProcessing }: ImageUploaderProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragOver(true);
   }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragOver(false);
+    e.stopPropagation();
+    // Only set to false if we're leaving the main container
+    if (e.currentTarget === e.target) {
+      setIsDragOver(false);
+    }
+  }, []);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
   }, []);
 
   const validateFile = (file: File): boolean => {
@@ -90,22 +102,34 @@ export const ImageUploader = ({ onImageUpload, isProcessing }: ImageUploaderProp
       {!selectedFile ? (
         <div
           className={cn(
-            "border-2 border-dashed rounded-lg sm:rounded-xl p-3 sm:p-6 md:p-12 text-center transition-all duration-300 cursor-pointer overflow-x-hidden max-w-full",
+            "border-2 border-dashed rounded-lg sm:rounded-xl p-3 sm:p-6 md:p-12 text-center transition-all duration-500 ease-out cursor-pointer overflow-x-hidden max-w-full group",
             isDragOver 
-              ? "border-primary bg-primary/5 scale-105" 
-              : "border-border hover:border-primary/50 hover:bg-card/80"
+              ? "border-primary bg-gradient-to-br from-primary/10 to-primary/5 scale-[1.02] shadow-lg shadow-primary/20" 
+              : isHovered
+              ? "border-primary/70 bg-primary/5 scale-[1.01]"
+              : "border-border hover:border-primary/50 hover:bg-card/80 hover:scale-[1.005]"
           )}
           onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
           onClick={() => document.getElementById('file-input')?.click()}
         >
           <div className="flex flex-col items-center gap-2 sm:gap-4 md:gap-6 overflow-x-hidden max-w-full">
             <div className={cn(
-              "p-2 sm:p-4 md:p-6 rounded-full transition-all duration-300",
-              isDragOver ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              "p-2 sm:p-4 md:p-6 rounded-full transition-all duration-500 ease-out",
+              isDragOver 
+                ? "bg-primary text-primary-foreground animate-pulse" 
+                : isHovered
+                ? "bg-primary/20 text-primary"
+                : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
             )}>
-              <Upload className="w-6 h-6 sm:w-8 sm:h-8 md:w-12 md:h-12" />
+              <Upload className={cn(
+                "w-6 h-6 sm:w-8 sm:h-8 md:w-12 md:h-12 transition-all duration-300",
+                isDragOver ? "animate-bounce" : ""
+              )} />
             </div>
             
             <div className="space-y-1 sm:space-y-2 px-1 sm:px-2 overflow-x-hidden max-w-full">
