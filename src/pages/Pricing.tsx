@@ -279,7 +279,7 @@ const Pricing = () => {
               <Button 
                 className="w-full"
                 variant="outline"
-                onClick={() => window.open('mailto:enterprise@enhpix.com?subject=Enterprise Plan Inquiry', '_blank')}
+                onClick={() => window.open('mailto:support@enhpix.com?subject=Enterprise Plan Inquiry', '_blank')}
               >
                 <Phone className="w-4 h-4 mr-2" />
                 Contact Us
