@@ -71,12 +71,31 @@ const Login = () => {
     setIsLoading(true);
 
     try {
+      // Check for duplicate email first
+      const emailExists = localStorage.getItem(`user_${signupData.email}`);
+      if (emailExists) {
+        toast({
+          title: 'Email Already Exists',
+          description: 'An account with this email already exists. Please sign in instead.',
+          variant: 'destructive'
+        });
+        setIsLoading(false);
+        return;
+      }
+
       // Signup process
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // Store user data to prevent duplicates
+      localStorage.setItem(`user_${signupData.email}`, JSON.stringify({
+        email: signupData.email,
+        name: signupData.name,
+        createdAt: new Date().toISOString()
+      }));
+      
       toast({
         title: 'Account Created!',
-        description: 'Welcome to Enhpix! Your account has been created successfully.',
+        description: 'Welcome to Enhpix! Your free trial has started.',
       });
       
       handleRedirectAfterAuth();
