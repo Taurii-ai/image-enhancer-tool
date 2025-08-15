@@ -1,5 +1,5 @@
 import React from 'react';
-import logoImage from '@/assets/enhpix-logo.svg';
+import logoImage from '@/assets/enhpix-logo.png';
 
 interface EnhpixLogoProps {
   className?: string;
