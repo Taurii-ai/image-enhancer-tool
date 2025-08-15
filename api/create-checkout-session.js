@@ -1,7 +1,9 @@
 const Stripe = require('stripe');
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 module.exports = async function handler(req, res) {
+  // Initialize Stripe inside the function to avoid import issues
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -13,7 +15,6 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
 
   try {
     console.log('🔍 API DEBUG - Request body:', req.body);
