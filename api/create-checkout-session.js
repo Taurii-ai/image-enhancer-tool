@@ -14,12 +14,6 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Debug: Check if environment variables are set
-  if (!process.env.STRIPE_SECRET_KEY) {
-    return res.status(500).json({ 
-      error: 'STRIPE_SECRET_KEY environment variable is not set' 
-    });
-  }
 
   try {
     const { priceId, customerEmail, customerName, successUrl, cancelUrl } = req.body;
