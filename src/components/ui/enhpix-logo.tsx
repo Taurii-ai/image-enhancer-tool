@@ -1,5 +1,4 @@
 import React from 'react';
-import logoImage from '@/assets/enhpix-logo.png';
 
 interface EnhpixLogoProps {
   className?: string;
@@ -8,7 +7,7 @@ interface EnhpixLogoProps {
 export const EnhpixLogo: React.FC<EnhpixLogoProps> = ({ className = "w-8 h-8" }) => {
   return (
     <img 
-      src={logoImage} 
+      src="/enhpix-logo.png" 
       alt="Enhpix Logo" 
       className={className}
     />
