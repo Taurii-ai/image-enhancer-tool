@@ -1,0 +1,14 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Blue cross - left side -->
+  <rect x="114" y="134" width="56" height="244" fill="#5DADE2"/>
+  <rect x="57" y="190" width="56" height="56" fill="#5DADE2"/>
+  <rect x="171" y="190" width="56" height="56" fill="#5DADE2"/>
+  <rect x="57" y="246" width="56" height="56" fill="#5DADE2"/>
+  <rect x="171" y="246" width="56" height="56" fill="#5DADE2"/>
+  <rect x="57" y="303" width="56" height="56" fill="#5DADE2"/>
+  <rect x="171" y="303" width="56" height="56" fill="#5DADE2"/>
+  
+  <!-- Blue diamond - right side -->
+  <path d="M285 134 L399 248 L285 362 L342 305 L285 419 L228 305 L342 191 Z" fill="#5DADE2"/>
+  <path d="M228 248 L342 134 L399 191 L285 305 L399 362 L285 419 L228 362 L342 248 Z" fill="white"/>
+</svg>
