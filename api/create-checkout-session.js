@@ -1,5 +1,15 @@
 const Stripe = require('stripe');
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+
+// Initialize Stripe with proper error handling
+let stripe;
+try {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+  }
+  stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+} catch (error) {
+  console.error('Stripe initialization error:', error);
+}
 
 module.exports = async function handler(req, res) {
   // Set CORS headers

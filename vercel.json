@@ -13,13 +13,16 @@
   ],
   "functions": {
     "api/create-checkout-session.js": {
-      "maxDuration": 10
+      "maxDuration": 15
     },
     "api/verify-payment.js": {
       "maxDuration": 10
     },
-    "api/webhook.js": {
-      "maxDuration": 30
+    "api/test-env.js": {
+      "maxDuration": 5
     }
+  },
+  "env": {
+    "STRIPE_SECRET_KEY": "@stripe-secret-key"
   }
 }

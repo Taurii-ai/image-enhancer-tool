@@ -117,10 +117,17 @@ export const createCheckoutSession = async (data: CheckoutData) => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create checkout session');
+        const errorText = await response.text();
+        console.error('Checkout API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        throw new Error(`Checkout failed: ${response.status} - ${errorText}`);
       }
 
       const session = await response.json();
+      console.log('Checkout session created successfully:', session);
       return session;
     } else {
       // Demo mode - redirect to demo payment page to show the plan details
