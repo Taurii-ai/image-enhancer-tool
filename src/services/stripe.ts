@@ -85,8 +85,11 @@ export interface CheckoutData {
 // Create Stripe checkout session
 export const createCheckoutSession = async (data: CheckoutData) => {
   try {
+    console.log('🔍 CHECKOUT DEBUG - Input data:', data);
+    
     // Find the selected plan
     const plan = PRICING_PLANS.find(p => p.id === data.planId);
+    console.log('🔍 CHECKOUT DEBUG - Found plan:', plan);
     if (!plan) {
       throw new Error('Invalid plan selected');
     }
@@ -96,32 +99,46 @@ export const createCheckoutSession = async (data: CheckoutData) => {
       ? plan.stripePriceIdYearly 
       : plan.stripePriceIdMonthly;
 
+    console.log('🔍 CHECKOUT DEBUG - Selected price ID:', priceId);
+    console.log('🔍 CHECKOUT DEBUG - Billing type:', data.billing);
+    console.log('🔍 CHECKOUT DEBUG - All price IDs:', {
+      monthly: plan.stripePriceIdMonthly,
+      yearly: plan.stripePriceIdYearly
+    });
+
     if (!priceId) {
       throw new Error('Price ID not configured for this plan');
     }
 
     if (isRealStripe) {
       // Real Stripe integration - call backend API
+      const apiPayload = {
+        priceId,
+        customerEmail: data.customerEmail,
+        customerName: data.customerName,
+        successUrl: `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${window.location.origin}/pricing`,
+      };
+      
+      console.log('🔍 CHECKOUT DEBUG - API Payload:', apiPayload);
+      
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          priceId,
-          customerEmail: data.customerEmail,
-          customerName: data.customerName,
-          successUrl: `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-          cancelUrl: `${window.location.origin}/pricing`,
-        }),
+        body: JSON.stringify(apiPayload),
       });
+
+      console.log('🔍 CHECKOUT DEBUG - API Response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Checkout API Error:', {
+        console.error('🚨 CHECKOUT API ERROR:', {
           status: response.status,
           statusText: response.statusText,
-          error: errorText
+          error: errorText,
+          payload: apiPayload
         });
         throw new Error(`Checkout failed: ${response.status} - ${errorText}`);
       }
