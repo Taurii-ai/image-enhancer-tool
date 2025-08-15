@@ -7,21 +7,21 @@ interface EnhpixLogoProps {
 export const EnhpixLogo: React.FC<EnhpixLogoProps> = ({ className = "w-8 h-8" }) => {
   return (
     <svg
-      viewBox="0 0 200 200"
+      viewBox="0 0 100 100"
       className={className}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Blue cross symbol */}
-      <rect x="45" y="40" width="25" height="120" fill="#5DADE2"/>
-      <rect x="20" y="75" width="25" height="25" fill="#5DADE2"/>
-      <rect x="70" y="75" width="25" height="25" fill="#5DADE2"/>
-      <rect x="20" y="100" width="25" height="25" fill="#5DADE2"/>
-      <rect x="70" y="100" width="25" height="25" fill="#5DADE2"/>
+      {/* Blue cross - left side */}
+      <rect x="15" y="5" width="12" height="60" fill="#5DADE2"/>
+      <rect x="5" y="25" width="12" height="12" fill="#5DADE2"/>
+      <rect x="27" y="25" width="12" height="12" fill="#5DADE2"/>
+      <rect x="5" y="40" width="12" height="12" fill="#5DADE2"/>
+      <rect x="27" y="40" width="12" height="12" fill="#5DADE2"/>
       
-      {/* Blue diamond shape */}
-      <path d="M130 40 L180 90 L130 140 L150 120 L130 160 L110 120 L160 70 Z" fill="#5DADE2"/>
-      <path d="M110 90 L160 40 L180 60 L130 110 L180 130 L130 160 L110 130 L160 90 Z" fill="#ffffff"/>
+      {/* Blue diamond - right side */}
+      <path d="M55 15 L85 35 L55 55 L70 45 L55 75 L45 45 L75 25 Z" fill="#5DADE2"/>
+      <path d="M45 35 L75 15 L85 25 L55 45 L85 50 L55 75 L45 50 L75 35 Z" fill="#ffffff"/>
     </svg>
   );
 };

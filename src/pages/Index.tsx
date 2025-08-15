@@ -34,8 +34,8 @@ const Index = () => {
   };
 
   const handleImageUpload = async (file: File) => {
-    // Redirect to signup for free trial instead of processing
-    navigate('/login?redirect=upload&trial=true');
+    // Redirect directly to pricing (payment required first)
+    navigate('/pricing');
     return;
     
     try {

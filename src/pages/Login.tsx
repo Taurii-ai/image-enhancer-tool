@@ -35,11 +35,9 @@ const Login = () => {
     
     if (redirect === 'checkout' && plan && billing) {
       navigate(`/checkout?plan=${plan}&billing=${billing}`);
-    } else if (redirect === 'upload') {
-      // Redirect to pricing instead of free trial
-      navigate('/pricing');
     } else {
-      navigate('/pricing'); // Always redirect new users to pricing
+      // Always redirect to pricing - payment required before access
+      navigate('/pricing');
     }
   };
 
@@ -249,7 +247,7 @@ const Login = () => {
                     {isLoading ? 'Creating account...' : 'Create Account'}
                   </Button>
                   <p className="text-xs text-muted-foreground text-center">
-                    Free trial includes 3 image enhancements. No credit card required.
+                    Sign up to access our AI image enhancement platform.
                   </p>
                 </form>
               </TabsContent>

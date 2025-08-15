@@ -167,13 +167,18 @@ export const redirectToCheckout = async (checkoutData: CheckoutData) => {
       return;
     }
 
-    // Real Stripe mode
+    // Real Stripe mode - redirect directly to checkout URL  
+    if (session.url) {
+      window.location.href = session.url;
+      return;
+    }
+
+    // Fallback: use Stripe.js redirect (if session.url not available)
     const stripe = await stripePromise;
     if (!stripe) {
       throw new Error('Stripe failed to initialize');
     }
 
-    // Redirect to actual Stripe Checkout
     const { error } = await stripe.redirectToCheckout({
       sessionId: session.id
     });
