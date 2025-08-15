@@ -1,10 +1,12 @@
-<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Plus symbol -->
-  <rect x="7.27" y="8.57" width="3.64" height="14.86" fill="#5DADE2" rx="0.5"/>
-  <rect x="3.64" y="12.21" width="3.64" height="3.64" fill="#5DADE2" rx="0.5"/>
-  <rect x="7.27" y="15.85" width="3.64" height="3.64" fill="#5DADE2" rx="0.5"/>
-  <rect x="10.91" y="12.21" width="3.64" height="3.64" fill="#5DADE2" rx="0.5"/>
+<svg width="32" height="32" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Blue cross symbol -->
+  <rect x="45" y="40" width="25" height="120" fill="#5DADE2"/>
+  <rect x="20" y="75" width="25" height="25" fill="#5DADE2"/>
+  <rect x="70" y="75" width="25" height="25" fill="#5DADE2"/>
+  <rect x="20" y="100" width="25" height="25" fill="#5DADE2"/>
+  <rect x="70" y="100" width="25" height="25" fill="#5DADE2"/>
   
-  <!-- Diamond shape -->
-  <path d="M14.55 10.18L22.91 18.55L28.36 13.09L22.91 7.64L28.36 2.18L14.55 16L9.09 10.55L14.55 5.09L9.09 16L14.55 21.45L22.91 29.82L28.36 24.36L22.91 29.82L14.55 21.45Z" fill="#5DADE2" transform="scale(0.7) translate(8,2)"/>
+  <!-- Blue diamond shape -->
+  <path d="M130 40 L180 90 L130 140 L150 120 L130 160 L110 120 L160 70 Z" fill="#5DADE2"/>
+  <path d="M110 90 L160 40 L180 60 L130 110 L180 130 L130 160 L110 130 L160 90 Z" fill="#ffffff"/>
 </svg>

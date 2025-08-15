@@ -17,8 +17,11 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    console.log('Request body:', req.body);
-    console.log('Environment check:', !!process.env.STRIPE_SECRET_KEY);
+    console.log('=== CHECKOUT SESSION DEBUG ===');
+    console.log('Request method:', req.method);
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('Has STRIPE_SECRET_KEY:', !!process.env.STRIPE_SECRET_KEY);
+    console.log('STRIPE_SECRET_KEY starts with:', process.env.STRIPE_SECRET_KEY?.substring(0, 10));
 
     const { priceId, customerEmail, customerName, successUrl, cancelUrl } = req.body;
 

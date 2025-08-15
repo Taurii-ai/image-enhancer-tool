@@ -35,8 +35,11 @@ const Login = () => {
     
     if (redirect === 'checkout' && plan && billing) {
       navigate(`/checkout?plan=${plan}&billing=${billing}`);
+    } else if (redirect === 'upload') {
+      // Redirect to pricing instead of free trial
+      navigate('/pricing');
     } else {
-      navigate('/dashboard');
+      navigate('/pricing'); // Always redirect new users to pricing
     }
   };
 
@@ -45,6 +48,18 @@ const Login = () => {
     setIsLoading(true);
 
     try {
+      // Check if user exists
+      const userData = localStorage.getItem(`user_${loginData.email}`);
+      if (!userData) {
+        toast({
+          title: 'Account Not Found',
+          description: 'No account found with this email. Please sign up first.',
+          variant: 'destructive'
+        });
+        setIsLoading(false);
+        return;
+      }
+
       // Login process
       await new Promise(resolve => setTimeout(resolve, 1000));
       
@@ -95,7 +110,7 @@ const Login = () => {
       
       toast({
         title: 'Account Created!',
-        description: 'Welcome to Enhpix! Your free trial has started.',
+        description: 'Welcome to Enhpix! Please choose a plan to get started.',
       });
       
       handleRedirectAfterAuth();
