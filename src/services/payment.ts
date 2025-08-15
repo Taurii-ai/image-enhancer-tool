@@ -58,27 +58,65 @@ export const getPlan = (planId: string) => {
 };
 
 export const createCheckout = async (data: PaymentData) => {
+  console.log('🔍 PAYMENT DEBUG - Starting checkout with data:', data);
+  
   const plan = getPlan(data.planId);
-  if (!plan) throw new Error('Invalid plan');
+  if (!plan) {
+    console.error('🚨 PAYMENT ERROR - Invalid plan:', data.planId);
+    throw new Error('Invalid plan');
+  }
+  
+  console.log('🔍 PAYMENT DEBUG - Found plan:', plan);
 
   const priceId = data.billing === 'yearly' ? plan.priceIdYearly : plan.priceIdMonthly;
-  if (!priceId) throw new Error('Price ID not configured');
-
-  const response = await fetch('/api/checkout', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      priceId,
-      customerEmail: data.customerEmail,
-      customerName: data.customerName,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Payment failed');
+  if (!priceId) {
+    console.error('🚨 PAYMENT ERROR - Price ID not configured for:', data.planId, data.billing);
+    console.error('Available price IDs:', { monthly: plan.priceIdMonthly, yearly: plan.priceIdYearly });
+    throw new Error('Price ID not configured');
   }
+  
+  console.log('🔍 PAYMENT DEBUG - Using price ID:', priceId);
 
-  const { url } = await response.json();
-  window.location.href = url;
+  const payload = {
+    priceId,
+    customerEmail: data.customerEmail,
+    customerName: data.customerName,
+  };
+  
+  console.log('🔍 PAYMENT DEBUG - API payload:', payload);
+
+  try {
+    const response = await fetch('/api/stripe-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    console.log('🔍 PAYMENT DEBUG - API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🚨 PAYMENT API ERROR:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`Payment failed: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log('🔍 PAYMENT DEBUG - API result:', result);
+
+    if (!result.url) {
+      console.error('🚨 PAYMENT ERROR - No checkout URL returned:', result);
+      throw new Error('No checkout URL received');
+    }
+
+    console.log('✅ PAYMENT SUCCESS - Redirecting to:', result.url);
+    window.location.href = result.url;
+    
+  } catch (error) {
+    console.error('🚨 PAYMENT ERROR - Full error:', error);
+    throw error;
+  }
 };
