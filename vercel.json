@@ -15,8 +15,14 @@
     "api/create-checkout-session.js": {
       "maxDuration": 15
     },
+    "api/simple-checkout.js": {
+      "maxDuration": 10
+    },
     "api/verify-payment.js": {
       "maxDuration": 10
+    },
+    "api/debug-stripe.js": {
+      "maxDuration": 5
     },
     "api/test-env.js": {
       "maxDuration": 5

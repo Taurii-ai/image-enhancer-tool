@@ -102,7 +102,7 @@ const Index = () => {
                 <div className="p-2 bg-white rounded-lg">
                   <EnhpixLogo className="w-8 h-8" />
                 </div>
-                <span className="text-xl font-bold text-foreground">Enhpix</span>
+                <span className="text-xl font-bold text-foreground">Enhpix v2.0 🚀</span>
               </div>
               {/* Desktop Navigation */}
               <div className="hidden md:flex items-center gap-3">
