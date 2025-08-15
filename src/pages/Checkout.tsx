@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EnhpixLogo } from '@/components/ui/enhpix-logo';
 import { useToast } from '@/hooks/use-toast';
-import { redirectToCheckout, getPlanById, type CheckoutData } from '@/services/stripe';
+import { createCheckout, getPlan, type PaymentData } from '@/services/payment';
 import { ArrowLeft, CreditCard, Shield, CheckCircle } from 'lucide-react';
 
 const Checkout = () => {
@@ -22,7 +22,7 @@ const Checkout = () => {
   const planId = searchParams.get('plan') || 'pro';
   const billing = (searchParams.get('billing') as 'monthly' | 'yearly') || 'monthly';
   
-  const selectedPlan = getPlanById(planId);
+  const selectedPlan = getPlan(planId);
 
   useEffect(() => {
     if (!selectedPlan) {
@@ -52,14 +52,14 @@ const Checkout = () => {
     setIsLoading(true);
 
     try {
-      const checkoutData: CheckoutData = {
+      const paymentData: PaymentData = {
         planId: selectedPlan.id,
         billing,
         customerEmail: customerEmail.trim(),
         customerName: customerName.trim()
       };
 
-      await redirectToCheckout(checkoutData);
+      await createCheckout(paymentData);
       
     } catch (error) {
       console.error('Checkout failed:', error);

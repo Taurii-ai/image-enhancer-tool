@@ -11,6 +11,7 @@ const Pricing = () => {
   const [isYearly, setIsYearly] = useState(false);
 
   const handlePlanSelect = (plan: string, billing: string) => {
+    console.log('Plan selected:', plan, billing);
     navigate(`/checkout?plan=${plan}&billing=${billing}`);
   };
 
