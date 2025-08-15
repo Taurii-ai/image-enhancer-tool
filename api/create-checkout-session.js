@@ -23,7 +23,7 @@ module.exports = async function handler(req, res) {
     }
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card', 'paypal'],
+      payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
       success_url: successUrl || 'https://enhpix.com/success?session_id={CHECKOUT_SESSION_ID}',
@@ -38,9 +38,19 @@ module.exports = async function handler(req, res) {
     });
 
   } catch (error) {
+    console.error('Stripe Error Details:', {
+      message: error.message,
+      type: error.type,
+      code: error.code,
+      param: error.param,
+      stack: error.stack
+    });
+    
     return res.status(500).json({
       error: 'Failed to create checkout session',
       message: error.message,
+      type: error.type || 'unknown',
+      code: error.code || 'unknown'
     });
   }
 }
