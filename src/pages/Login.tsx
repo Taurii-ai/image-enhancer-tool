@@ -51,7 +51,19 @@ const Login = () => {
       if (!userData) {
         toast({
           title: 'Account Not Found',
-          description: 'No account found with this email. Please sign up first.',
+          description: 'No account found with this email. Please choose a plan first.',
+          variant: 'destructive'
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Validate password
+      const user = JSON.parse(userData);
+      if (user.password !== loginData.password) {
+        toast({
+          title: 'Invalid Password',
+          description: 'The password you entered is incorrect.',
           variant: 'destructive'
         });
         setIsLoading(false);
@@ -81,47 +93,8 @@ const Login = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      // Check for duplicate email first
-      const emailExists = localStorage.getItem(`user_${signupData.email}`);
-      if (emailExists) {
-        toast({
-          title: 'Email Already Exists',
-          description: 'An account with this email already exists. Please sign in instead.',
-          variant: 'destructive'
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // Signup process
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Store user data to prevent duplicates
-      localStorage.setItem(`user_${signupData.email}`, JSON.stringify({
-        email: signupData.email,
-        name: signupData.name,
-        createdAt: new Date().toISOString()
-      }));
-      
-      toast({
-        title: 'Account Created!',
-        description: 'Welcome to Enhpix! Please choose a plan to get started.',
-      });
-      
-      handleRedirectAfterAuth();
-    } catch (error) {
-      console.error('Signup failed:', error);
-      toast({
-        title: 'Signup Error',
-        description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    // Redirect directly to pricing - no signup without payment
+    navigate('/pricing');
   };
 
   return (
@@ -243,11 +216,11 @@ const Login = () => {
                       required
                     />
                   </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Creating account...' : 'Create Account'}
+                  <Button type="submit" className="w-full">
+                    Choose Plan to Sign Up
                   </Button>
                   <p className="text-xs text-muted-foreground text-center">
-                    Sign up to access our AI image enhancement platform.
+                    Payment required. Choose a plan to create your account.
                   </p>
                 </form>
               </TabsContent>

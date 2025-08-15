@@ -34,6 +34,14 @@ module.exports = async function handler(req, res) {
     }
 
     // Create Stripe checkout session
+    console.log('Creating checkout session with:', {
+      priceId,
+      customerEmail,
+      customerName,
+      successUrl,
+      cancelUrl
+    });
+    
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -43,8 +51,8 @@ module.exports = async function handler(req, res) {
         },
       ],
       mode: 'subscription',
-      success_url: successUrl,
-      cancel_url: cancelUrl,
+      success_url: successUrl || `${process.env.VITE_APP_URL || 'https://enhpix.com'}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancelUrl || `${process.env.VITE_APP_URL || 'https://enhpix.com'}/pricing`,
       customer_email: customerEmail,
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
@@ -57,6 +65,8 @@ module.exports = async function handler(req, res) {
         },
       },
     });
+
+    console.log('Checkout session created:', { id: session.id, url: session.url });
 
     return res.status(200).json({
       id: session.id,
