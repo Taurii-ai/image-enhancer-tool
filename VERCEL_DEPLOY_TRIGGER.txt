@@ -1,0 +1,12 @@
+VERCEL DEPLOYMENT TRIGGER - 2025-08-15T04:40:00Z
+
+This file is created to trigger a new deployment after reconnecting to Vercel.
+
+🚀 READY TO DEPLOY:
+- Logo: User's exact blue cross + diamond design
+- Stripe: New /api/simple-checkout.js endpoint
+- Debug: Alert popups and console logs
+- UI: "Enhpix v2.0 🚀" in header
+- Version: 2.0.0
+
+All environment variables need to be added to new Vercel project.
