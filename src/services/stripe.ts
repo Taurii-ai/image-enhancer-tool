@@ -122,7 +122,7 @@ export const createCheckoutSession = async (data: CheckoutData) => {
       
       console.log('🔍 CHECKOUT DEBUG - API Payload:', apiPayload);
       
-      const response = await fetch('/api/create-checkout-session', {
+      const response = await fetch('/api/stripe-checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
