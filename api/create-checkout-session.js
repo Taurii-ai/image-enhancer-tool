@@ -1,22 +1,10 @@
 const Stripe = require('stripe');
-
-// Initialize Stripe with proper error handling
-let stripe;
-try {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    throw new Error('STRIPE_SECRET_KEY environment variable is not set');
-  }
-  stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-} catch (error) {
-  console.error('Stripe initialization error:', error);
-}
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 module.exports = async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -27,56 +15,21 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    console.log('=== CHECKOUT SESSION DEBUG ===');
-    console.log('Request method:', req.method);
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
-    console.log('Has STRIPE_SECRET_KEY:', !!process.env.STRIPE_SECRET_KEY);
-    console.log('STRIPE_SECRET_KEY starts with:', process.env.STRIPE_SECRET_KEY?.substring(0, 10));
-
     const { priceId, customerEmail, customerName, successUrl, cancelUrl } = req.body;
 
     if (!priceId) {
       return res.status(400).json({ error: 'Price ID is required' });
     }
 
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return res.status(500).json({ error: 'Stripe secret key not configured' });
-    }
-
-    // Create Stripe checkout session
-    console.log('Creating checkout session with:', {
-      priceId,
-      customerEmail,
-      customerName,
-      successUrl,
-      cancelUrl
-    });
-    
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
-      success_url: successUrl || `${process.env.VITE_APP_URL || 'https://enhpix.com'}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: cancelUrl || `${process.env.VITE_APP_URL || 'https://enhpix.com'}/pricing`,
+      success_url: successUrl || 'https://enhpix.com/success?session_id={CHECKOUT_SESSION_ID}',
+      cancel_url: cancelUrl || 'https://enhpix.com/pricing',
       customer_email: customerEmail,
-      allow_promotion_codes: true,
-      billing_address_collection: 'auto',
-      metadata: {
-        customerName: customerName || '',
-      },
-      subscription_data: {
-        metadata: {
-          customerName: customerName || '',
-        },
-      },
+      metadata: { customerName: customerName || '' },
     });
-
-    console.log('Checkout session created:', { id: session.id, url: session.url });
 
     return res.status(200).json({
       id: session.id,
@@ -84,7 +37,6 @@ module.exports = async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Stripe checkout session creation failed:', error);
     return res.status(500).json({
       error: 'Failed to create checkout session',
       message: error.message,

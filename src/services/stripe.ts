@@ -156,9 +156,6 @@ export const createCheckoutSession = async (data: CheckoutData) => {
 
 // Redirect to Stripe Checkout
 export const redirectToCheckout = async (checkoutData: CheckoutData) => {
-  console.log('🚀 CHECKOUT STARTED:', checkoutData);
-  alert('🔥 CHECKOUT STARTING - Check console for details!');
-  
   // Track checkout started
   trackConversionStep('checkout_started', checkoutData.planId);
   
@@ -168,36 +165,7 @@ export const redirectToCheckout = async (checkoutData: CheckoutData) => {
   trackPaymentEvent('payment_started', checkoutData.planId, amount);
 
   try {
-    console.log('🔥 TRYING SIMPLE CHECKOUT...');
-    
-    // Try simple checkout endpoint
-    const priceId = getPriceId(checkoutData.planId, checkoutData.billing);
-    console.log('💰 Using price ID:', priceId);
-    
-    const response = await fetch('/api/simple-checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ priceId }),
-    });
-    
-    console.log('📡 Response status:', response.status);
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('✅ SUCCESS:', data);
-      if (data.url) {
-        alert('✅ Redirecting to Stripe!');
-        window.location.href = data.url;
-        return;
-      }
-    } else {
-      const errorText = await response.text();
-      console.error('❌ API Error:', errorText);
-      alert(`❌ API Error: ${response.status} - ${errorText}`);
-    }
-
-    // Fallback to original
-    console.log('🔄 Trying original checkout...');
+    // Create checkout session
     const session = await createCheckoutSession(checkoutData);
     
     if (!isRealStripe) {
