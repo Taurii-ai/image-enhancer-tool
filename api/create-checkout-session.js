@@ -1,6 +1,6 @@
 const Stripe = require('stripe');
 
-module.exports = async function handler(req, res) {
+module.exports = async (req, res) => {
   // Initialize Stripe inside the function to avoid import issues
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   
@@ -77,4 +77,4 @@ module.exports = async function handler(req, res) {
       param: error.param || 'unknown'
     });
   }
-}
+};
