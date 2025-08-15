@@ -1,5 +1,20 @@
 {
+  "functions": {
+    "api/stripe-checkout.js": {
+      "runtime": "nodejs20.x"
+    },
+    "api/verify-payment.js": {
+      "runtime": "nodejs20.x"
+    },
+    "api/test.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
   "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
     {
       "source": "/((?!api).*)",
       "destination": "/index.html"
