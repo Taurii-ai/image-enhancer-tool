@@ -1,5 +1,5 @@
 import { loadStripe } from '@stripe/stripe-js';
-import { trackPaymentEvent, trackConversionStep, trackSubscriptionEvent } from './analytics';
+import { trackPaymentEvent, trackConversionStep, trackSubscriptionEvent } from './analytics-stub';
 
 // Environment detection
 const isProduction = import.meta.env.NODE_ENV === 'production';
