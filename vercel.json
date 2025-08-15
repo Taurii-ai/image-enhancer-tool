@@ -1,13 +1,7 @@
 {
   "functions": {
-    "api/stripe-checkout.js": {
-      "runtime": "nodejs20.x"
-    },
-    "api/verify-payment.js": {
-      "runtime": "nodejs20.x"
-    },
-    "api/test.js": {
-      "runtime": "nodejs20.x"
+    "api/*.js": {
+      "runtime": "@vercel/node@3.0.7"
     }
   },
   "rewrites": [
