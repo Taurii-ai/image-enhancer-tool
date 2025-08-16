@@ -23,6 +23,7 @@ const Index = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
   const [enhancementProgress, setEnhancementProgress] = useState<EnhancementProgress | null>(null);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
   
   const handleNavigation = (path: string) => {
     try {
@@ -69,6 +70,46 @@ const Index = () => {
       toast({
         title: "Enhancement Failed",
         description: "Sorry, we couldn't enhance your image. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const debugReplicate = async () => {
+    try {
+      console.log('🔍 Running Replicate API debug...');
+      
+      const response = await fetch('/api/debug-api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ testApiCall: true })
+      });
+
+      const result = await response.json();
+      setDebugInfo(result);
+      
+      console.log('🔍 Debug Result:', result);
+      
+      // Show result in toast
+      if (result.summary?.overallStatus === 'READY') {
+        toast({
+          title: "✅ Replicate API Ready!",
+          description: `Tests passed: ${result.summary.passedTests}`,
+        });
+      } else {
+        toast({
+          title: "❌ API Issues Found",
+          description: `Tests passed: ${result.summary?.passedTests || '0/0'}`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Debug failed:', error);
+      toast({
+        title: "Debug Failed",
+        description: "Could not test API connection",
         variant: "destructive",
       });
     }
@@ -247,7 +288,55 @@ const Index = () => {
       <div className="px-2 sm:px-3 md:px-6 py-4 sm:py-6 md:py-12">
         <div className="max-w-4xl mx-auto">
           {appState === 'upload' && (
-            <ImageUploader onImageUpload={handleImageUpload} />
+            <>
+              <ImageUploader onImageUpload={handleImageUpload} />
+              
+              {/* Debug Section - Temporary for troubleshooting */}
+              <div className="mt-8 p-4 bg-muted rounded-lg border">
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-sm">🔧 Debug Real-ESRGAN API</h3>
+                    <p className="text-xs text-muted-foreground">Test if Replicate API is configured correctly</p>
+                  </div>
+                  <Button 
+                    onClick={debugReplicate}
+                    variant="outline" 
+                    size="sm"
+                    className="text-xs"
+                  >
+                    Test API Connection
+                  </Button>
+                </div>
+                
+                {debugInfo && (
+                  <div className="mt-4 p-3 bg-background rounded border text-xs">
+                    <div className="mb-2">
+                      <span className={`font-semibold ${debugInfo.summary?.overallStatus === 'READY' ? 'text-green-600' : 'text-red-600'}`}>
+                        Status: {debugInfo.summary?.overallStatus || 'Unknown'}
+                      </span>
+                      <span className="ml-2 text-muted-foreground">
+                        ({debugInfo.summary?.passedTests || '0/0'} tests passed)
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <div>API Token: {debugInfo.environment?.hasReplicateToken ? '✅' : '❌'}</div>
+                      <div>Token Format: {debugInfo.tests?.tokenFormat?.status === 'PASS' ? '✅' : '❌'}</div>
+                      <div>Replicate Client: {debugInfo.tests?.replicateClient?.status === 'PASS' ? '✅' : '❌'}</div>
+                      {debugInfo.tests?.apiConnection && (
+                        <div>API Connection: {debugInfo.tests.apiConnection.status === 'PASS' ? '✅' : '❌'}</div>
+                      )}
+                    </div>
+                    
+                    {debugInfo.summary?.overallStatus !== 'READY' && (
+                      <div className="mt-2 text-red-600 text-xs">
+                        ⚠️ Fix issues above, then redeploy and test again
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
           )}
 
           {appState === 'processing' && (
