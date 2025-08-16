@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Download, RotateCcw, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, RotateCcw, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -226,17 +226,14 @@ export const ResultsDisplay = ({
                 transform: 'translateX(-50%)',
               }}
             >
-              {/* Centered Drag Handle */}
+              {/* Centered Drag Handle - Code Icon Style */}
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <div className={`bg-white rounded-full flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing transition-all duration-200 ${
+                <div className={`bg-white rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing transition-all duration-200 border border-gray-100 ${
                   isDragging 
-                    ? 'w-12 h-12 scale-110' 
-                    : 'w-10 h-10 hover:scale-105 hover:shadow-xl'
+                    ? 'w-14 h-14 scale-110 shadow-[0_8px_30px_rgb(0,0,0,0.12)]' 
+                    : 'w-12 h-12 hover:scale-105 shadow-[0_4px_20px_rgb(0,0,0,0.1)] hover:shadow-[0_6px_25px_rgb(0,0,0,0.15)]'
                 }`}>
-                  <div className="flex items-center justify-center">
-                    <ChevronLeft className={`text-gray-600 ${isDragging ? 'w-3 h-3' : 'w-2.5 h-2.5'}`} />
-                    <ChevronRight className={`text-gray-600 ${isDragging ? 'w-3 h-3' : 'w-2.5 h-2.5'}`} />
-                  </div>
+                  <Code className={`text-gray-600 ${isDragging ? 'w-5 h-5' : 'w-4 h-4'}`} strokeWidth={1.5} />
                 </div>
               </div>
             </div>
