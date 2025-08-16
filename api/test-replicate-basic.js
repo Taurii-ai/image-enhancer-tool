@@ -1,7 +1,28 @@
 import Replicate from "replicate";
 
 export default async function handler(req, res) {
+  // Add CORS headers for Vercel
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
   console.log('🧪 BASIC REPLICATE TEST started');
+  console.log('Method:', req.method);
+  
+  // Support both GET and POST for easy testing
+  if (req.method === 'GET') {
+    return res.status(200).json({
+      message: 'Test endpoint is working!',
+      method: 'GET',
+      hasToken: !!process.env.REPLICATE_API_TOKEN,
+      tokenLength: process.env.REPLICATE_API_TOKEN?.length || 0,
+      timestamp: new Date().toISOString()
+    });
+  }
   
   // Log everything about the environment
   console.log('Environment check:');
