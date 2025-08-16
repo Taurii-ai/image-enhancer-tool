@@ -18,37 +18,40 @@ const Pricing = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="p-4 md:p-6 border-b border-border">
+      <header className="p-3 sm:p-4 md:p-6 border-b border-border">
         <nav className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-            <div className="p-2 bg-white rounded-lg">
-              <EnhpixLogo className="w-8 h-8" />
+          <div className="flex items-center gap-2 sm:gap-3 cursor-pointer" onClick={() => navigate('/')}>
+            <div className="p-1.5 sm:p-2 bg-white rounded-lg">
+              <EnhpixLogo className="w-6 h-6 sm:w-8 sm:h-8" />
             </div>
-            <span className="text-xl font-bold text-foreground">Enhpix</span>
+            <span className="text-lg sm:text-xl font-bold text-foreground">Enhpix</span>
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="hidden sm:flex">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Home
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/login')}>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="sm:hidden">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate('/login')} className="text-xs sm:text-sm">
               Sign In
             </Button>
           </div>
         </nav>
       </header>
 
-      <div className="w-full max-w-7xl mx-4 md:mx-auto py-8 md:py-16">
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 bg-accent/10 text-accent px-4 py-2 rounded-full text-sm font-medium mb-6">
-            <Sparkles className="w-4 h-4" />
+      <div className="w-full max-w-7xl mx-2 sm:mx-4 md:mx-auto py-4 sm:py-8 md:py-16 px-2 sm:px-4">
+        <div className="text-center mb-8 sm:mb-12 md:mb-16">
+          <div className="inline-flex items-center gap-2 bg-accent/10 text-accent px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium mb-4 sm:mb-6">
+            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
             AI-Powered Image Enhancement
           </div>
           
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-3 sm:mb-4 px-2">
             Choose Your <span className="bg-gradient-primary bg-clip-text text-transparent">Enhancement Plan</span>
           </h1>
-          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+          <p className="text-sm sm:text-base md:text-lg text-muted-foreground mb-6 sm:mb-8 max-w-2xl mx-auto px-2">
             Transform your images with professional-grade AI upscaling. Start free, upgrade when you need more power.
           </p>
           
@@ -71,18 +74,18 @@ const Pricing = () => {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-6 mb-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12 md:mb-16">
           {/* Basic Plan */}
           <Card className="relative hover:shadow-lg transition-all duration-300">
-            <CardHeader className="pb-8">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                <Zap className="w-6 h-6 text-blue-600" />
+            <CardHeader className="pb-4 sm:pb-6 md:pb-8">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-3 sm:mb-4">
+                <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
               </div>
-              <CardTitle className="text-xl">Basic</CardTitle>
-              <CardDescription>Perfect for getting started with AI enhancement</CardDescription>
-              <div className="text-3xl font-bold text-foreground">
+              <CardTitle className="text-lg sm:text-xl">Basic</CardTitle>
+              <CardDescription className="text-sm sm:text-base">Perfect for getting started with AI enhancement</CardDescription>
+              <div className="text-2xl sm:text-3xl font-bold text-foreground">
                 ${isYearly ? '190' : '19'}
-                <span className="text-sm font-normal text-muted-foreground">
+                <span className="text-xs sm:text-sm font-normal text-muted-foreground">
                   /{isYearly ? 'year' : 'month'}
                 </span>
                 {isYearly && (
