@@ -1,27 +1,7 @@
 {
-  "version": 2,
-  "name": "pixel-shine-studio",
-  "build": {
-    "env": {
-      "NODE_VERSION": "18"
-    }
-  },
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ]
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "ignoreCommand": "exit 0"
 }
