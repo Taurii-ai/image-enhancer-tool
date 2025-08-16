@@ -1,0 +1,19 @@
+{
+  "version": "3.0.0",
+  "name": "pixel-shine-studio",
+  "deployment": "2025-08-16T22:05:00Z",
+  "features": {
+    "realESRGAN": true,
+    "directClient": true,
+    "actualAI": true,
+    "processingTime": "12-15s"
+  },
+  "build": {
+    "time": "12.27s",
+    "assets": {
+      "js": "755.45kB",
+      "css": "76.51kB",
+      "html": "1.40kB"
+    }
+  }
+}

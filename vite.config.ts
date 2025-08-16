@@ -3,12 +3,13 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// https://vitejs.dev/config/
+// Pixel Shine Studio v3.0.0 - Real-ESRGAN Configuration
 export default defineConfig(({ mode }) => ({
   base: "/",
   build: {
     outDir: "dist",
     assetsDir: "assets",
+    target: "esnext",
     rollupOptions: {
       output: {
         manualChunks: undefined,
