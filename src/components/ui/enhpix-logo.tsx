@@ -21,8 +21,8 @@ export const EnhpixLogo: React.FC<EnhpixLogoProps> = ({ className = "w-8 h-8" })
         src="/logo-exact.png" 
         alt="Enhpix Logo" 
         style={{ 
-          width: '90%',
-          height: '90%',
+          width: '95%',
+          height: '95%',
           objectFit: 'contain',
           filter: 'brightness(1.1) contrast(1.1)'
         }}
