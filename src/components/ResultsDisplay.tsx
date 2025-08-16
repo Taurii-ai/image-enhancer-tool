@@ -23,8 +23,18 @@ export const ResultsDisplay = ({
   const [comparison, setComparison] = useState(50);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Get the original image aspect ratio
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => {
+      setImageAspectRatio(img.width / img.height);
+    };
+    img.src = originalImage;
+  }, [originalImage]);
 
   // Handle mouse and touch events for smooth slider interaction
   const getPositionFromEvent = (e: MouseEvent | TouchEvent): number => {
@@ -93,14 +103,19 @@ export const ResultsDisplay = ({
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      // Simulate download process
+      // Download the enhanced image
       const response = await fetch(enhancedImage);
       const blob = await response.blob();
+      
+      // Preserve the original file format and name
+      const fileExtension = originalFile.name.split('.').pop() || 'jpg';
+      const baseName = originalFile.name.replace(/\.[^/.]+$/, '');
+      const enhancedFileName = `${baseName}_enhanced.${fileExtension}`;
       
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `enhanced_${originalFile.name}`;
+      link.download = enhancedFileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -108,7 +123,7 @@ export const ResultsDisplay = ({
 
       toast({
         title: "Download complete!",
-        description: "Your enhanced image has been saved.",
+        description: `Enhanced image saved as ${enhancedFileName}`,
       });
     } catch (error) {
       toast({
@@ -176,10 +191,15 @@ export const ResultsDisplay = ({
 
           <div 
             ref={containerRef}
-            className="relative rounded-2xl overflow-hidden bg-black aspect-video cursor-grab active:cursor-grabbing select-none shadow-2xl group"
+            className="relative rounded-2xl overflow-hidden bg-black cursor-grab active:cursor-grabbing select-none shadow-2xl group"
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
-            style={{ userSelect: 'none' }}
+            style={{ 
+              userSelect: 'none',
+              aspectRatio: imageAspectRatio ? `${imageAspectRatio}` : '16/9',
+              maxHeight: '70vh',
+              width: '100%'
+            }}
           >
             {/* Enhanced image (background - "After") */}
             <img
