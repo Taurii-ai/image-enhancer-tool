@@ -10,68 +10,7 @@ const replicate = new Replicate({
   auth: import.meta.env.VITE_REPLICATE_API_TOKEN,
 });
 
-// Log API usage with comprehensive tracking and cost estimation
-const logApiUsage = (quality: string, scale: number, fileSize: number) => {
-  const subscription = getUserSubscription();
-  
-  // Estimate cost (Real-ESRGAN costs ~$0.0025 per image)
-  const estimatedCost = 0.0025;
-  console.log(`💰 API Cost: ~$${estimatedCost.toFixed(4)} for ${scale}x upscaling`);
-  
-  // Record usage in cost tracker
-  recordApiUsage(
-    quality as 'basic' | 'premium' | 'ultra',
-    scale,
-    fileSize,
-    subscription.userId,
-    subscription.planId
-  );
-};
-
-// Retry function for API calls
-const retryApiCall = async <T>(
-  fn: () => Promise<T>, 
-  maxRetries: number = 2,
-  delay: number = 1000
-): Promise<T> => {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await fn();
-    } catch (error) {
-      if (i === maxRetries - 1) throw error;
-      console.log(`Retry ${i + 1}/${maxRetries} after ${delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-      delay *= 2; // Exponential backoff
-    }
-  }
-  throw new Error('Max retries exceeded');
-};
-
-// Tutorial's exact frontend function
-const upscaleImage = async (imageUrl: string) => {
-  try {
-    const response = await fetch('/api/upscale-image', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ imageUrl: imageUrl }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to upscale image.');
-    }
-
-    const data = await response.json();
-    console.log('Upscaled image URL:', data.upscaledUrl);
-
-    // Return the upscaled image URL
-    return data.upscaledUrl;
-  } catch (error) {
-    console.error('Frontend upscaling error:', error);
-    throw error;
-  }
-};
+// These functions were used for the old API-based approach, now using direct client
 
 export interface EnhancementProgress {
   status: 'starting' | 'processing' | 'completed' | 'failed';
@@ -95,70 +34,13 @@ const fileToDataURL = (file: File): Promise<string> => {
   });
 };
 
-// Optimize image size for API cost efficiency
-const optimizeImageForAPI = (file: File): Promise<File> => {
-  return new Promise((resolve) => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    
-    img.onload = () => {
-      // Calculate optimal dimensions (max 2048px on either side for cost efficiency)
-      const maxDimension = 2048;
-      let { width, height } = img;
-      
-      if (width > maxDimension || height > maxDimension) {
-        const ratio = Math.min(maxDimension / width, maxDimension / height);
-        width = Math.floor(width * ratio);
-        height = Math.floor(height * ratio);
-      }
-      
-      canvas.width = width;
-      canvas.height = height;
-      
-      // Draw and compress
-      ctx?.drawImage(img, 0, 0, width, height);
-      
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            const optimizedFile = new File([blob], file.name, { 
-              type: 'image/jpeg',
-              lastModified: Date.now() 
-            });
-            resolve(optimizedFile);
-          } else {
-            resolve(file); // Fallback to original
-          }
-        },
-        'image/jpeg',
-        0.9 // 90% quality for good balance
-      );
-    };
-    
-    img.onerror = () => resolve(file); // Fallback to original
-    img.src = URL.createObjectURL(file);
-  });
-};
-
-// Get appropriate model based on quality level
-const getModelForQuality = (quality: 'basic' | 'premium' | 'ultra'): string => {
-  switch (quality) {
-    case 'ultra':
-      return 'tencentarc/gfpgan:9283608cc6b7be6b65a8e44983db012355fde4132009bf99d976b2f0896856a3';
-    case 'premium':
-      return 'cjwbw/waifu2x:25c54b7f1eed87a1e5e8ae7d4eaae73a49ec0fafebdab0a8a3ecb4f0b97bd78a';
-    case 'basic':
-    default:
-      return 'nightmareai/real-esrgan:42fed1c4974146d4d2414e2be2c5277c7fcf05fcc972f1a6c68ad1d9f7a55dc2';
-  }
-};
+// These functions were used for the old API-based approach with multiple models
 
 // Simulate API call for demo purposes (when no real API key)
 const simulateEnhancement = async (
   file: File,
   onProgress: (progress: EnhancementProgress) => void,
-  planLimits?: any
+  planLimits?: { quality?: string; maxScale?: number }
 ): Promise<string> => {
   // Simulate processing stages with plan-specific messaging
   const quality = planLimits?.quality || 'basic';
@@ -355,12 +237,12 @@ export const enhanceImage = async (
       
       console.log('✅ DIRECT CLIENT: Real-ESRGAN successful!', resultUrl);
       
-    } catch (apiError: any) {
+    } catch (apiError: unknown) {
       console.error('🚨 Direct Replicate Error:', apiError);
-      console.error('Error details:', apiError.message);
+      console.error('Error details:', apiError instanceof Error ? apiError.message : 'Unknown error');
       
       // Show specific error message to user
-      const errorMessage = apiError.message || 'Real-ESRGAN processing failed';
+      const errorMessage = (apiError instanceof Error ? apiError.message : 'Real-ESRGAN processing failed');
       onProgress({ 
         status: 'processing', 
         progress: 60, 
@@ -379,15 +261,15 @@ export const enhanceImage = async (
     const fileSizeMB = file.size / 1024 / 1024;
     
     trackImageEnhancement(
-      planLimits.quality,
-      planLimits.maxScale,
+      'basic', // Using 'basic' since we're using single Real-ESRGAN model
+      4, // Real-ESRGAN does 4x upscaling
       fileSizeMB,
       processingTime,
       true
     );
     
-    // Track API cost
-    trackApiCost(planLimits.quality, MODEL_COSTS[planLimits.quality]);
+    // Track API cost - using basic as fallback since we're using single Real-ESRGAN model
+    trackApiCost('basic', MODEL_COSTS['basic']);
     
     return {
       originalUrl: URL.createObjectURL(file),
@@ -404,8 +286,8 @@ export const enhanceImage = async (
     const planLimits = getCurrentPlanLimits();
     
     trackImageEnhancement(
-      planLimits.quality,
-      planLimits.maxScale,
+      'basic', // Using 'basic' since we're using single Real-ESRGAN model
+      4, // Real-ESRGAN does 4x upscaling
       fileSizeMB,
       processingTime,
       false,
