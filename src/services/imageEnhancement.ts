@@ -7,12 +7,16 @@ import { UserService } from './userService';
 // Initialize Replicate client
 // Use environment variable with Vite prefix for frontend
 const replicate = new Replicate({
-  auth: import.meta.env.VITE_REPLICATE_API_TOKEN || 'r8_demo_key',
+  auth: import.meta.env.VITE_REPLICATE_API_TOKEN,
 });
 
-// Log API usage with comprehensive tracking
+// Log API usage with comprehensive tracking and cost estimation
 const logApiUsage = (quality: string, scale: number, fileSize: number) => {
   const subscription = getUserSubscription();
+  
+  // Estimate cost (Real-ESRGAN costs ~$0.0025 per image)
+  const estimatedCost = 0.0025;
+  console.log(`💰 API Cost: ~$${estimatedCost.toFixed(4)} for ${scale}x upscaling`);
   
   // Record usage in cost tracker
   recordApiUsage(
@@ -22,6 +26,25 @@ const logApiUsage = (quality: string, scale: number, fileSize: number) => {
     subscription.userId,
     subscription.planId
   );
+};
+
+// Retry function for API calls
+const retryApiCall = async <T>(
+  fn: () => Promise<T>, 
+  maxRetries: number = 2,
+  delay: number = 1000
+): Promise<T> => {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+      console.log(`Retry ${i + 1}/${maxRetries} after ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= 2; // Exponential backoff
+    }
+  }
+  throw new Error('Max retries exceeded');
 };
 
 export interface EnhancementProgress {
@@ -130,29 +153,55 @@ const simulateEnhancement = async (
   onProgress({ status: 'processing', progress: 90, message: 'Finalizing enhancement...' });
   await new Promise(resolve => setTimeout(resolve, 800));
   
-  // For demo, create a slightly enhanced version by increasing brightness/contrast
+  // For demo, create a dramatically enhanced version that simulates AI upscaling
   return new Promise((resolve) => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
     
     img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
+      // Scale up the canvas for higher resolution simulation
+      const scaleFactor = scale || 2;
+      canvas.width = img.width * scaleFactor;
+      canvas.height = img.height * scaleFactor;
       
-      // Draw original image
-      ctx?.drawImage(img, 0, 0);
-      
-      // Apply slight enhancement effect for demo
       if (ctx) {
+        // Enable high-quality image smoothing
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        
+        // Draw upscaled image
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        // Apply dramatic AI-style enhancement
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
         
-        // Slight brightness and contrast enhancement
         for (let i = 0; i < data.length; i += 4) {
-          data[i] = Math.min(255, data[i] * 1.1 + 10);     // Red
-          data[i + 1] = Math.min(255, data[i + 1] * 1.1 + 10); // Green  
-          data[i + 2] = Math.min(255, data[i + 2] * 1.1 + 10); // Blue
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          
+          // Dramatic contrast and sharpness enhancement
+          const brightness = 1.3;  // 30% brighter
+          const contrast = 1.4;    // 40% more contrast
+          const saturation = 1.2;  // 20% more saturated
+          
+          // Apply brightness and contrast
+          let newR = ((r / 255 - 0.5) * contrast + 0.5) * brightness * 255;
+          let newG = ((g / 255 - 0.5) * contrast + 0.5) * brightness * 255;
+          let newB = ((b / 255 - 0.5) * contrast + 0.5) * brightness * 255;
+          
+          // Apply saturation boost
+          const gray = newR * 0.299 + newG * 0.587 + newB * 0.114;
+          newR = gray + (newR - gray) * saturation;
+          newG = gray + (newG - gray) * saturation;
+          newB = gray + (newB - gray) * saturation;
+          
+          // Clamp values and apply
+          data[i] = Math.min(255, Math.max(0, newR));
+          data[i + 1] = Math.min(255, Math.max(0, newG));
+          data[i + 2] = Math.min(255, Math.max(0, newB));
         }
         
         ctx.putImageData(imageData, 0, 0);
@@ -164,7 +213,7 @@ const simulateEnhancement = async (
         } else {
           resolve(URL.createObjectURL(file));
         }
-      }, 'image/jpeg', 0.95);
+      }, 'image/jpeg', 0.98); // Higher quality output
     };
     
     img.onerror = () => resolve(URL.createObjectURL(file));
@@ -225,7 +274,7 @@ export const enhanceImage = async (
     
     // Check if we have a real API key
     const hasRealKey = import.meta.env.VITE_REPLICATE_API_TOKEN && 
-                      import.meta.env.VITE_REPLICATE_API_TOKEN !== 'r8_demo_key';
+                      import.meta.env.VITE_REPLICATE_API_TOKEN.startsWith('r8_');
     
     let enhancedUrl: string;
     
@@ -233,48 +282,66 @@ export const enhanceImage = async (
       // Real Replicate API implementation
       onProgress({ status: 'processing', progress: 10, message: 'Preparing image for AI processing...' });
       
-      // Optimize image size for cost efficiency (max 5MB)
+      // Optimize image size for cost efficiency (max 2048px for better quality/cost balance)
       const optimizedFile = await optimizeImageForAPI(file);
       const imageDataUrl = await fileToDataURL(optimizedFile);
       
-      onProgress({ status: 'processing', progress: 25, message: 'Uploading to AI model...' });
+      onProgress({ status: 'processing', progress: 25, message: 'Uploading to Real-ESRGAN AI model...' });
       
-      // Choose model and scale based on plan
-      const modelVersion = getModelForQuality(planLimits.quality);
-      const scale = Math.min(4, planLimits.maxScale); // Cap at 4x for most models
+      // Use Real-ESRGAN model - best quality for photos
+      const modelVersion = 'nightmareai/real-esrgan:42fed1c4974146d4d2414e2be2c5277c7fcf05fcc972f1a6c68ad1d9f7a55dc2';
+      const scale = Math.min(4, planLimits.maxScale || 4); // Cap at 4x
       
       // Log usage for cost tracking
       logApiUsage(planLimits.quality, scale, optimizedFile.size);
       
-      onProgress({ status: 'processing', progress: 40, message: `Applying ${planLimits.quality} quality enhancement...` });
+      onProgress({ status: 'processing', progress: 40, message: `Processing with Real-ESRGAN ${scale}x upscaling...` });
       
       try {
-        const output = await replicate.run(modelVersion, {
-          input: {
-            image: imageDataUrl,
-            scale: scale,
-          }
-        }) as string;
+        console.log('🔍 REAL API: Starting Real-ESRGAN processing...');
         
-        if (!output) {
-          throw new Error('No output received from AI model');
+        const prediction = await retryApiCall(async () => {
+          return await replicate.run(modelVersion, {
+            input: {
+              image: imageDataUrl,
+              scale: scale,
+              face_enhance: false, // Keep false for general images
+            }
+          }) as string;
+        });
+        
+        if (!prediction) {
+          throw new Error('No output received from Real-ESRGAN model');
         }
         
-        enhancedUrl = output;
-        onProgress({ status: 'processing', progress: 90, message: 'Processing complete, downloading result...' });
+        enhancedUrl = prediction;
+        onProgress({ status: 'processing', progress: 90, message: 'Real AI enhancement complete!' });
+        
+        console.log('✅ REAL API: Enhancement successful!', prediction);
         
       } catch (apiError: any) {
-        console.error('Replicate API error:', apiError);
+        console.error('🚨 Replicate API error:', apiError);
+        
+        // Show specific error message to user
+        const errorMessage = apiError.message || 'API processing failed';
+        onProgress({ 
+          status: 'processing', 
+          progress: 60, 
+          message: `API Error: ${errorMessage}. Falling back to demo...` 
+        });
         
         // Fallback to demo mode if API fails
-        console.log('API failed, falling back to demo mode');
-        onProgress({ status: 'processing', progress: 60, message: 'API unavailable, using demo processing...' });
         enhancedUrl = await simulateEnhancement(file, onProgress, planLimits);
       }
       
     } else {
-      // Demo mode - simulate the process with plan-specific messaging
-      console.log(`Running in demo mode - ${planLimits.quality} quality simulation`);
+      // Demo mode - no API key provided
+      console.log('🔍 DEMO MODE: No valid Replicate API key found');
+      onProgress({ 
+        status: 'processing', 
+        progress: 20, 
+        message: 'Demo mode - Add Replicate API key for real AI upscaling' 
+      });
       enhancedUrl = await simulateEnhancement(file, onProgress, planLimits);
     }
     
