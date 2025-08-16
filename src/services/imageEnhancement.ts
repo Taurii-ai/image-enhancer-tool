@@ -300,61 +300,74 @@ export const enhanceImage = async (
     
     let enhancedUrl: string;
     
-    // OFFICIAL REPLICATE GUIDE METHOD
+    // DIRECT REPLICATE CLIENT METHOD (since API routes don't work in Vite)
     try {
       onProgress({ status: 'processing', progress: 10, message: 'Preparing image...' });
       
-      // Convert file to data URL
+      // Convert file to data URL for Replicate
       const imageDataUrl = await fileToDataURL(file);
       
-      onProgress({ status: 'processing', progress: 20, message: 'Testing authentication...' });
+      onProgress({ status: 'processing', progress: 20, message: 'Connecting to Replicate...' });
       
-      console.log('🔥 OFFICIAL METHOD: Following Replicate guide exactly...');
+      console.log('🔥 DIRECT CLIENT: Using Replicate directly from frontend...');
+      console.log('🔑 Has API token:', !!import.meta.env.VITE_REPLICATE_API_TOKEN);
       
-      // Call the official API implementation
-      const response = await fetch('/api/official-replicate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageUrl: imageDataUrl
-        })
-      });
+      if (!import.meta.env.VITE_REPLICATE_API_TOKEN) {
+        throw new Error('VITE_REPLICATE_API_TOKEN not found');
+      }
+      
+      onProgress({ status: 'processing', progress: 30, message: 'Starting Real-ESRGAN model...' });
+      
+      // Use the exact Real-ESRGAN model and parameters from the guide
+      const output = await replicate.run(
+        "xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56",
+        {
+          input: {
+            img: imageDataUrl,
+            version: "Anime - anime6B"
+          }
+        }
+      );
 
-      onProgress({ status: 'processing', progress: 40, message: 'Running Real-ESRGAN model...' });
+      onProgress({ status: 'processing', progress: 80, message: 'Processing with Real-ESRGAN...' });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('🚨 Official API Error:', errorData);
-        throw new Error(`Official API Error: ${errorData.error || response.statusText}`);
+      console.log('📥 Direct Replicate Output:', output);
+      console.log('📥 Output type:', typeof output);
+      
+      // Handle output based on Replicate's response format
+      let resultUrl: string;
+      if (output && typeof output === 'object' && 'url' in output && typeof output.url === 'function') {
+        resultUrl = output.url();
+      } else if (Array.isArray(output) && output.length > 0) {
+        resultUrl = output[0];
+      } else if (typeof output === 'string') {
+        resultUrl = output;
+      } else {
+        throw new Error('Unexpected output format from Real-ESRGAN');
+      }
+      
+      if (!resultUrl) {
+        throw new Error('No valid URL received from Real-ESRGAN');
       }
 
-      const result = await response.json();
-      console.log('📥 Official API Response:', result);
-
-      if (!result.success || !result.upscaledUrl) {
-        throw new Error(result.error || 'No upscaled image received from official method');
-      }
-
-      enhancedUrl = result.upscaledUrl;
-      onProgress({ status: 'processing', progress: 90, message: 'Official Real-ESRGAN complete!' });
+      enhancedUrl = resultUrl;
+      onProgress({ status: 'processing', progress: 95, message: 'Real-ESRGAN enhancement complete!' });
       
-      console.log('✅ OFFICIAL METHOD: Real-ESRGAN successful!', result.upscaledUrl);
+      console.log('✅ DIRECT CLIENT: Real-ESRGAN successful!', resultUrl);
       
     } catch (apiError: any) {
-      console.error('🚨 Our API Error:', apiError);
+      console.error('🚨 Direct Replicate Error:', apiError);
       console.error('Error details:', apiError.message);
       
       // Show specific error message to user
-      const errorMessage = apiError.message || 'API processing failed';
+      const errorMessage = apiError.message || 'Real-ESRGAN processing failed';
       onProgress({ 
         status: 'processing', 
         progress: 60, 
-        message: `API Error: ${errorMessage}. Falling back to demo...` 
+        message: `Real-ESRGAN Error: ${errorMessage}. Using demo mode...` 
       });
       
-      // Fallback to demo mode if API fails
+      // Fallback to demo mode if Real-ESRGAN fails
       console.log('🔄 Falling back to demo enhancement');
       enhancedUrl = await simulateEnhancement(file, onProgress, planLimits);
     }
