@@ -10,7 +10,12 @@ export const EnhpixLogo: React.FC<EnhpixLogoProps> = ({ className = "w-8 h-8" })
       src="/logo-exact.png" 
       alt="Enhpix Logo" 
       className={className}
-      style={{ objectFit: 'contain' }}
+      style={{ 
+        objectFit: 'contain',
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        padding: '2px'
+      }}
     />
   );
 };
