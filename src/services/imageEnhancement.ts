@@ -316,6 +316,22 @@ export const enhanceImage = async (
       onProgress({ status: 'processing', progress: 40, message: 'Processing with Real-ESRGAN upscaling...' });
       
       console.log('🔍 TUTORIAL METHOD: Starting Real-ESRGAN processing...');
+      console.log('🔍 Image data URL length:', imageDataUrl.length);
+      console.log('🔍 About to call upscaleImage function...');
+      
+      // First test our simple API
+      try {
+        console.log('🔍 Testing simple API first...');
+        const testResponse = await fetch('/api/test-upscale', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ test: 'data' }),
+        });
+        const testResult = await testResponse.json();
+        console.log('🔍 Test API result:', testResult);
+      } catch (testError) {
+        console.error('🚨 Test API failed:', testError);
+      }
       
       // Use the tutorial's exact frontend function
       const upscaledUrl = await upscaleImage(imageDataUrl);
