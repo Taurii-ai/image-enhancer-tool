@@ -1,4 +1,4 @@
-# 🔑 Replicate API Setup Guide
+# 🔑 Replicate API Setup Guide - FIXED VERSION
 
 ## Step 1: Get Your API Key
 
@@ -9,9 +9,15 @@
 
 ## Step 2: Add to Your Environment
 
+### ⚠️ IMPORTANT: Use Different Variable Names for Different Purposes
+
 ### For Local Development:
 Add to your `.env` file:
 ```
+# For serverless functions (backend)
+REPLICATE_API_TOKEN=r8_your_actual_token_here
+
+# For client-side detection (optional)
 VITE_REPLICATE_API_TOKEN=r8_your_actual_token_here
 ```
 
@@ -19,19 +25,38 @@ VITE_REPLICATE_API_TOKEN=r8_your_actual_token_here
 1. Go to your Vercel dashboard
 2. Select your project
 3. Go to Settings → Environment Variables
-4. Add new variable:
-   - **Name**: `VITE_REPLICATE_API_TOKEN`
+4. Add **BOTH** variables:
+
+**Variable 1 (MOST IMPORTANT):**
+   - **Name**: `REPLICATE_API_TOKEN` (no VITE_ prefix)
    - **Value**: `r8_your_actual_token_here`
-   - **Environment**: Production (and Preview if you want)
+   - **Environment**: Production, Preview, Development
+
+**Variable 2 (Optional):**
+   - **Name**: `VITE_REPLICATE_API_TOKEN` 
+   - **Value**: `r8_your_actual_token_here`
+   - **Environment**: Production, Preview, Development
+
+### 🔄 **CRITICAL: Redeploy After Adding Variables**
+After adding environment variables, you MUST trigger a new deployment!
 
 ## Step 3: Test It Works
 
-1. Deploy your changes to Vercel
+1. Deploy your changes to Vercel (or redeploy if already deployed)
 2. Upload an image to your app
-3. Look for console messages like:
-   - `🔍 REAL API: Starting Real-ESRGAN processing...`
-   - `✅ REAL API: Enhancement successful!`
-   - `💰 API Cost: ~$0.0025 for 4x upscaling`
+3. Open browser console and look for messages like:
+   - `🔍 CALLING OUR API: Starting Real-ESRGAN processing...`
+   - `🔍 ENHANCE API: Starting Real-ESRGAN processing...`
+   - `✅ OUR API: Enhancement successful!`
+   - `💰 Processing time: Xms, Cost: $0.0025`
+
+### 🔍 **Debugging Console Messages**
+
+**If you see:**
+- `API Error: API configuration error` → Missing `REPLICATE_API_TOKEN` in Vercel
+- `Invalid API token format` → Token doesn't start with `r8_`
+- `CORS error` → Likely a deployment issue, redeploy
+- `Fallback to demo enhancement` → API call failed, check Vercel function logs
 
 ## 💰 Cost Breakdown
 

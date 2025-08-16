@@ -272,14 +272,10 @@ export const enhanceImage = async (
     // Get user's plan limits for processing options
     const planLimits = getCurrentPlanLimits();
     
-    // Check if we have a real API key
-    const hasRealKey = import.meta.env.VITE_REPLICATE_API_TOKEN && 
-                      import.meta.env.VITE_REPLICATE_API_TOKEN.startsWith('r8_');
-    
     let enhancedUrl: string;
     
-    if (hasRealKey) {
-      // Real Replicate API implementation
+    // Try to use our serverless API for real AI upscaling
+    try {
       onProgress({ status: 'processing', progress: 10, message: 'Preparing image for AI processing...' });
       
       // Optimize image size for cost efficiency (max 2048px for better quality/cost balance)
@@ -288,8 +284,6 @@ export const enhanceImage = async (
       
       onProgress({ status: 'processing', progress: 25, message: 'Uploading to Real-ESRGAN AI model...' });
       
-      // Use Real-ESRGAN model - best quality for photos
-      const modelVersion = 'nightmareai/real-esrgan:42fed1c4974146d4d2414e2be2c5277c7fcf05fcc972f1a6c68ad1d9f7a55dc2';
       const scale = Math.min(4, planLimits.maxScale || 4); // Cap at 4x
       
       // Log usage for cost tracking
@@ -297,51 +291,52 @@ export const enhanceImage = async (
       
       onProgress({ status: 'processing', progress: 40, message: `Processing with Real-ESRGAN ${scale}x upscaling...` });
       
-      try {
-        console.log('🔍 REAL API: Starting Real-ESRGAN processing...');
-        
-        const prediction = await retryApiCall(async () => {
-          return await replicate.run(modelVersion, {
-            input: {
-              image: imageDataUrl,
-              scale: scale,
-              face_enhance: false, // Keep false for general images
-            }
-          }) as string;
-        });
-        
-        if (!prediction) {
-          throw new Error('No output received from Real-ESRGAN model');
-        }
-        
-        enhancedUrl = prediction;
-        onProgress({ status: 'processing', progress: 90, message: 'Real AI enhancement complete!' });
-        
-        console.log('✅ REAL API: Enhancement successful!', prediction);
-        
-      } catch (apiError: any) {
-        console.error('🚨 Replicate API error:', apiError);
-        
-        // Show specific error message to user
-        const errorMessage = apiError.message || 'API processing failed';
-        onProgress({ 
-          status: 'processing', 
-          progress: 60, 
-          message: `API Error: ${errorMessage}. Falling back to demo...` 
-        });
-        
-        // Fallback to demo mode if API fails
-        enhancedUrl = await simulateEnhancement(file, onProgress, planLimits);
+      console.log('🔍 CALLING OUR API: Starting Real-ESRGAN processing...');
+      
+      // Call our serverless function instead of Replicate directly
+      const response = await fetch('/api/enhance-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageData: imageDataUrl,
+          scale: scale,
+          userEmail: userEmail
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(`API Error: ${errorData.error || response.statusText}`);
       }
       
-    } else {
-      // Demo mode - no API key provided
-      console.log('🔍 DEMO MODE: No valid Replicate API key found');
+      const result = await response.json();
+      
+      if (!result.success || !result.enhancedImageUrl) {
+        throw new Error(result.error || 'No enhanced image received');
+      }
+      
+      enhancedUrl = result.enhancedImageUrl;
+      onProgress({ status: 'processing', progress: 90, message: 'Real AI enhancement complete!' });
+      
+      console.log('✅ OUR API: Enhancement successful!', result);
+      console.log(`💰 Processing time: ${result.processingTime}ms, Cost: $${result.estimatedCost}`);
+      
+    } catch (apiError: any) {
+      console.error('🚨 Our API Error:', apiError);
+      console.error('Error details:', apiError.message);
+      
+      // Show specific error message to user
+      const errorMessage = apiError.message || 'API processing failed';
       onProgress({ 
         status: 'processing', 
-        progress: 20, 
-        message: 'Demo mode - Add Replicate API key for real AI upscaling' 
+        progress: 60, 
+        message: `API Error: ${errorMessage}. Falling back to demo...` 
       });
+      
+      // Fallback to demo mode if API fails
+      console.log('🔄 Falling back to demo enhancement');
       enhancedUrl = await simulateEnhancement(file, onProgress, planLimits);
     }
     
