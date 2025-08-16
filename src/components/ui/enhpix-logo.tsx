@@ -6,16 +6,27 @@ interface EnhpixLogoProps {
 
 export const EnhpixLogo: React.FC<EnhpixLogoProps> = ({ className = "w-8 h-8" }) => {
   return (
-    <img 
-      src="/logo-exact.png" 
-      alt="Enhpix Logo" 
+    <div 
       className={className}
       style={{ 
-        objectFit: 'contain',
         backgroundColor: 'white',
         borderRadius: '8px',
-        padding: '2px'
+        padding: '1px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}
-    />
+    >
+      <img 
+        src="/logo-exact.png" 
+        alt="Enhpix Logo" 
+        style={{ 
+          width: '90%',
+          height: '90%',
+          objectFit: 'contain',
+          filter: 'brightness(1.1) contrast(1.1)'
+        }}
+      />
+    </div>
   );
 };
