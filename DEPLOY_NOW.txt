@@ -1,0 +1,6 @@
+DEPLOYMENT TRIGGER: 2025-08-16 21:58:30
+
+REAL-ESRGAN IS READY TO DEPLOY!
+
+This file exists solely to trigger a Vercel deployment.
+Real-ESRGAN implementation is complete and tested.
