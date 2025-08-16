@@ -16,7 +16,7 @@ const Pricing = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="p-3 sm:p-4 md:p-6 border-b border-border">
         <nav className="max-w-7xl mx-auto flex items-center justify-between">
@@ -41,17 +41,17 @@ const Pricing = () => {
         </nav>
       </header>
 
-      <div className="w-full max-w-7xl mx-2 sm:mx-4 md:mx-auto py-4 sm:py-8 md:py-16 px-2 sm:px-4">
+      <div className="w-full max-w-7xl mx-auto py-4 sm:py-8 md:py-16 px-4 sm:px-6 md:px-8">
         <div className="text-center mb-8 sm:mb-12 md:mb-16">
           <div className="inline-flex items-center gap-2 bg-accent/10 text-accent px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium mb-4 sm:mb-6">
             <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
             AI-Powered Image Enhancement
           </div>
           
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-3 sm:mb-4 px-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-3 sm:mb-4 text-center">
             Choose Your <span className="bg-gradient-primary bg-clip-text text-transparent">Enhancement Plan</span>
           </h1>
-          <p className="text-sm sm:text-base md:text-lg text-muted-foreground mb-6 sm:mb-8 max-w-2xl mx-auto px-2">
+          <p className="text-sm sm:text-base md:text-lg text-muted-foreground mb-6 sm:mb-8 max-w-2xl mx-auto text-center">
             Transform your images with professional-grade AI upscaling. Start free, upgrade when you need more power.
           </p>
           
@@ -74,7 +74,7 @@ const Pricing = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12 md:mb-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12 md:mb-16 justify-items-center">
           {/* Basic Plan */}
           <Card className="relative hover:shadow-lg transition-all duration-300">
             <CardHeader className="pb-4 sm:pb-6 md:pb-8">
