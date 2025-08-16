@@ -1,7 +1,7 @@
 {
-  "name": "emergency-deploy-real-esrgan",
+  "name": "real-esrgan-direct-deploy",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite",

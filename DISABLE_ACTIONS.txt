@@ -1,0 +1,6 @@
+GITHUB ACTIONS DISABLED - DIRECT VERCEL DEPLOYMENT ONLY
+
+This file exists to signal that GitHub Actions should be completely bypassed.
+Real-ESRGAN v1.0.2 ready for immediate Vercel deployment.
+
+No CI/CD interference - deploy directly!
