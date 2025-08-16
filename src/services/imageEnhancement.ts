@@ -191,7 +191,7 @@ export const enhanceImage = async (
       
       onProgress({ status: 'processing', progress: 20, message: 'Connecting to Replicate...' });
       
-      console.log('🔥 DIRECT CLIENT: Using Replicate directly from frontend...');
+      console.log('🔥 DIRECT CLIENT: Using Real-ESRGAN directly from frontend...');
       console.log('🔑 Has API token:', !!import.meta.env.VITE_REPLICATE_API_TOKEN);
       
       if (!import.meta.env.VITE_REPLICATE_API_TOKEN) {
