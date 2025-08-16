@@ -191,7 +191,7 @@ export const ResultsDisplay = ({
             
             {/* Original image overlay with clip path (foreground - "Before") */}
             <div 
-              className="absolute inset-0 transition-all duration-75 ease-out"
+              className="absolute inset-0"
               style={{ 
                 clipPath: `inset(0 ${100 - comparison}% 0 0)`,
               }}
@@ -216,18 +216,22 @@ export const ResultsDisplay = ({
               </div>
             </div>
 
-            {/* Vertical Divider Line */}
+            {/* Vertical Divider Line - Instant Response */}
             <div 
-              className={`absolute top-0 bottom-0 bg-white transition-all duration-75 z-20 ${
-                isDragging ? 'w-1 shadow-2xl' : 'w-0.5 shadow-xl'
+              className={`absolute top-0 bottom-0 bg-white z-20 ${
+                isDragging ? 'w-1' : 'w-0.5'
               }`}
               style={{ 
                 left: `${comparison}%`,
                 transform: 'translateX(-50%)',
+                boxShadow: isDragging 
+                  ? '0 0 20px rgba(255,255,255,0.3), 0 0 40px rgba(255,255,255,0.1)' 
+                  : '0 0 10px rgba(255,255,255,0.2)',
+                transition: 'width 100ms ease-out, box-shadow 100ms ease-out'
               }}
             />
 
-            {/* Draggable Handle */}
+            {/* Draggable Handle - Instant Response */}
             <div 
               className="absolute top-1/2 z-30 cursor-grab active:cursor-grabbing"
               style={{ 
@@ -235,12 +239,23 @@ export const ResultsDisplay = ({
                 transform: 'translate(-50%, -50%)',
               }}
             >
-              <div className={`bg-white rounded-full flex items-center justify-center transition-all duration-200 border border-gray-100 ${
-                isDragging 
-                  ? 'w-14 h-14 scale-110 shadow-[0_8px_30px_rgb(0,0,0,0.12)]' 
-                  : 'w-12 h-12 hover:scale-105 shadow-[0_4px_20px_rgb(0,0,0,0.1)] hover:shadow-[0_6px_25px_rgb(0,0,0,0.15)]'
-              }`}>
-                <Code className={`text-gray-600 ${isDragging ? 'w-5 h-5' : 'w-4 h-4'}`} strokeWidth={1.5} />
+              <div 
+                className={`bg-white rounded-full flex items-center justify-center border border-gray-100 ${
+                  isDragging ? 'w-14 h-14' : 'w-12 h-12'
+                }`}
+                style={{
+                  transform: isDragging ? 'scale(1.05)' : 'scale(1)',
+                  boxShadow: isDragging 
+                    ? '0 8px 30px rgba(0,0,0,0.12)' 
+                    : '0 4px 20px rgba(0,0,0,0.1)',
+                  transition: 'transform 150ms ease-out, box-shadow 150ms ease-out, width 100ms ease-out, height 100ms ease-out'
+                }}
+              >
+                <Code 
+                  className={`text-gray-600 ${isDragging ? 'w-5 h-5' : 'w-4 h-4'}`} 
+                  strokeWidth={1.5}
+                  style={{ transition: 'width 100ms ease-out, height 100ms ease-out' }}
+                />
               </div>
             </div>
 
