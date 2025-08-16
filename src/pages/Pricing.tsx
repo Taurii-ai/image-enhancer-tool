@@ -76,7 +76,7 @@ const Pricing = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12 md:mb-16 justify-items-center items-stretch">
           {/* Basic Plan */}
-          <Card className="relative hover:shadow-lg transition-all duration-300 flex flex-col h-full">
+          <Card className="relative hover:shadow-lg transition-all duration-300 flex flex-col h-full min-h-[500px]">
             <CardHeader className="pb-4 sm:pb-6 md:pb-8">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-3 sm:mb-4">
                 <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
@@ -132,13 +132,13 @@ const Pricing = () => {
           </Card>
 
           {/* Pro Plan */}
-          <Card className="relative border-2 border-primary shadow-lg hover:shadow-xl transition-all duration-300">
+          <Card className="relative border-2 border-primary shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col h-full min-h-[500px] bg-gradient-to-br from-primary/5 to-accent/5">
             <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
               <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-semibold">
                 Most Popular
               </span>
             </div>
-            <CardHeader className="pb-8 bg-gradient-to-br from-primary/5 to-accent/5">
+            <CardHeader className="pb-8">
               <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center mb-4">
                 <Crown className="w-6 h-6 text-white" />
               </div>
@@ -156,7 +156,7 @@ const Pricing = () => {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="space-y-6 bg-gradient-to-br from-primary/5 to-accent/5">
+            <CardContent className="space-y-6 flex-grow flex flex-col">
               <ul className="space-y-3">
                 <li className="flex items-center gap-3">
                   <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
@@ -192,7 +192,7 @@ const Pricing = () => {
           </Card>
 
           {/* Premium Plan */}
-          <Card className="relative hover:shadow-lg transition-all duration-300 flex flex-col h-full">
+          <Card className="relative hover:shadow-lg transition-all duration-300 flex flex-col h-full min-h-[500px]">
             <CardHeader className="pb-8">
               <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mb-4">
                 <Sparkles className="w-6 h-6 text-white" />
@@ -248,7 +248,7 @@ const Pricing = () => {
           </Card>
 
           {/* Enterprise Plan */}
-          <Card className="relative hover:shadow-lg transition-all duration-300 border-2 border-muted-foreground/20">
+          <Card className="relative hover:shadow-lg transition-all duration-300 border-2 border-muted-foreground/20 flex flex-col h-full min-h-[500px]">
             <CardHeader className="pb-8">
               <div className="w-12 h-12 bg-gradient-to-br from-slate-600 to-slate-800 rounded-lg flex items-center justify-center mb-4">
                 <Building2 className="w-6 h-6 text-white" />
