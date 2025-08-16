@@ -1,0 +1,12 @@
+<svg viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg">
+  <!-- Blue cross - left side -->
+  <rect x="150" y="150" width="200" height="700" fill="#5DADE2"/>
+  <rect x="0" y="300" width="200" height="200" fill="#5DADE2"/>
+  <rect x="350" y="300" width="200" height="200" fill="#5DADE2"/>
+  <rect x="0" y="500" width="200" height="200" fill="#5DADE2"/>
+  <rect x="350" y="500" width="200" height="200" fill="#5DADE2"/>
+  
+  <!-- Blue diamond - right side -->
+  <path d="M600 150 L950 500 L600 850 L775 675 L600 1000 L425 675 L775 325 Z" fill="#5DADE2"/>
+  <path d="M425 500 L775 150 L950 325 L600 675 L950 850 L600 1000 L425 850 L775 500 Z" fill="white"/>
+</svg>

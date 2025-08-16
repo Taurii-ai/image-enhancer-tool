@@ -1,0 +1,12 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Blue cross - left side -->
+  <rect x="10" y="15" width="15" height="70" fill="#5DADE2"/>
+  <rect x="0" y="35" width="15" height="15" fill="#5DADE2"/>
+  <rect x="25" y="35" width="15" height="15" fill="#5DADE2"/>
+  <rect x="0" y="50" width="15" height="15" fill="#5DADE2"/>
+  <rect x="25" y="50" width="15" height="15" fill="#5DADE2"/>
+  
+  <!-- Blue diamond - right side -->
+  <path d="M50 15 L85 50 L50 85 L67.5 67.5 L50 100 L32.5 67.5 L67.5 32.5 Z" fill="#5DADE2"/>
+  <path d="M32.5 50 L67.5 15 L85 32.5 L50 67.5 L85 85 L50 100 L32.5 85 L67.5 50 Z" fill="white"/>
+</svg>
