@@ -40,6 +40,10 @@ export const ResultsDisplay = ({
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     setComparison(getPositionFromEvent(e.nativeEvent));
+    // Add haptic feedback on supported devices
+    if ('vibrate' in navigator) {
+      navigator.vibrate(10);
+    }
   };
 
   const handleMouseMove = (e: MouseEvent) => {
@@ -54,6 +58,10 @@ export const ResultsDisplay = ({
   const handleTouchStart = (e: React.TouchEvent) => {
     setIsDragging(true);
     setComparison(getPositionFromEvent(e.nativeEvent));
+    // Add haptic feedback on touch devices
+    if ('vibrate' in navigator) {
+      navigator.vibrate(10);
+    }
   };
 
   const handleTouchMove = (e: TouchEvent) => {
@@ -168,7 +176,7 @@ export const ResultsDisplay = ({
 
           <div 
             ref={containerRef}
-            className="relative rounded-2xl overflow-hidden bg-black aspect-video cursor-grab active:cursor-grabbing select-none shadow-2xl"
+            className="relative rounded-2xl overflow-hidden bg-black aspect-video cursor-grab active:cursor-grabbing select-none shadow-2xl group"
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
             style={{ userSelect: 'none' }}
@@ -208,32 +216,39 @@ export const ResultsDisplay = ({
               </div>
             </div>
 
-            {/* Interactive Slider Handle */}
+            {/* Interactive Slider Line & Handle */}
             <div 
-              className="absolute top-0 bottom-0 w-1 bg-white shadow-2xl transition-all duration-75 z-20"
+              className={`absolute top-0 bottom-0 bg-white shadow-2xl transition-all duration-75 z-20 ${
+                isDragging ? 'w-1' : 'w-0.5'
+              } ${isDragging ? 'shadow-xl' : 'shadow-lg'}`}
               style={{ 
                 left: `${comparison}%`,
                 transform: 'translateX(-50%)',
               }}
             >
-              {/* Slider Handle */}
+              {/* Centered Drag Handle */}
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing border-2 border-white">
-                  <div className="flex items-center gap-1">
-                    <ChevronLeft className="w-3 h-3 text-gray-600" />
-                    <ChevronRight className="w-3 h-3 text-gray-600" />
+                <div className={`bg-white rounded-full flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing transition-all duration-200 ${
+                  isDragging 
+                    ? 'w-12 h-12 scale-110' 
+                    : 'w-10 h-10 hover:scale-105 hover:shadow-xl'
+                }`}>
+                  <div className="flex items-center justify-center">
+                    <ChevronLeft className={`text-gray-600 ${isDragging ? 'w-3 h-3' : 'w-2.5 h-2.5'}`} />
+                    <ChevronRight className={`text-gray-600 ${isDragging ? 'w-3 h-3' : 'w-2.5 h-2.5'}`} />
                   </div>
                 </div>
               </div>
-              
-              {/* Top and bottom indicators */}
-              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1">
-                <div className="w-3 h-3 bg-white rounded-full shadow-lg"></div>
-              </div>
-              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1">
-                <div className="w-3 h-3 bg-white rounded-full shadow-lg"></div>
-              </div>
             </div>
+
+            {/* Subtle guide line hint */}
+            <div 
+              className="absolute top-0 bottom-0 w-px bg-white/20 transition-opacity duration-200 opacity-0 group-hover:opacity-100 z-10"
+              style={{ 
+                left: `${comparison}%`,
+                transform: 'translateX(-50%)',
+              }}
+            />
 
             {/* Overlay for better interaction */}
             <div className="absolute inset-0 z-10" />
