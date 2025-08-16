@@ -2,6 +2,7 @@ import Replicate from 'replicate';
 import { getCurrentPlanLimits, getUserSubscription } from './subscriptionManager';
 import { recordApiUsage, MODEL_COSTS } from './costTracker';
 import { trackImageEnhancement, trackApiCost } from './analytics';
+import { UserService } from './userService';
 
 // Initialize Replicate client
 // Use environment variable with Vite prefix for frontend
@@ -136,12 +137,51 @@ const simulateEnhancement = async (
 
 export const enhanceImage = async (
   file: File,
-  onProgress: (progress: EnhancementProgress) => void
+  onProgress: (progress: EnhancementProgress) => void,
+  userEmail?: string
 ): Promise<EnhancementResult> => {
   const startTime = Date.now();
   
   try {
     onProgress({ status: 'starting', progress: 0, message: 'Starting enhancement...' });
+    
+    // FOR TESTING: Check user subscription and usage from database
+    if (userEmail) {
+      console.log('🔍 TESTING: Checking user data for:', userEmail);
+      
+      const userInfo = await UserService.getUserInfo(userEmail);
+      if (userInfo) {
+        console.log('🔍 TESTING: User found in database:', {
+          user: userInfo.user.email,
+          subscription: userInfo.subscription?.plan_name,
+          status: userInfo.subscription?.status,
+          usage: `${userInfo.usage?.images_processed || 0}/${userInfo.usage?.images_limit || 0}`,
+          canProcess: userInfo.canProcessImages,
+          remaining: userInfo.remainingImages
+        });
+        
+        // Test processing an image for this user (increment usage)
+        const processResult = await UserService.processImageForUser(userEmail);
+        console.log('🔍 TESTING: Process result:', processResult);
+        
+        if (!processResult.success) {
+          onProgress({ 
+            status: 'failed', 
+            message: `Enhancement blocked: ${processResult.message}` 
+          });
+          throw new Error(processResult.message);
+        }
+        
+        onProgress({ status: 'processing', progress: 10, message: processResult.message });
+      } else {
+        console.log('🔍 TESTING: User not found in database, would need to sign up first');
+        onProgress({ 
+          status: 'processing', 
+          progress: 10, 
+          message: 'User not found - would need subscription in production' 
+        });
+      }
+    }
     
     // Get user's plan limits for processing options
     const planLimits = getCurrentPlanLimits();

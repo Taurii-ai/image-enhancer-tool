@@ -34,9 +34,9 @@ const Index = () => {
   };
 
   const handleImageUpload = async (file: File) => {
-    // Redirect directly to pricing (payment required first)
-    navigate('/pricing');
-    return;
+    // FOR TESTING ONLY - normally would require payment first
+    // navigate('/pricing');
+    // return;
     
     try {
       setUploadedFile(file);
@@ -44,16 +44,21 @@ const Index = () => {
       setAppState('processing');
       setEnhancementProgress({ status: 'starting', progress: 0 });
 
+      // Test user data (normally would come from authentication)
+      const testUserEmail = 'test@enhpix.com';
+      
+      console.log('🔍 TESTING: Processing image for user:', testUserEmail);
+
       const result = await enhanceImage(file, (progress) => {
         setEnhancementProgress(progress);
-      });
+      }, testUserEmail);
 
       setEnhancedUrl(result.enhancedUrl);
       setAppState('results');
       
       toast({
         title: "Enhancement Complete!",
-        description: "Your image has been successfully enhanced with AI.",
+        description: "Your image has been successfully enhanced with AI. Check console for user data logs.",
       });
 
     } catch (error) {
