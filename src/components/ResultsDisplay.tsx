@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Download, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Download, RotateCcw, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -22,7 +22,65 @@ export const ResultsDisplay = ({
 }: ResultsDisplayProps) => {
   const [comparison, setComparison] = useState(50);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Handle mouse and touch events for smooth slider interaction
+  const getPositionFromEvent = (e: MouseEvent | TouchEvent): number => {
+    if (!containerRef.current) return 50;
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const position = ((clientX - rect.left) / rect.width) * 100;
+    
+    return Math.max(0, Math.min(100, position));
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setComparison(getPositionFromEvent(e.nativeEvent));
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging) return;
+    setComparison(getPositionFromEvent(e));
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true);
+    setComparison(getPositionFromEvent(e.nativeEvent));
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    setComparison(getPositionFromEvent(e));
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleTouchEnd);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isDragging]);
 
   const handleDownload = async () => {
     setIsDownloading(true);
@@ -98,69 +156,94 @@ export const ResultsDisplay = ({
         </div>
       </Card>
 
-      {/* Image Comparison */}
+      {/* Image Comparison - Framer Style */}
       <Card className="p-6 bg-card shadow-card border-border">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="font-medium text-foreground">Before & After Comparison</h4>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Original</span>
-              <div className="w-16 h-6 bg-muted rounded-full p-1">
-                <div 
-                  className="h-4 w-4 bg-primary rounded-full transition-transform duration-200"
-                  style={{ transform: `translateX(${comparison < 50 ? 0 : 24}px)` }}
-                />
-              </div>
-              <span>Enhanced</span>
-            </div>
+        <div className="space-y-6">
+          <div className="text-center">
+            <h4 className="text-2xl font-bold text-foreground mb-2">See the difference instantly</h4>
+            <p className="text-muted-foreground">
+              Drag the slider to compare before and after enhancement
+            </p>
           </div>
 
-          <div className="relative rounded-lg overflow-hidden bg-muted aspect-video">
-            <div className="relative w-full h-full">
-              {/* Enhanced image (background) */}
+          <div 
+            ref={containerRef}
+            className="relative rounded-2xl overflow-hidden bg-black aspect-video cursor-grab active:cursor-grabbing select-none shadow-2xl"
+            onMouseDown={handleMouseDown}
+            onTouchStart={handleTouchStart}
+            style={{ userSelect: 'none' }}
+          >
+            {/* Enhanced image (background - "After") */}
+            <img
+              src={enhancedImage}
+              alt="Enhanced"
+              className="absolute inset-0 w-full h-full object-cover"
+              draggable={false}
+            />
+            
+            {/* Original image overlay with clip path (foreground - "Before") */}
+            <div 
+              className="absolute inset-0 transition-all duration-75 ease-out"
+              style={{ 
+                clipPath: `inset(0 ${100 - comparison}% 0 0)`,
+              }}
+            >
               <img
-                src={enhancedImage}
-                alt="Enhanced"
-                className="absolute inset-0 w-full h-full object-contain"
+                src={originalImage}
+                alt="Original"
+                className="w-full h-full object-cover"
+                draggable={false}
               />
-              
-              {/* Original image overlay with clip path */}
-              <div 
-                className="absolute inset-0 transition-all duration-200 ease-out"
-                style={{ 
-                  clipPath: `inset(0 ${100 - comparison}% 0 0)`,
-                }}
-              >
-                <img
-                  src={originalImage}
-                  alt="Original"
-                  className="w-full h-full object-contain"
-                />
-              </div>
+            </div>
 
-              {/* Divider line */}
-              <div 
-                className="absolute top-0 bottom-0 w-0.5 bg-primary shadow-glow transition-all duration-200"
-                style={{ left: `${comparison}%` }}
-              >
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-glow">
-                    <div className="w-1 h-4 bg-primary-foreground rounded-full" />
+            {/* Labels */}
+            <div className="absolute top-6 left-6 z-10">
+              <div className="bg-black/50 backdrop-blur-sm text-white px-3 py-2 rounded-full text-sm font-medium">
+                Before
+              </div>
+            </div>
+            <div className="absolute top-6 right-6 z-10">
+              <div className="bg-black/50 backdrop-blur-sm text-white px-3 py-2 rounded-full text-sm font-medium">
+                After
+              </div>
+            </div>
+
+            {/* Interactive Slider Handle */}
+            <div 
+              className="absolute top-0 bottom-0 w-1 bg-white shadow-2xl transition-all duration-75 z-20"
+              style={{ 
+                left: `${comparison}%`,
+                transform: 'translateX(-50%)',
+              }}
+            >
+              {/* Slider Handle */}
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing border-2 border-white">
+                  <div className="flex items-center gap-1">
+                    <ChevronLeft className="w-3 h-3 text-gray-600" />
+                    <ChevronRight className="w-3 h-3 text-gray-600" />
                   </div>
                 </div>
               </div>
+              
+              {/* Top and bottom indicators */}
+              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1">
+                <div className="w-3 h-3 bg-white rounded-full shadow-lg"></div>
+              </div>
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1">
+                <div className="w-3 h-3 bg-white rounded-full shadow-lg"></div>
+              </div>
             </div>
+
+            {/* Overlay for better interaction */}
+            <div className="absolute inset-0 z-10" />
           </div>
 
-          {/* Comparison Slider */}
-          <div className="px-4">
-            <Slider
-              value={[comparison]}
-              onValueChange={(value) => setComparison(value[0])}
-              max={100}
-              step={1}
-              className="w-full"
-            />
+          {/* Subtle instruction text */}
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Click and drag anywhere on the image to compare
+            </p>
           </div>
         </div>
       </Card>

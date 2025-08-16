@@ -116,23 +116,60 @@ const simulateEnhancement = async (
   const scale = planLimits?.maxScale || 4;
   
   onProgress({ status: 'starting', progress: 0, message: `Initializing ${quality} AI model...` });
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise(resolve => setTimeout(resolve, 800));
   
   onProgress({ status: 'processing', progress: 25, message: 'Analyzing image structure...' });
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  
-  onProgress({ status: 'processing', progress: 50, message: `Applying ${scale}x ${quality} enhancement...` });
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  onProgress({ status: 'processing', progress: 75, message: `Processing with ${quality} quality AI...` });
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  
-  onProgress({ status: 'processing', progress: 90, message: 'Finalizing enhancement...' });
   await new Promise(resolve => setTimeout(resolve, 1000));
   
-  // Return the original image for demo (in real implementation, this would be the enhanced image)
-  const originalUrl = URL.createObjectURL(file);
-  return originalUrl;
+  onProgress({ status: 'processing', progress: 50, message: `Applying ${scale}x ${quality} enhancement...` });
+  await new Promise(resolve => setTimeout(resolve, 1200));
+  
+  onProgress({ status: 'processing', progress: 75, message: `Processing with ${quality} quality AI...` });
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  onProgress({ status: 'processing', progress: 90, message: 'Finalizing enhancement...' });
+  await new Promise(resolve => setTimeout(resolve, 800));
+  
+  // For demo, create a slightly enhanced version by increasing brightness/contrast
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      
+      // Draw original image
+      ctx?.drawImage(img, 0, 0);
+      
+      // Apply slight enhancement effect for demo
+      if (ctx) {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Slight brightness and contrast enhancement
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = Math.min(255, data[i] * 1.1 + 10);     // Red
+          data[i + 1] = Math.min(255, data[i + 1] * 1.1 + 10); // Green  
+          data[i + 2] = Math.min(255, data[i + 2] * 1.1 + 10); // Blue
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+      }
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(URL.createObjectURL(blob));
+        } else {
+          resolve(URL.createObjectURL(file));
+        }
+      }, 'image/jpeg', 0.95);
+    };
+    
+    img.onerror = () => resolve(URL.createObjectURL(file));
+    img.src = URL.createObjectURL(file);
+  });
 };
 
 export const enhanceImage = async (
