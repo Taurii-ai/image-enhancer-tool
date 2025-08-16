@@ -283,7 +283,6 @@ export const enhanceImage = async (
     // Track failed enhancement
     const processingTime = Date.now() - startTime;
     const fileSizeMB = file.size / 1024 / 1024;
-    const planLimits = getCurrentPlanLimits();
     
     trackImageEnhancement(
       'basic', // Using 'basic' since we're using single Real-ESRGAN model
