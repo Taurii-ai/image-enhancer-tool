@@ -216,25 +216,31 @@ export const ResultsDisplay = ({
               </div>
             </div>
 
-            {/* Interactive Slider Line & Handle */}
+            {/* Vertical Divider Line */}
             <div 
-              className={`absolute top-0 bottom-0 bg-white shadow-2xl transition-all duration-75 z-20 ${
-                isDragging ? 'w-1' : 'w-0.5'
-              } ${isDragging ? 'shadow-xl' : 'shadow-lg'}`}
+              className={`absolute top-0 bottom-0 bg-white transition-all duration-75 z-20 ${
+                isDragging ? 'w-1 shadow-2xl' : 'w-0.5 shadow-xl'
+              }`}
               style={{ 
                 left: `${comparison}%`,
                 transform: 'translateX(-50%)',
               }}
+            />
+
+            {/* Draggable Handle */}
+            <div 
+              className="absolute top-1/2 z-30 cursor-grab active:cursor-grabbing"
+              style={{ 
+                left: `${comparison}%`,
+                transform: 'translate(-50%, -50%)',
+              }}
             >
-              {/* Centered Drag Handle - Code Icon Style */}
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <div className={`bg-white rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing transition-all duration-200 border border-gray-100 ${
-                  isDragging 
-                    ? 'w-14 h-14 scale-110 shadow-[0_8px_30px_rgb(0,0,0,0.12)]' 
-                    : 'w-12 h-12 hover:scale-105 shadow-[0_4px_20px_rgb(0,0,0,0.1)] hover:shadow-[0_6px_25px_rgb(0,0,0,0.15)]'
-                }`}>
-                  <Code className={`text-gray-600 ${isDragging ? 'w-5 h-5' : 'w-4 h-4'}`} strokeWidth={1.5} />
-                </div>
+              <div className={`bg-white rounded-full flex items-center justify-center transition-all duration-200 border border-gray-100 ${
+                isDragging 
+                  ? 'w-14 h-14 scale-110 shadow-[0_8px_30px_rgb(0,0,0,0.12)]' 
+                  : 'w-12 h-12 hover:scale-105 shadow-[0_4px_20px_rgb(0,0,0,0.1)] hover:shadow-[0_6px_25px_rgb(0,0,0,0.15)]'
+              }`}>
+                <Code className={`text-gray-600 ${isDragging ? 'w-5 h-5' : 'w-4 h-4'}`} strokeWidth={1.5} />
               </div>
             </div>
 
