@@ -47,6 +47,32 @@ const retryApiCall = async <T>(
   throw new Error('Max retries exceeded');
 };
 
+// Tutorial's exact frontend function
+const upscaleImage = async (imageUrl: string) => {
+  try {
+    const response = await fetch('/api/upscale-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ imageUrl: imageUrl }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to upscale image.');
+    }
+
+    const data = await response.json();
+    console.log('Upscaled image URL:', data.upscaledUrl);
+
+    // Return the upscaled image URL
+    return data.upscaledUrl;
+  } catch (error) {
+    console.error('Frontend upscaling error:', error);
+    throw error;
+  }
+};
+
 export interface EnhancementProgress {
   status: 'starting' | 'processing' | 'completed' | 'failed';
   progress?: number;
@@ -274,54 +300,34 @@ export const enhanceImage = async (
     
     let enhancedUrl: string;
     
-    // Try to use our serverless API for real AI upscaling
+    // FOLLOW TUTORIAL EXACTLY - Use the tutorial's method
     try {
       onProgress({ status: 'processing', progress: 10, message: 'Preparing image for AI processing...' });
       
-      // Optimize image size for cost efficiency (max 2048px for better quality/cost balance)
+      // Optimize image size for cost efficiency
       const optimizedFile = await optimizeImageForAPI(file);
       const imageDataUrl = await fileToDataURL(optimizedFile);
       
       onProgress({ status: 'processing', progress: 25, message: 'Uploading to Real-ESRGAN AI model...' });
       
-      const scale = Math.min(4, planLimits.maxScale || 4); // Cap at 4x
-      
       // Log usage for cost tracking
-      logApiUsage(planLimits.quality, scale, optimizedFile.size);
+      logApiUsage(planLimits.quality, 4, optimizedFile.size);
       
-      onProgress({ status: 'processing', progress: 40, message: `Processing with Real-ESRGAN ${scale}x upscaling...` });
+      onProgress({ status: 'processing', progress: 40, message: 'Processing with Real-ESRGAN upscaling...' });
       
-      console.log('🔍 CALLING OUR API: Starting Real-ESRGAN processing...');
+      console.log('🔍 TUTORIAL METHOD: Starting Real-ESRGAN processing...');
       
-      // Call our serverless function instead of Replicate directly
-      const response = await fetch('/api/enhance-image', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageData: imageDataUrl,
-          scale: scale,
-          userEmail: userEmail
-        })
-      });
+      // Use the tutorial's exact frontend function
+      const upscaledUrl = await upscaleImage(imageDataUrl);
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(`API Error: ${errorData.error || response.statusText}`);
+      if (!upscaledUrl) {
+        throw new Error('No upscaled image received from tutorial method');
       }
       
-      const result = await response.json();
-      
-      if (!result.success || !result.enhancedImageUrl) {
-        throw new Error(result.error || 'No enhanced image received');
-      }
-      
-      enhancedUrl = result.enhancedImageUrl;
+      enhancedUrl = upscaledUrl;
       onProgress({ status: 'processing', progress: 90, message: 'Real AI enhancement complete!' });
       
-      console.log('✅ OUR API: Enhancement successful!', result);
-      console.log(`💰 Processing time: ${result.processingTime}ms, Cost: $${result.estimatedCost}`);
+      console.log('✅ TUTORIAL METHOD: Enhancement successful!', upscaledUrl);
       
     } catch (apiError: any) {
       console.error('🚨 Our API Error:', apiError);
