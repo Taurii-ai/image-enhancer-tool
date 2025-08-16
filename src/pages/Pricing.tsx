@@ -74,9 +74,9 @@ const Pricing = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12 md:mb-16 justify-items-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12 md:mb-16 justify-items-center items-stretch">
           {/* Basic Plan */}
-          <Card className="relative hover:shadow-lg transition-all duration-300">
+          <Card className="relative hover:shadow-lg transition-all duration-300 flex flex-col h-full">
             <CardHeader className="pb-4 sm:pb-6 md:pb-8">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-3 sm:mb-4">
                 <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
@@ -95,7 +95,7 @@ const Pricing = () => {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 flex-grow flex flex-col">
               <ul className="space-y-3">
                 <li className="flex items-center gap-3">
                   <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
@@ -118,6 +118,8 @@ const Pricing = () => {
                   <span className="text-sm">Standard processing speed</span>
                 </li>
               </ul>
+              
+              <div className="flex-grow"></div>
               
               <Button 
                 className="w-full"
@@ -178,6 +180,8 @@ const Pricing = () => {
                 </li>
               </ul>
               
+              <div className="flex-grow"></div>
+              
               <Button 
                 className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
                 onClick={() => handlePlanSelect('pro', isYearly ? 'yearly' : 'monthly')}
@@ -188,7 +192,7 @@ const Pricing = () => {
           </Card>
 
           {/* Premium Plan */}
-          <Card className="relative hover:shadow-lg transition-all duration-300">
+          <Card className="relative hover:shadow-lg transition-all duration-300 flex flex-col h-full">
             <CardHeader className="pb-8">
               <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mb-4">
                 <Sparkles className="w-6 h-6 text-white" />
@@ -207,7 +211,7 @@ const Pricing = () => {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 flex-grow flex flex-col">
               <ul className="space-y-3">
                 <li className="flex items-center gap-3">
                   <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
@@ -230,6 +234,8 @@ const Pricing = () => {
                   <span className="text-sm">API access & integrations</span>
                 </li>
               </ul>
+              
+              <div className="flex-grow"></div>
               
               <Button 
                 className="w-full"
@@ -256,7 +262,7 @@ const Pricing = () => {
                 </span>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 flex-grow flex flex-col">
               <ul className="space-y-3">
                 <li className="flex items-center gap-3">
                   <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
@@ -279,6 +285,8 @@ const Pricing = () => {
                   <span className="text-sm">SLA guarantees</span>
                 </li>
               </ul>
+              
+              <div className="flex-grow"></div>
               
               <Button 
                 className="w-full"
