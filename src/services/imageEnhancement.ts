@@ -300,50 +300,47 @@ export const enhanceImage = async (
     
     let enhancedUrl: string;
     
-    // FOLLOW TUTORIAL EXACTLY - Use the tutorial's method
+    // SIMPLE FRESH START - Call Real-ESRGAN directly
     try {
-      onProgress({ status: 'processing', progress: 10, message: 'Preparing image for AI processing...' });
+      onProgress({ status: 'processing', progress: 10, message: 'Preparing image for Real-ESRGAN...' });
       
-      // Optimize image size for cost efficiency
-      const optimizedFile = await optimizeImageForAPI(file);
-      const imageDataUrl = await fileToDataURL(optimizedFile);
+      // Convert file to data URL
+      const imageDataUrl = await fileToDataURL(file);
       
-      onProgress({ status: 'processing', progress: 25, message: 'Uploading to Real-ESRGAN AI model...' });
+      onProgress({ status: 'processing', progress: 30, message: 'Calling Real-ESRGAN API...' });
       
-      // Log usage for cost tracking
-      logApiUsage(planLimits.quality, 4, optimizedFile.size);
+      console.log('🚀 FRESH START: Calling Real-ESRGAN with correct model...');
       
-      onProgress({ status: 'processing', progress: 40, message: 'Processing with Real-ESRGAN upscaling...' });
-      
-      console.log('🔍 TUTORIAL METHOD: Starting Real-ESRGAN processing...');
-      console.log('🔍 Image data URL length:', imageDataUrl.length);
-      console.log('🔍 About to call upscaleImage function...');
-      
-      // First test our simple API
-      try {
-        console.log('🔍 Testing simple API first...');
-        const testResponse = await fetch('/api/test-upscale', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ test: 'data' }),
-        });
-        const testResult = await testResponse.json();
-        console.log('🔍 Test API result:', testResult);
-      } catch (testError) {
-        console.error('🚨 Test API failed:', testError);
+      // Call our new clean API
+      const response = await fetch('/api/real-esrgan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageUrl: imageDataUrl
+        })
+      });
+
+      onProgress({ status: 'processing', progress: 60, message: 'Processing with AI...' });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('🚨 API Response Error:', errorData);
+        throw new Error(`API Error: ${errorData.error || response.statusText}`);
       }
-      
-      // Use the tutorial's exact frontend function
-      const upscaledUrl = await upscaleImage(imageDataUrl);
-      
-      if (!upscaledUrl) {
-        throw new Error('No upscaled image received from tutorial method');
+
+      const result = await response.json();
+      console.log('📤 API Response:', result);
+
+      if (!result.success || !result.upscaledUrl) {
+        throw new Error(result.error || 'No upscaled image received');
       }
+
+      enhancedUrl = result.upscaledUrl;
+      onProgress({ status: 'processing', progress: 90, message: 'Real-ESRGAN complete!' });
       
-      enhancedUrl = upscaledUrl;
-      onProgress({ status: 'processing', progress: 90, message: 'Real AI enhancement complete!' });
-      
-      console.log('✅ TUTORIAL METHOD: Enhancement successful!', upscaledUrl);
+      console.log('✅ FRESH START: Real-ESRGAN successful!', result.upscaledUrl);
       
     } catch (apiError: any) {
       console.error('🚨 Our API Error:', apiError);
