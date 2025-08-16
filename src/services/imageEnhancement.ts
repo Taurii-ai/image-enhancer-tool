@@ -300,19 +300,19 @@ export const enhanceImage = async (
     
     let enhancedUrl: string;
     
-    // SIMPLE FRESH START - Call Real-ESRGAN directly
+    // OFFICIAL REPLICATE GUIDE METHOD
     try {
-      onProgress({ status: 'processing', progress: 10, message: 'Preparing image for Real-ESRGAN...' });
+      onProgress({ status: 'processing', progress: 10, message: 'Preparing image...' });
       
       // Convert file to data URL
       const imageDataUrl = await fileToDataURL(file);
       
-      onProgress({ status: 'processing', progress: 30, message: 'Calling Real-ESRGAN API...' });
+      onProgress({ status: 'processing', progress: 20, message: 'Testing authentication...' });
       
-      console.log('🚀 FRESH START: Calling Real-ESRGAN with correct model...');
+      console.log('🔥 OFFICIAL METHOD: Following Replicate guide exactly...');
       
-      // Call our new clean API
-      const response = await fetch('/api/real-esrgan', {
+      // Call the official API implementation
+      const response = await fetch('/api/official-replicate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -322,25 +322,25 @@ export const enhanceImage = async (
         })
       });
 
-      onProgress({ status: 'processing', progress: 60, message: 'Processing with AI...' });
+      onProgress({ status: 'processing', progress: 40, message: 'Running Real-ESRGAN model...' });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('🚨 API Response Error:', errorData);
-        throw new Error(`API Error: ${errorData.error || response.statusText}`);
+        console.error('🚨 Official API Error:', errorData);
+        throw new Error(`Official API Error: ${errorData.error || response.statusText}`);
       }
 
       const result = await response.json();
-      console.log('📤 API Response:', result);
+      console.log('📥 Official API Response:', result);
 
       if (!result.success || !result.upscaledUrl) {
-        throw new Error(result.error || 'No upscaled image received');
+        throw new Error(result.error || 'No upscaled image received from official method');
       }
 
       enhancedUrl = result.upscaledUrl;
-      onProgress({ status: 'processing', progress: 90, message: 'Real-ESRGAN complete!' });
+      onProgress({ status: 'processing', progress: 90, message: 'Official Real-ESRGAN complete!' });
       
-      console.log('✅ FRESH START: Real-ESRGAN successful!', result.upscaledUrl);
+      console.log('✅ OFFICIAL METHOD: Real-ESRGAN successful!', result.upscaledUrl);
       
     } catch (apiError: any) {
       console.error('🚨 Our API Error:', apiError);
