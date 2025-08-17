@@ -53,8 +53,8 @@ export default async function handler(req, res) {
 
     console.log('✅ API token validation passed');
 
-    // Use the PRODUCTION_READY model version from previous instructions
-    const modelVersion = 'xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56';
+    // Use the correct Real-ESRGAN model version
+    const modelVersion = 'xinntao/realesrgan:1f94cf24571d33eff56cacaa0e74f12a74e3f0ae03d7af22c7d5f72b6d0f5937';
     
     console.log('🚀 Starting Real-ESRGAN enhancement...');
     
@@ -66,8 +66,9 @@ export default async function handler(req, res) {
       output = await replicate.run(modelVersion, {
         input: {
           img: imageData,
-          version: "Anime - anime6B"
-          // Using DOCUMENTED working parameters from PRODUCTION_READY.md
+          scale: scale || 2,
+          version: "General - v3",
+          face_enhance: false
         }
       });
       
