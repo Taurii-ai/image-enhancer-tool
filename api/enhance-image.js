@@ -1,11 +1,11 @@
-import Replicate from 'replicate';
+const Replicate = require('replicate');
 
 // Initialize Replicate with proper environment variable (no VITE_ prefix for serverless)
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
