@@ -260,7 +260,7 @@ const Index = () => {
 
       {/* Main Content */}
       <div className="px-2 sm:px-3 md:px-6 py-4 sm:py-6 md:py-12 mt-20 sm:mt-24 md:mt-28">
-        <div className="max-w-4xl mx-auto">
+        <div className={`mx-auto ${appState === 'results' ? 'max-w-7xl' : 'max-w-4xl'}`}>
           {appState === 'upload' && (
             <ImageUploader onImageUpload={handleImageUpload} />
           )}
