@@ -146,7 +146,7 @@ const Index = () => {
             <nav className="max-w-7xl mx-auto flex items-center justify-between overflow-x-hidden w-full">
               <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleNavigation('/')}>
                 <div className="p-2 bg-white rounded-lg">
-                  <img src="/IMG.1037.png" alt="Logo" className="w-8 h-8" />
+                  <EnhpixLogo className="w-8 h-8" />
                 </div>
                 <span className="text-xl font-bold text-foreground">Enhpix</span>
               </div>
