@@ -140,8 +140,8 @@ export const ResultsDisplay = ({
     <div className="space-y-3 sm:space-y-4 md:space-y-6 overflow-x-hidden max-w-full">
       {/* Results Header */}
       <Card className="p-2 sm:p-4 md:p-6 bg-card shadow-card border-border overflow-x-hidden max-w-full">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
+        <div className="flex flex-col gap-4">
+          <div className="text-center sm:text-left">
             <h3 className="text-xl font-semibold text-foreground mb-2">
               Enhancement Complete! ✨
             </h3>
@@ -149,7 +149,7 @@ export const ResultsDisplay = ({
               Your image has been upscaled with AI enhancement
             </p>
           </div>
-          <div className="flex gap-3 w-full sm:w-auto justify-end">
+          <div className="flex gap-3 justify-center sm:justify-start">
             <Button
               variant="outline"
               onClick={onStartOver}
