@@ -47,10 +47,8 @@ const Dashboard = () => {
       setProcessingState('completed');
       
       // Use image credit
-      const usage = useImage();
-      if (usage.success) {
-        setSubscriptionInfo(formatSubscriptionInfo());
-      }
+      useImage();
+      setSubscriptionInfo(formatSubscriptionInfo());
     } catch (error) {
       console.error('Enhancement failed:', error);
       setProcessingState('idle');
