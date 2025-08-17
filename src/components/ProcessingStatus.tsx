@@ -47,34 +47,34 @@ export const ProcessingStatus = ({ isProcessing, progress: enhancementProgress, 
   const statusMessage = enhancementProgress?.message || steps[currentStep]?.name || "Processing...";
 
   return (
-    <Card className="p-2 sm:p-4 md:p-8 bg-card shadow-card border-border overflow-x-hidden max-w-full">
-      <div className="space-y-3 sm:space-y-4 md:space-y-6 overflow-x-hidden max-w-full">
+    <Card className="p-6 sm:p-8 md:p-12 bg-card shadow-xl border-border overflow-x-hidden w-full max-w-2xl mx-auto">
+      <div className="space-y-6 sm:space-y-8 md:space-y-10 overflow-x-hidden max-w-full">
         <div className="text-center space-y-2 sm:space-y-3 md:space-y-4 overflow-x-hidden max-w-full">
           <div className="flex justify-center">
-            <div className="p-2 sm:p-3 md:p-4 bg-primary/10 rounded-full animate-pulse-glow">
-              <CurrentIcon className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-primary animate-spin" />
+            <div className="p-4 sm:p-5 md:p-6 bg-primary/10 rounded-full animate-pulse-glow">
+              <CurrentIcon className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 text-primary animate-spin" />
             </div>
           </div>
           
           <div>
-            <h3 className="text-sm sm:text-base md:text-xl font-semibold text-foreground mb-1 sm:mb-2 break-words overflow-wrap-anywhere max-w-full">
+            <h3 className="text-lg sm:text-xl md:text-2xl font-semibold text-foreground mb-2 sm:mb-3 break-words overflow-wrap-anywhere max-w-full">
               Enhancing Your Image
             </h3>
-            <p className="text-xs sm:text-sm md:text-base text-muted-foreground break-words overflow-wrap-anywhere max-w-full">
+            <p className="text-sm sm:text-base md:text-lg text-muted-foreground break-words overflow-wrap-anywhere max-w-full">
               {statusMessage}
             </p>
           </div>
         </div>
 
-        <div className="space-y-2 sm:space-y-3 overflow-x-hidden max-w-full">
-          <div className="flex justify-between text-xs sm:text-sm overflow-x-hidden max-w-full">
-            <span className="text-muted-foreground">Progress</span>
-            <span className="text-foreground font-medium">{Math.round(displayProgress)}%</span>
+        <div className="space-y-3 sm:space-y-4 overflow-x-hidden max-w-full">
+          <div className="flex justify-between text-sm sm:text-base overflow-x-hidden max-w-full">
+            <span className="text-muted-foreground font-medium">Progress</span>
+            <span className="text-foreground font-bold text-lg">{Math.round(displayProgress)}%</span>
           </div>
-          <Progress value={displayProgress} className="h-2" />
+          <Progress value={displayProgress} className="h-3 sm:h-4" />
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-2 overflow-x-hidden max-w-full">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 overflow-x-hidden max-w-full">
           {steps.map((step, index) => {
             const StepIcon = step.icon;
             const isActive = index === currentStep;
@@ -83,7 +83,7 @@ export const ProcessingStatus = ({ isProcessing, progress: enhancementProgress, 
             return (
               <div
                 key={step.name}
-                className={`flex flex-col items-center gap-1 sm:gap-2 p-1 sm:p-2 md:p-3 rounded-md sm:rounded-lg transition-all duration-300 ${
+                className={`flex flex-col items-center gap-2 sm:gap-3 p-3 sm:p-4 md:p-5 rounded-lg sm:rounded-xl transition-all duration-300 ${
                   isActive 
                     ? 'bg-primary/10 text-primary scale-105' 
                     : isCompleted 
@@ -91,8 +91,8 @@ export const ProcessingStatus = ({ isProcessing, progress: enhancementProgress, 
                     : 'bg-muted text-muted-foreground'
                 }`}
               >
-                <StepIcon className={`w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 ${isActive ? 'animate-spin' : ''}`} />
-                <span className="text-xs text-center font-medium break-words overflow-wrap-anywhere max-w-full leading-tight">
+                <StepIcon className={`w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 ${isActive ? 'animate-spin' : ''}`} />
+                <span className="text-xs sm:text-sm text-center font-medium break-words overflow-wrap-anywhere max-w-full leading-tight">
                   {step.name}
                 </span>
               </div>
@@ -101,11 +101,11 @@ export const ProcessingStatus = ({ isProcessing, progress: enhancementProgress, 
         </div>
 
         <div className="text-center overflow-x-hidden max-w-full">
-          <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3 md:mb-4 break-words overflow-wrap-anywhere max-w-full">
+          <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-5 md:mb-6 break-words overflow-wrap-anywhere max-w-full">
             Estimated time: 30-60 seconds
           </p>
           {onCancel && (
-            <Button variant="outline" size="sm" onClick={onCancel}>
+            <Button variant="outline" size="lg" onClick={onCancel} className="px-8 py-3">
               Cancel Processing
             </Button>
           )}

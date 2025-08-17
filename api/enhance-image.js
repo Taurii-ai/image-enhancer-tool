@@ -57,12 +57,20 @@ export default async function handler(req, res) {
     const modelVersion = 'xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56';
     
     console.log('🚀 Calling Replicate API with PRODUCTION READY xinntao/realesrgan model...');
+    console.log('🔍 Input parameters:', { 
+      modelVersion, 
+      inputKeys: ['img', 'version'], 
+      version: 'Anime - anime6B',
+      imageDataLength: imageData.length 
+    });
     
     // Call Real-ESRGAN with the exact format from previous instructions
     const startTime = Date.now();
     let output;
     
     try {
+      console.log('⏱️ Starting Replicate call at:', new Date().toISOString());
+      
       output = await replicate.run(modelVersion, {
         input: {
           img: imageData,
@@ -70,6 +78,8 @@ export default async function handler(req, res) {
           // Using DOCUMENTED working parameters from PRODUCTION_READY.md
         }
       });
+      
+      console.log('⏱️ Replicate call completed at:', new Date().toISOString());
       
       const processingTime = Date.now() - startTime;
       console.log(`✅ PRODUCTION xinntao/realesrgan completed in ${processingTime}ms`);
