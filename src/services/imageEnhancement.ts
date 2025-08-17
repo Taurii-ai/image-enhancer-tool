@@ -217,10 +217,24 @@ export const enhanceImage = async (
         face_enhance: input.face_enhance 
       });
 
-      const output = await replicate.run(
-        "xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56",
-        { input }
-      );
+      let output;
+      try {
+        output = await replicate.run(
+          "xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56",
+          { input }
+        );
+      } catch (error: any) {
+        console.error('❌ Replicate API Error:', error);
+        if (error.message?.includes('rate limit')) {
+          throw new Error('Rate limit exceeded. Please wait and try again.');
+        } else if (error.message?.includes('balance') || error.message?.includes('billing')) {
+          throw new Error('Insufficient credits. Please add balance to your Replicate account.');
+        } else if (error.message?.includes('authentication') || error.message?.includes('unauthorized')) {
+          throw new Error('Invalid API key. Please check your Replicate API token.');
+        } else {
+          throw new Error(`Replicate API failed: ${error.message || 'Unknown error'}`);
+        }
+      }
 
       onProgress({ status: 'processing', progress: 80, message: 'Processing with Real-ESRGAN...' });
 
