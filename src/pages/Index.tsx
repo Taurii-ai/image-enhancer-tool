@@ -19,6 +19,20 @@ const Index = () => {
   const { toast } = useToast();
   const [appState, setAppState] = useState<AppState>('upload');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Force close mobile menu on resize to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) { // lg breakpoint
+        setMobileMenuOpen(false);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Check initial size
+    
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
@@ -151,7 +165,7 @@ const Index = () => {
                 <span className="text-xl font-bold text-foreground">Enhpix</span>
               </div>
               {/* Desktop Navigation */}
-              <div className="hidden md:flex items-center gap-3">
+              <div className="hidden lg:flex items-center gap-3">
                 <Button 
                   variant="default" 
                   size="sm" 
@@ -182,7 +196,7 @@ const Index = () => {
               </div>
 
               {/* Mobile Menu Button */}
-              <div className="md:hidden">
+              <div className="lg:hidden">
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -196,7 +210,7 @@ const Index = () => {
 
             {/* Mobile Menu */}
             {mobileMenuOpen && (
-              <div className="md:hidden absolute top-full left-0 right-0 border-b border-border z-[9998] bg-white/95 backdrop-blur-sm">
+              <div className="lg:hidden absolute top-full left-0 right-0 border-b border-border z-[9998] bg-white/95 backdrop-blur-sm">
                 <div className="flex flex-col p-4 space-y-2">
                   <Button 
                     variant="default" 
