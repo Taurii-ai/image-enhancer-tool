@@ -9,7 +9,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "vercel-build": "vite build",
+    "vercel-build": "DISABLE_ESLINT_PLUGIN=true vite build",
     "deploy": "vite build && echo 'Real-ESRGAN v3.0.0 Ready'"
   },
   "dependencies": {

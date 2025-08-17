@@ -23,7 +23,7 @@ const Index = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
   const [enhancementProgress, setEnhancementProgress] = useState<EnhancementProgress | null>(null);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null);
   
   const handleNavigation = (path: string) => {
     try {
