@@ -1,9 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run vercel-build",
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": null,
-  "devCommand": "npm run dev",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD"
+  "devCommand": "npm run dev"
 }
