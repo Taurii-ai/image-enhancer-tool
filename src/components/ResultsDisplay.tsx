@@ -226,12 +226,12 @@ export const ResultsDisplay = ({
             </div>
 
             {/* Labels */}
-            <div className="absolute top-6 left-6 z-10">
+            <div className="absolute top-20 left-6 z-10">
               <div className="bg-black/50 backdrop-blur-sm text-white px-3 py-2 rounded-full text-sm font-medium">
                 Before
               </div>
             </div>
-            <div className="absolute top-6 right-6 z-10">
+            <div className="absolute top-20 right-6 z-10">
               <div className="bg-black/50 backdrop-blur-sm text-white px-3 py-2 rounded-full text-sm font-medium">
                 After
               </div>
