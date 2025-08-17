@@ -1,4 +1,0 @@
-# Ignore linting during build
-.eslintrc.js
-.eslintrc.json
-eslint.config.js
