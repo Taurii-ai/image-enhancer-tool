@@ -53,25 +53,26 @@ export default async function handler(req, res) {
 
     console.log('✅ API token validation passed');
 
-    // Use the correct Real-ESRGAN model from tutorial (xinntao/realesrgan)
-    const modelVersion = 'xinntao/realesrgan:a893322a36b856b3e34ae70020f935391d1e67c85854746f3286395e2f75a7c5';
+    // Use the PRODUCTION_READY model version from previous instructions
+    const modelVersion = 'xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56';
     
-    console.log('🚀 Calling Replicate API with xinntao/realesrgan model...');
+    console.log('🚀 Calling Replicate API with PRODUCTION READY xinntao/realesrgan model...');
     
-    // Call Real-ESRGAN with the exact format from tutorial
+    // Call Real-ESRGAN with the exact format from previous instructions
     const startTime = Date.now();
     let output;
     
     try {
       output = await replicate.run(modelVersion, {
         input: {
-          image: imageData
-          // Note: xinntao/realesrgan doesn't use scale or face_enhance parameters
+          img: imageData,
+          version: "General - v3"
+          // Using production-ready parameters from previous instructions
         }
       });
       
       const processingTime = Date.now() - startTime;
-      console.log(`✅ xinntao/realesrgan completed in ${processingTime}ms`);
+      console.log(`✅ PRODUCTION xinntao/realesrgan completed in ${processingTime}ms`);
       console.log('Output:', output);
       console.log('Output type:', typeof output);
       console.log('Output array length:', Array.isArray(output) ? output.length : 'not array');
@@ -89,14 +90,14 @@ export default async function handler(req, res) {
     }
 
     if (!output) {
-      console.error('🚨 No output received from xinntao/realesrgan');
+      console.error('🚨 No output received from PRODUCTION xinntao/realesrgan');
       return res.status(500).json({ 
         error: 'No output from AI model',
-        details: 'xinntao/realesrgan returned empty response'
+        details: 'PRODUCTION xinntao/realesrgan returned empty response'
       });
     }
 
-    // Extract the upscaled image URL from the output array (as shown in tutorial)
+    // Extract the upscaled image URL from the output array (following previous instructions)
     const upscaledUrl = Array.isArray(output) ? output[0] : output;
     
     if (!upscaledUrl) {
@@ -107,19 +108,20 @@ export default async function handler(req, res) {
       });
     }
 
-    // Log cost information
+    // Log cost information (following previous instructions)
     const estimatedCost = 0.0025;
     console.log(`💰 Estimated cost: $${estimatedCost.toFixed(4)}`);
     console.log(`🎯 Final upscaled URL: ${upscaledUrl}`);
 
-    // Return success response
+    // Return success response (following previous instructions format)
     res.status(200).json({
       success: true,
       enhancedImageUrl: upscaledUrl,
       processingTime: Date.now() - startTime,
       estimatedCost,
-      modelUsed: 'xinntao/realesrgan',
-      scale: 'auto' // xinntao model handles scaling automatically
+      modelUsed: 'xinntao/realesrgan-production',
+      scale: 'auto', // xinntao model handles scaling automatically
+      version: 'General - v3'
     });
 
   } catch (error) {

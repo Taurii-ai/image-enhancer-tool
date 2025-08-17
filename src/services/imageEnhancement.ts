@@ -203,7 +203,7 @@ export const enhanceImage = async (
         throw new Error(errorData.details || errorData.error || `API request failed with status ${response.status}`);
       }
 
-      onProgress({ status: 'processing', progress: 30, message: 'Starting Real-ESRGAN model...' });
+      onProgress({ status: 'processing', progress: 30, message: 'Starting PRODUCTION Real-ESRGAN model...' });
 
       const result = await response.json();
       
@@ -211,7 +211,7 @@ export const enhanceImage = async (
         throw new Error(result.details || result.error || 'Enhancement failed');
       }
 
-      onProgress({ status: 'processing', progress: 80, message: 'Processing with Real-ESRGAN...' });
+      onProgress({ status: 'processing', progress: 80, message: `Processing with ${result.modelUsed} (${result.version})...` });
 
       console.log('📥 API Response:', result);
       
@@ -220,9 +220,15 @@ export const enhanceImage = async (
       }
 
       enhancedUrl = result.enhancedImageUrl;
-      onProgress({ status: 'processing', progress: 95, message: 'Real-ESRGAN enhancement complete!' });
+      onProgress({ status: 'processing', progress: 95, message: `${result.modelUsed} enhancement complete! (${result.processingTime}ms)` });
       
-      console.log('✅ API ROUTE: Real-ESRGAN successful!', result.enhancedImageUrl);
+      console.log('✅ API ROUTE: PRODUCTION Real-ESRGAN successful!', {
+        url: result.enhancedImageUrl,
+        model: result.modelUsed,
+        version: result.version,
+        processingTime: result.processingTime,
+        cost: result.estimatedCost
+      });
       
     } catch (apiError: unknown) {
       console.error('🚨 API Route Error:', apiError);
