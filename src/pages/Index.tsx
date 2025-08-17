@@ -37,7 +37,6 @@ const Index = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
   const [enhancementProgress, setEnhancementProgress] = useState<EnhancementProgress | null>(null);
-  const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null);
   
   const handleNavigation = (path: string) => {
     try {
@@ -89,45 +88,6 @@ const Index = () => {
     }
   };
 
-  const debugReplicate = async () => {
-    try {
-      console.log('🔍 Running Replicate API debug...');
-      
-      const response = await fetch('/api/debug-api', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ testApiCall: true })
-      });
-
-      const result = await response.json();
-      setDebugInfo(result);
-      
-      console.log('🔍 Debug Result:', result);
-      
-      // Show result in toast
-      if (result.summary?.overallStatus === 'READY') {
-        toast({
-          title: "✅ Replicate API Ready!",
-          description: `Tests passed: ${result.summary.passedTests}`,
-        });
-      } else {
-        toast({
-          title: "❌ API Issues Found",
-          description: `Tests passed: ${result.summary?.passedTests || '0/0'}`,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Debug failed:', error);
-      toast({
-        title: "Debug Failed",
-        description: "Could not test API connection",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleStartOver = () => {
     setAppState('upload');
@@ -299,18 +259,20 @@ const Index = () => {
       </div>
 
       {/* Main Content */}
-      <div className="px-2 sm:px-3 md:px-6 py-4 sm:py-6 md:py-12">
+      <div className="px-2 sm:px-3 md:px-6 py-4 sm:py-6 md:py-12 mt-20 sm:mt-24 md:mt-28">
         <div className="max-w-4xl mx-auto">
           {appState === 'upload' && (
             <ImageUploader onImageUpload={handleImageUpload} />
           )}
 
           {appState === 'processing' && (
-            <ProcessingStatus 
-              isProcessing={true}
-              progress={enhancementProgress}
-              onCancel={handleCancelProcessing}
-            />
+            <div className="min-h-screen flex items-center justify-center">
+              <ProcessingStatus 
+                isProcessing={true}
+                progress={enhancementProgress}
+                onCancel={handleCancelProcessing}
+              />
+            </div>
           )}
 
           {appState === 'results' && previewUrl && enhancedUrl && uploadedFile && (

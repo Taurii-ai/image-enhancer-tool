@@ -203,7 +203,7 @@ export const enhanceImage = async (
         throw new Error(errorData.details || errorData.error || `API request failed with status ${response.status}`);
       }
 
-      onProgress({ status: 'processing', progress: 30, message: 'Starting PRODUCTION Real-ESRGAN model...' });
+      onProgress({ status: 'processing', progress: 30, message: 'Starting Real-ESRGAN (Anime 6B) model...' });
 
       const result = await response.json();
       

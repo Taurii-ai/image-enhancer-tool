@@ -21,8 +21,8 @@ export default async function handler(req, res) {
         },
       ],
       mode: 'subscription',
-      success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.origin}/pricing`,
+      success_url: `${req.headers.origin || 'https://enhpix.com'}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.origin || 'https://enhpix.com'}/pricing`,
       customer_email: customerEmail,
       metadata: {
         customerName: customerName || '',

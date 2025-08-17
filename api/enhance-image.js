@@ -66,8 +66,8 @@ export default async function handler(req, res) {
       output = await replicate.run(modelVersion, {
         input: {
           img: imageData,
-          version: "General - v3"
-          // Using production-ready parameters from previous instructions
+          version: "Anime - anime6B"
+          // Using DOCUMENTED working parameters from PRODUCTION_READY.md
         }
       });
       
@@ -120,8 +120,8 @@ export default async function handler(req, res) {
       processingTime: Date.now() - startTime,
       estimatedCost,
       modelUsed: 'xinntao/realesrgan-production',
-      scale: 'auto', // xinntao model handles scaling automatically
-      version: 'General - v3'
+      scale: 'auto', // xinntao model handles scaling automatically  
+      version: 'Anime - anime6B'
     });
 
   } catch (error) {
