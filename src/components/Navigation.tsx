@@ -41,7 +41,13 @@ export const Navigation = ({ currentPage = 'home', variant = 'dark' }: Navigatio
   };
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-[9999] p-4 md:p-6 transition-all duration-300 bg-white/98 backdrop-blur-lg border-b border-border shadow-lg`}>
+    <header className={`fixed top-0 left-0 right-0 z-[9999] p-4 md:p-6 transition-all duration-300 ${
+      scrolled 
+        ? 'bg-white/80 backdrop-blur-md border-b border-border/50 shadow-sm' 
+        : variant === 'light' 
+          ? 'bg-white border-b border-border'
+          : 'bg-transparent'
+    }`}>
       <nav className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
           <div className="p-2 bg-white rounded-lg">

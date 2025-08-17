@@ -142,7 +142,7 @@ const Index = () => {
         <div className="absolute inset-0 bg-background/90" />
         <div className="relative z-10 overflow-x-hidden max-w-full">
           {/* Header */}
-          <header className="fixed top-0 left-0 right-0 z-[9999] p-4 md:p-6 transition-all duration-300 bg-white/98 backdrop-blur-lg border-b border-border shadow-lg">
+          <header className="fixed top-0 left-0 right-0 z-[9999] p-4 md:p-6 transition-all duration-300 bg-transparent">
             <nav className="max-w-7xl mx-auto flex items-center justify-between overflow-x-hidden w-full">
               <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleNavigation('/')}>
                 <div className="p-2 bg-white rounded-lg">
