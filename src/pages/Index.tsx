@@ -156,7 +156,7 @@ const Index = () => {
         <div className="absolute inset-0 bg-background/90" />
         <div className="relative z-10 overflow-x-hidden max-w-full">
           {/* Header */}
-          <header className="fixed top-0 left-0 right-0 z-[9999] p-4 md:p-6 transition-all duration-300 bg-transparent">
+          <header className="fixed top-0 left-0 right-0 z-[9999] p-4 md:p-6 transition-all duration-300 bg-background/95 backdrop-blur-md">
             <nav className="max-w-7xl mx-auto flex items-center justify-between overflow-x-hidden w-full">
               <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleNavigation('/')}>
                 <div className="p-2 bg-white rounded-lg">
@@ -210,16 +210,16 @@ const Index = () => {
 
             {/* Mobile Menu */}
             {mobileMenuOpen && (
-              <div className="lg:hidden absolute top-full left-0 right-0 border-b border-border z-[9998] bg-white/95 backdrop-blur-sm">
+              <div className="lg:hidden absolute top-full left-0 right-0 border-b border-border z-[9998] bg-background/95 backdrop-blur-md">
                 <div className="flex flex-col p-4 space-y-2">
                   <Button 
-                    variant="ghost" 
+                    variant="default" 
                     size="sm" 
                     onClick={() => {
                       handleNavigation('/');
                       setMobileMenuOpen(false);
                     }}
-                    className="w-full justify-start text-foreground hover:bg-background/50"
+                    className="w-full justify-start bg-primary text-primary-foreground"
                   >
                     Home
                   </Button>
@@ -230,7 +230,7 @@ const Index = () => {
                       handleNavigation('/about');
                       setMobileMenuOpen(false);
                     }}
-                    className="w-full justify-start text-foreground hover:bg-background/50"
+                    className="w-full justify-start text-foreground hover:text-primary"
                   >
                     About
                   </Button>
@@ -241,18 +241,18 @@ const Index = () => {
                       handleNavigation('/pricing');
                       setMobileMenuOpen(false);
                     }}
-                    className="w-full justify-start text-foreground hover:bg-background/50"
+                    className="w-full justify-start text-foreground hover:text-primary"
                   >
                     Pricing
                   </Button>
                   <Button 
-                    variant="ghost" 
+                    variant="outline" 
                     size="sm" 
                     onClick={() => {
                       handleNavigation('/login');
                       setMobileMenuOpen(false);
                     }}
-                    className="w-full justify-start text-foreground hover:bg-background/50"
+                    className="w-full justify-start"
                   >
                     Sign In
                   </Button>

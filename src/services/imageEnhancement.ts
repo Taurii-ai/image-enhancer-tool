@@ -1,14 +1,7 @@
-import Replicate from 'replicate';
 import { getCurrentPlanLimits, getUserSubscription } from './subscriptionManager';
 import { recordApiUsage, MODEL_COSTS } from './costTracker';
 import { trackImageEnhancement, trackApiCost } from './analytics';
 import { UserService } from './userService';
-
-// Initialize Replicate client
-// Use environment variable with Vite prefix for frontend
-const replicate = new Replicate({
-  auth: import.meta.env.VITE_REPLICATE_API_TOKEN,
-});
 
 // These functions were used for the old API-based approach, now using direct client
 
@@ -182,88 +175,57 @@ export const enhanceImage = async (
     
     let enhancedUrl: string;
     
-    // DIRECT REPLICATE CLIENT METHOD (since API routes don't work in Vite)
+    // USE API ROUTE METHOD (proper serverless approach)
     try {
       onProgress({ status: 'processing', progress: 10, message: 'Preparing image...' });
       
-      // Convert file to data URL for Replicate
+      // Convert file to data URL for API
       const imageDataUrl = await fileToDataURL(file);
       
-      onProgress({ status: 'processing', progress: 20, message: 'Connecting to Replicate...' });
+      onProgress({ status: 'processing', progress: 20, message: 'Connecting to enhancement API...' });
       
-      console.log('🔥 DIRECT CLIENT: Using Real-ESRGAN directly from frontend...');
-      console.log('🔑 Has API token:', !!import.meta.env.VITE_REPLICATE_API_TOKEN);
+      console.log('🔥 API ROUTE: Using enhance-image API endpoint...');
       
-      if (!import.meta.env.VITE_REPLICATE_API_TOKEN) {
-        console.error('❌ VITE_REPLICATE_API_TOKEN not found in environment variables');
-        throw new Error('Replicate API token not configured. Please check Vercel environment variables.');
-      }
-      
-      onProgress({ status: 'processing', progress: 30, message: 'Starting Real-ESRGAN model...' });
-      
-      // Use the correct Real-ESRGAN model parameters from Replicate documentation
-      const input = {
-        img: imageDataUrl,
-        scale: 4,
-        version: "General - v3",
-        face_enhance: false,
-        tile: 0
-      };
-
-      console.log('🚀 Calling Replicate with input:', { 
-        img: 'base64_data', 
-        scale: input.scale, 
-        version: input.version,
-        face_enhance: input.face_enhance 
+      const response = await fetch('/api/enhance-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageData: imageDataUrl,
+          scale: 4,
+          userEmail: userEmail || 'test@enhpix.com'
+        })
       });
 
-      let output;
-      try {
-        output = await replicate.run(
-          "xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56",
-          { input }
-        );
-      } catch (error: any) {
-        console.error('❌ Replicate API Error:', error);
-        if (error.message?.includes('rate limit')) {
-          throw new Error('Rate limit exceeded. Please wait and try again.');
-        } else if (error.message?.includes('balance') || error.message?.includes('billing')) {
-          throw new Error('Insufficient credits. Please add balance to your Replicate account.');
-        } else if (error.message?.includes('authentication') || error.message?.includes('unauthorized')) {
-          throw new Error('Invalid API key. Please check your Replicate API token.');
-        } else {
-          throw new Error(`Replicate API failed: ${error.message || 'Unknown error'}`);
-        }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.details || errorData.error || `API request failed with status ${response.status}`);
+      }
+
+      onProgress({ status: 'processing', progress: 30, message: 'Starting Real-ESRGAN model...' });
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.details || result.error || 'Enhancement failed');
       }
 
       onProgress({ status: 'processing', progress: 80, message: 'Processing with Real-ESRGAN...' });
 
-      console.log('📥 Direct Replicate Output:', output);
-      console.log('📥 Output type:', typeof output);
+      console.log('📥 API Response:', result);
       
-      // Handle output based on Replicate's response format
-      let resultUrl: string;
-      if (output && typeof output === 'object' && 'url' in output && typeof output.url === 'function') {
-        resultUrl = output.url();
-      } else if (Array.isArray(output) && output.length > 0) {
-        resultUrl = output[0];
-      } else if (typeof output === 'string') {
-        resultUrl = output;
-      } else {
-        throw new Error('Unexpected output format from Real-ESRGAN');
-      }
-      
-      if (!resultUrl) {
-        throw new Error('No valid URL received from Real-ESRGAN');
+      if (!result.enhancedImageUrl) {
+        throw new Error('No enhanced image URL in response');
       }
 
-      enhancedUrl = resultUrl;
+      enhancedUrl = result.enhancedImageUrl;
       onProgress({ status: 'processing', progress: 95, message: 'Real-ESRGAN enhancement complete!' });
       
-      console.log('✅ DIRECT CLIENT: Real-ESRGAN successful!', resultUrl);
+      console.log('✅ API ROUTE: Real-ESRGAN successful!', result.enhancedImageUrl);
       
     } catch (apiError: unknown) {
-      console.error('🚨 Direct Replicate Error:', apiError);
+      console.error('🚨 API Route Error:', apiError);
       console.error('Error details:', apiError instanceof Error ? apiError.message : 'Unknown error');
       
       // Show specific error message to user
@@ -271,10 +233,10 @@ export const enhanceImage = async (
       onProgress({ 
         status: 'processing', 
         progress: 60, 
-        message: `Real-ESRGAN Error: ${errorMessage}. Using demo mode...` 
+        message: `API Error: ${errorMessage}. Using demo mode...` 
       });
       
-      // Fallback to demo mode if Real-ESRGAN fails
+      // Fallback to demo mode if API fails
       console.log('🔄 Falling back to demo enhancement');
       enhancedUrl = await simulateEnhancement(file, onProgress, planLimits);
     }
