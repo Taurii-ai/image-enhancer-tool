@@ -213,13 +213,13 @@ const Index = () => {
               <div className="lg:hidden absolute top-full left-0 right-0 border-b border-border z-[9998] bg-white/95 backdrop-blur-sm">
                 <div className="flex flex-col p-4 space-y-2">
                   <Button 
-                    variant="default" 
+                    variant="ghost" 
                     size="sm" 
                     onClick={() => {
                       handleNavigation('/');
                       setMobileMenuOpen(false);
                     }}
-                    className="w-full justify-start bg-primary text-primary-foreground"
+                    className="w-full justify-start text-foreground hover:bg-background/50"
                   >
                     Home
                   </Button>
@@ -230,7 +230,7 @@ const Index = () => {
                       handleNavigation('/about');
                       setMobileMenuOpen(false);
                     }}
-                    className="w-full justify-start text-foreground hover:text-primary"
+                    className="w-full justify-start text-foreground hover:bg-background/50"
                   >
                     About
                   </Button>
@@ -241,18 +241,18 @@ const Index = () => {
                       handleNavigation('/pricing');
                       setMobileMenuOpen(false);
                     }}
-                    className="w-full justify-start text-foreground hover:text-primary"
+                    className="w-full justify-start text-foreground hover:bg-background/50"
                   >
                     Pricing
                   </Button>
                   <Button 
-                    variant="outline" 
+                    variant="ghost" 
                     size="sm" 
                     onClick={() => {
                       handleNavigation('/login');
                       setMobileMenuOpen(false);
                     }}
-                    className="w-full justify-start"
+                    className="w-full justify-start text-foreground hover:bg-background/50"
                   >
                     Sign In
                   </Button>
