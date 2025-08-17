@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 // import { useAuth } from '@/hooks/useAuth'; // Temporarily disabled to avoid auth issues
 import { useToast } from '@/hooks/use-toast';
@@ -19,11 +19,23 @@ const Index = () => {
   const { toast } = useToast();
   const [appState, setAppState] = useState<AppState>('upload');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
   const [enhancementProgress, setEnhancementProgress] = useState<EnhancementProgress | null>(null);
   const [debugInfo, setDebugInfo] = useState<any>(null);
+
+  // Track scroll position for navigation transparency
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      setScrolled(scrollTop > 100);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   
   const handleNavigation = (path: string) => {
     try {
@@ -142,7 +154,11 @@ const Index = () => {
         <div className="absolute inset-0 bg-background/90" />
         <div className="relative z-10 overflow-x-hidden max-w-full">
           {/* Header */}
-          <header className="p-4 md:p-6 relative">
+          <header className={`fixed top-0 left-0 right-0 z-50 p-4 md:p-6 transition-all duration-300 ${
+            scrolled 
+              ? 'bg-white/80 backdrop-blur-lg border-b border-border/50 shadow-sm' 
+              : 'bg-transparent'
+          }`}>
             <nav className="max-w-7xl mx-auto flex items-center justify-between overflow-x-hidden w-full">
               <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleNavigation('/')}>
                 <div className="p-2 bg-white rounded-lg">
@@ -196,7 +212,11 @@ const Index = () => {
 
             {/* Mobile Menu */}
             {mobileMenuOpen && (
-              <div className="md:hidden absolute top-full left-0 right-0 bg-background/95 backdrop-blur-sm border-b border-border z-50">
+              <div className={`md:hidden absolute top-full left-0 right-0 border-b border-border z-50 ${
+                scrolled 
+                  ? 'bg-white/95 backdrop-blur-lg' 
+                  : 'bg-white/95 backdrop-blur-sm'
+              }`}>
                 <div className="flex flex-col p-4 space-y-2">
                   <Button 
                     variant="default" 
@@ -249,7 +269,7 @@ const Index = () => {
 
           {/* Hero Content */}
           {appState === 'upload' && (
-            <div className="px-2 sm:px-3 md:px-6 pb-6 sm:pb-8 md:pb-20 pt-4 sm:pt-6 md:pt-12">
+            <div className="px-2 sm:px-3 md:px-6 pb-6 sm:pb-8 md:pb-20 pt-20 sm:pt-24 md:pt-28">
               <div className="max-w-4xl mx-auto text-center space-y-3 sm:space-y-4 md:space-y-8 overflow-x-hidden w-full">
                 <div className="space-y-2 sm:space-y-3 md:space-y-4">
                   <h1 className="text-lg sm:text-xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-foreground leading-tight px-1 sm:px-2 break-words overflow-wrap-anywhere max-w-full">

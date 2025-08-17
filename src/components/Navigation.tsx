@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
@@ -12,6 +12,18 @@ interface NavigationProps {
 export const Navigation = ({ currentPage = 'home', variant = 'dark' }: NavigationProps) => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  // Track scroll position for transparency effect
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      setScrolled(scrollTop > 50);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const textColor = variant === 'light' ? 'text-foreground' : 'text-white';
   const logoTextColor = variant === 'light' ? 'text-foreground' : 'text-white';
@@ -29,7 +41,11 @@ export const Navigation = ({ currentPage = 'home', variant = 'dark' }: Navigatio
   };
 
   return (
-    <header className="p-4 md:p-6 border-b border-border relative">
+    <header className={`fixed top-0 left-0 right-0 z-50 p-4 md:p-6 transition-all duration-300 ${
+      scrolled 
+        ? 'bg-white/80 backdrop-blur-md border-b border-border/50 shadow-sm' 
+        : 'bg-white border-b border-border'
+    }`}>
       <nav className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
           <div className="p-2 bg-white rounded-lg">
@@ -74,7 +90,11 @@ export const Navigation = ({ currentPage = 'home', variant = 'dark' }: Navigatio
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 bg-background/95 backdrop-blur-sm border-b border-border z-40">
+        <div className={`md:hidden absolute top-full left-0 right-0 border-b border-border z-40 ${
+          scrolled 
+            ? 'bg-white/95 backdrop-blur-md' 
+            : 'bg-white'
+        }`}>
           <div className="flex flex-col p-4 space-y-2">
             {navigationItems.map((item) => (
               <Button
