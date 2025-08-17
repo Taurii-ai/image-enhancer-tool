@@ -201,13 +201,21 @@ export const enhanceImage = async (
       
       onProgress({ status: 'processing', progress: 30, message: 'Starting Real-ESRGAN model...' });
       
-      // Use the exact Real-ESRGAN model and parameters from official site
+      // Use the correct Real-ESRGAN model parameters from Replicate documentation
       const input = {
         img: imageDataUrl,
-        version: "Anime - anime6B"
+        scale: 4,
+        version: "General - v3",
+        face_enhance: false,
+        tile: 0
       };
 
-      console.log('🚀 Calling Replicate with input:', { img: 'base64_data', version: input.version });
+      console.log('🚀 Calling Replicate with input:', { 
+        img: 'base64_data', 
+        scale: input.scale, 
+        version: input.version,
+        face_enhance: input.face_enhance 
+      });
 
       const output = await replicate.run(
         "xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56",
