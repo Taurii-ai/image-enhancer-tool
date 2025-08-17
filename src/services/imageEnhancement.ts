@@ -195,20 +195,23 @@ export const enhanceImage = async (
       console.log('🔑 Has API token:', !!import.meta.env.VITE_REPLICATE_API_TOKEN);
       
       if (!import.meta.env.VITE_REPLICATE_API_TOKEN) {
-        throw new Error('VITE_REPLICATE_API_TOKEN not found');
+        console.error('❌ VITE_REPLICATE_API_TOKEN not found in environment variables');
+        throw new Error('Replicate API token not configured. Please check Vercel environment variables.');
       }
       
       onProgress({ status: 'processing', progress: 30, message: 'Starting Real-ESRGAN model...' });
       
-      // Use the exact Real-ESRGAN model and parameters from the guide
+      // Use the exact Real-ESRGAN model and parameters from official site
+      const input = {
+        img: imageDataUrl,
+        version: "Anime - anime6B"
+      };
+
+      console.log('🚀 Calling Replicate with input:', { img: 'base64_data', version: input.version });
+
       const output = await replicate.run(
         "xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56",
-        {
-          input: {
-            img: imageDataUrl,
-            version: "Anime - anime6B"
-          }
-        }
+        { input }
       );
 
       onProgress({ status: 'processing', progress: 80, message: 'Processing with Real-ESRGAN...' });
