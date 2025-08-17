@@ -53,8 +53,8 @@ module.exports = async function handler(req, res) {
 
     console.log('✅ API token validation passed');
 
-    // Use the model name directly (Replicate will use latest version)
-    const modelVersion = 'xinntao/realesrgan';
+    // Use the correct latest version from the API response
+    const modelVersion = 'xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56';
     
     console.log('🚀 Starting Real-ESRGAN enhancement...');
     
