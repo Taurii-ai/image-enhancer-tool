@@ -23,22 +23,22 @@ export interface ProcessingResult {
 // Model configurations for different plans
 export const MODEL_CONFIGS = {
   trial: {
-    models: ['nightmareai/real-esrgan'],
+    models: ['xinntao/realesrgan'],
     maxScale: 4,
     priority: 'low'
   },
   basic: {
-    models: ['nightmareai/real-esrgan', 'cjwbw/waifu2x'],
+    models: ['xinntao/realesrgan'],
     maxScale: 4,
     priority: 'low'
   },
   pro: {
-    models: ['nightmareai/real-esrgan', 'cjwbw/waifu2x', 'tencentarc/gfpgan'],
+    models: ['xinntao/realesrgan'],
     maxScale: 8,
     priority: 'medium'
   },
   premium: {
-    models: ['nightmareai/real-esrgan', 'cjwbw/waifu2x', 'tencentarc/gfpgan', 'xinntao/realesrgan'],
+    models: ['xinntao/realesrgan'],
     maxScale: 16,
     priority: 'high'
   }
@@ -62,12 +62,19 @@ export const enhanceImage = async (
     onProgress?.(20) // Model selected
     
     // Create prediction with progress tracking
+    const input = modelName === 'xinntao/realesrgan' ? {
+      img: imageUrl,
+      scale: options.scale,
+      version: options.imageType === 'artwork' ? 'Anime - anime6B' : 'General - v3',
+      face_enhance: options.imageType === 'photo'
+    } : {
+      image: imageUrl,
+      scale: options.scale,
+    }
+    
     const prediction = await replicate.predictions.create({
       version: modelVersion,
-      input: {
-        image: imageUrl,
-        scale: options.scale,
-      }
+      input
     })
 
     onProgress?.(30) // Prediction created
@@ -100,18 +107,8 @@ export const enhanceImage = async (
 
 // Get optimal model based on image type and user plan
 const getOptimalModel = (imageType: string, userPlan: string): string => {
-  const availableModels = MODEL_CONFIGS[userPlan as keyof typeof MODEL_CONFIGS]?.models || MODEL_CONFIGS.trial.models
-  
-  switch (imageType) {
-    case 'photo':
-      return availableModels.includes('tencentarc/gfpgan') ? 'tencentarc/gfpgan' : 'nightmareai/real-esrgan'
-    case 'artwork':
-      return availableModels.includes('cjwbw/waifu2x') ? 'cjwbw/waifu2x' : 'nightmareai/real-esrgan'
-    case 'logo':
-      return availableModels.includes('xinntao/realesrgan') ? 'xinntao/realesrgan' : 'nightmareai/real-esrgan'
-    default:
-      return 'nightmareai/real-esrgan' // Universal fallback
-  }
+  // Always use xinntao/realesrgan as it's the official implementation
+  return 'xinntao/realesrgan'
 }
 
 // Poll prediction status with progress tracking
@@ -197,14 +194,8 @@ export const isReplicateAvailable = (): boolean => {
 
 // Estimate processing cost (for internal tracking)
 export const estimateProcessingCost = (imageCount: number, model: string): number => {
-  const costs = {
-    'nightmareai/real-esrgan': 0.02,
-    'cjwbw/waifu2x': 0.02,
-    'tencentarc/gfpgan': 0.05,
-    'xinntao/realesrgan': 0.03
-  }
-  
-  return imageCount * (costs[model as keyof typeof costs] || 0.02)
+  // xinntao/realesrgan official model cost
+  return imageCount * 0.03
 }
 
 export default replicate
