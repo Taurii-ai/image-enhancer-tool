@@ -47,7 +47,7 @@ export const ProcessingStatus = ({ isProcessing, progress: enhancementProgress, 
   const statusMessage = enhancementProgress?.message || steps[currentStep]?.name || "Processing...";
 
   return (
-    <Card className="p-6 sm:p-8 md:p-12 bg-card shadow-xl border-border overflow-x-hidden w-full max-w-4xl mx-auto">
+    <Card className="p-6 sm:p-8 md:p-12 bg-card shadow-xl border-border overflow-x-hidden w-full">
       <div className="space-y-6 sm:space-y-8 md:space-y-10 overflow-x-hidden max-w-full">
         <div className="text-center space-y-2 sm:space-y-3 md:space-y-4 overflow-x-hidden max-w-full">
           <div className="flex justify-center">

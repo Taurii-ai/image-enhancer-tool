@@ -267,11 +267,13 @@ const Index = () => {
 
           {appState === 'processing' && (
             <div className="min-h-screen flex items-center justify-center">
-              <ProcessingStatus 
-                isProcessing={true}
-                progress={enhancementProgress}
-                onCancel={handleCancelProcessing}
-              />
+              <div className="w-full max-w-7xl mx-auto">
+                <ProcessingStatus 
+                  isProcessing={true}
+                  progress={enhancementProgress}
+                  onCancel={handleCancelProcessing}
+                />
+              </div>
             </div>
           )}
 
