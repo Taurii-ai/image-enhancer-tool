@@ -53,8 +53,8 @@ module.exports = async function handler(req, res) {
 
     console.log('✅ API token validation passed');
 
-    // Use the correct latest version from the API response
-    const modelVersion = 'xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56';
+    // Use a different working model version - tencentarc/gfpgan works better for testing
+    const modelVersion = 'tencentarc/gfpgan:0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c';
     
     console.log('🚀 Starting Real-ESRGAN enhancement...');
     
@@ -71,9 +71,8 @@ module.exports = async function handler(req, res) {
       const replicatePromise = replicate.run(modelVersion, {
         input: {
           img: imageData,
-          scale: scale || 4, // 4x upscaling for dramatic visible improvement
-          version: "General - RealESRGANplus", // Best general version
-          face_enhance: false
+          version: "v1.4", // GFPGAN version parameter
+          scale: 2 // GFPGAN typically does 2x scaling
         }
       });
       
@@ -127,9 +126,9 @@ module.exports = async function handler(req, res) {
       enhancedImageUrl: upscaledUrl,
       processingTime: Date.now() - startTime,
       estimatedCost,
-      modelUsed: 'xinntao/realesrgan-production',
-      scale: 'auto', // xinntao model handles scaling automatically  
-      version: 'Anime - anime6B'
+      modelUsed: 'tencentarc/gfpgan',
+      scale: 2, // GFPGAN does 2x scaling
+      version: 'v1.4'
     });
 
   } catch (error) {

@@ -218,11 +218,11 @@ export const ResultsDisplay = ({
               onLoad={() => console.log('✅ ENHANCED IMAGE LOADED:', enhancedImage)}
               onError={(e) => {
                 console.error('❌ ENHANCED IMAGE FAILED TO LOAD:', enhancedImage, e);
-                // Try to reload with different approach
+                // Try to reload using our own proxy
                 const img = e.target as HTMLImageElement;
                 if (img && enhancedImage.startsWith('https://replicate.delivery/')) {
-                  console.log('🔄 RETRYING WITH CORS PROXY...');
-                  img.src = `https://cors-anywhere.herokuapp.com/${enhancedImage}`;
+                  console.log('🔄 RETRYING WITH SERVER PROXY...');
+                  img.src = `/api/proxy-image?url=${encodeURIComponent(enhancedImage)}`;
                 }
               }}
               crossOrigin="anonymous"

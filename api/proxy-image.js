@@ -22,19 +22,49 @@ module.exports = async function handler(req, res) {
   try {
     console.log('🔄 PROXY: Fetching Replicate image:', url);
     
-    // Use a different approach - try multiple DNS servers
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ImageProxy/1.0)',
-        'Accept': 'image/*,*/*',
-      },
-      timeout: 30000,
-    });
+    // Multiple retry attempts with different approaches
+    let response;
+    let attempt = 0;
+    const maxAttempts = 3;
     
-    if (!response.ok) {
-      console.error('🚨 PROXY: HTTP Error:', response.status, response.statusText);
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    while (attempt < maxAttempts) {
+      try {
+        console.log(`🔄 PROXY: Attempt ${attempt + 1}/${maxAttempts}`);
+        
+        response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; ImageProxy/1.0)',
+            'Accept': 'image/*,*/*',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Cache-Control': 'no-cache',
+          },
+          timeout: 30000,
+        });
+        
+        if (response.ok) break;
+        
+        console.warn(`🚨 PROXY: Attempt ${attempt + 1} failed:`, response.status, response.statusText);
+        attempt++;
+        
+        if (attempt < maxAttempts) {
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
+        
+      } catch (fetchError) {
+        console.error(`🚨 PROXY: Fetch error on attempt ${attempt + 1}:`, fetchError.message);
+        attempt++;
+        
+        if (attempt >= maxAttempts) throw fetchError;
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    }
+    
+    if (!response || !response.ok) {
+      throw new Error(`HTTP ${response?.status || 'unknown'}: ${response?.statusText || 'Network error'}`);
     }
 
     const contentType = response.headers.get('content-type') || 'image/jpeg';

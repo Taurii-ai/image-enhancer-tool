@@ -15,21 +15,17 @@ export const useImageLoader = (src: string) => {
       try {
         // If it's a Replicate URL, try to fetch it through our proxy
         if (src.startsWith('https://replicate.delivery/')) {
-          console.log('🔄 LOADING REPLICATE IMAGE VIA CORS PROXY:', src);
+          console.log('🔄 LOADING REPLICATE IMAGE VIA SERVER PROXY:', src);
           
-          // Try using a CORS proxy service
-          const proxyUrl = `https://cors-anywhere.herokuapp.com/${src}`;
+          // Use our own proxy endpoint
+          const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(src)}`;
           
-          const response = await fetch(proxyUrl, {
-            headers: {
-              'X-Requested-With': 'XMLHttpRequest',
-            },
-          });
+          const response = await fetch(proxyUrl);
           
           if (response.ok) {
             const blob = await response.blob();
             const blobUrl = URL.createObjectURL(blob);
-            console.log('✅ LOADED VIA CORS PROXY:', blobUrl);
+            console.log('✅ LOADED VIA SERVER PROXY:', blobUrl);
             setImageSrc(blobUrl);
             setIsLoading(false);
             return;
