@@ -63,7 +63,12 @@ module.exports = async function handler(req, res) {
     let output;
     
     try {
-      output = await replicate.run(modelVersion, {
+      // Add timeout wrapper for Replicate API call
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Replicate API timeout after 120 seconds')), 120000)
+      );
+      
+      const replicatePromise = replicate.run(modelVersion, {
         input: {
           img: imageData,
           scale: scale || 2,
@@ -71,6 +76,8 @@ module.exports = async function handler(req, res) {
           face_enhance: false
         }
       });
+      
+      output = await Promise.race([replicatePromise, timeoutPromise]);
       
       const processingTime = Date.now() - startTime;
       console.log(`✅ PRODUCTION xinntao/realesrgan completed in ${processingTime}ms`);
