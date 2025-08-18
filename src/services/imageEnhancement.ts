@@ -237,48 +237,45 @@ export const enhanceImage = async (
       // Show specific error message to user
       const errorMessage = (apiError instanceof Error ? apiError.message : 'Real-ESRGAN processing failed');
       
-      // TEMP: Throw error instead of falling back to demo mode
-      // This will help us debug the API issue
+      // Fallback to simulation mode if API fails
       onProgress({ 
-        status: 'failed', 
-        progress: 0, 
-        message: `🚨 REAL API ERROR: ${errorMessage}. Check console for details.` 
+        status: 'processing', 
+        progress: 60, 
+        message: `API Error: ${errorMessage}. Using demo mode...` 
       });
-      
-      throw new Error(`API Failed: ${errorMessage}`);
-      
-      // TODO: Re-enable fallback after API is working
-      // onProgress({ 
-      //   status: 'processing', 
-      //   progress: 60, 
-      //   message: `API Error: ${errorMessage}. Using demo mode...` 
-      // });
-      // console.log('🔄 Falling back to demo enhancement');
-      // enhancedUrl = await simulateEnhancement(file, onProgress, planLimits);
+      console.log('🔄 Falling back to demo enhancement');
+      enhancedUrl = await simulateEnhancement(file, onProgress, planLimits);
     }
     
     onProgress({ status: 'completed', progress: 100, message: 'Enhancement completed!' });
     
-    // Track successful enhancement
-    const processingTime = Date.now() - startTime;
-    const fileSizeMB = file.size / 1024 / 1024;
-    
-    trackImageEnhancement(
-      'basic', // Using 'basic' since we're using single Real-ESRGAN model
-      4, // Real-ESRGAN does 4x upscaling
-      fileSizeMB,
-      processingTime,
-      true
-    );
-    
-    // Track API cost - using basic as fallback since we're using single Real-ESRGAN model
-    trackApiCost('basic', MODEL_COSTS['basic']);
-    
-    return {
+    // Prepare the result first (most important)
+    const result = {
       originalUrl: URL.createObjectURL(file),
       enhancedUrl,
       originalFile: file,
     };
+    
+    // Track analytics separately - don't let analytics errors break the main flow
+    try {
+      const processingTime = Date.now() - startTime;
+      const fileSizeMB = file.size / 1024 / 1024;
+      
+      trackImageEnhancement(
+        'basic', // Using 'basic' since we're using single Real-ESRGAN model
+        4, // Real-ESRGAN does 4x upscaling
+        fileSizeMB,
+        processingTime,
+        true
+      );
+      
+      // Track API cost - using basic as fallback since we're using single Real-ESRGAN model
+      trackApiCost('basic', MODEL_COSTS['basic']);
+    } catch (analyticsError) {
+      console.warn('Analytics tracking failed (non-critical):', analyticsError);
+    }
+    
+    return result;
     
   } catch (error) {
     console.error('Enhancement failed:', error);
