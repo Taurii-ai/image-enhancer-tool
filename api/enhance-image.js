@@ -71,8 +71,8 @@ module.exports = async function handler(req, res) {
       const replicatePromise = replicate.run(modelVersion, {
         input: {
           img: imageData,
-          scale: scale || 2,
-          version: "General - v3",
+          scale: scale || 4, // 4x upscaling for dramatic visible improvement
+          version: "General - RealESRGANplus", // Best general version
           face_enhance: false
         }
       });
