@@ -249,12 +249,16 @@ export const enhanceImage = async (
     
     onProgress({ status: 'completed', progress: 100, message: 'Enhancement completed!' });
     
+    console.log('🎯 PREPARING RESULT with enhancedUrl:', enhancedUrl);
+    
     // Prepare the result first (most important)
     const result = {
       originalUrl: URL.createObjectURL(file),
       enhancedUrl,
       originalFile: file,
     };
+    
+    console.log('🎯 FINAL RESULT OBJECT:', result);
     
     // Track analytics separately - don't let analytics errors break the main flow
     try {
@@ -275,6 +279,7 @@ export const enhanceImage = async (
       console.warn('Analytics tracking failed (non-critical):', analyticsError);
     }
     
+    console.log('🎯 RETURNING RESULT:', result);
     return result;
     
   } catch (error) {
