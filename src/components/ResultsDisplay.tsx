@@ -216,7 +216,15 @@ export const ResultsDisplay = ({
               className="absolute inset-0 w-full h-full object-cover"
               draggable={false}
               onLoad={() => console.log('✅ ENHANCED IMAGE LOADED:', enhancedImage)}
-              onError={(e) => console.error('❌ ENHANCED IMAGE FAILED TO LOAD:', enhancedImage, e)}
+              onError={(e) => {
+                console.error('❌ ENHANCED IMAGE FAILED TO LOAD:', enhancedImage, e);
+                // Try to reload with different approach
+                const img = e.target as HTMLImageElement;
+                if (img && enhancedImage.startsWith('https://replicate.delivery/')) {
+                  console.log('🔄 RETRYING WITH CORS PROXY...');
+                  img.src = `https://cors-anywhere.herokuapp.com/${enhancedImage}`;
+                }
+              }}
               crossOrigin="anonymous"
             />
             

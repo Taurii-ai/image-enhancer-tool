@@ -233,34 +233,12 @@ export const enhanceImage = async (
       // CRITICAL: Skip rest of function if API succeeded - don't let catch block run
       onProgress({ status: 'completed', progress: 100, message: 'Enhancement completed!' });
       
-      // FINAL FIX: Fetch image data directly and convert to blob URL
-      console.log('🔄 FETCHING IMAGE DATA DIRECTLY:', result.enhancedImageUrl);
+      // SIMPLE FIX: Just return the enhanced URL without modification
+      console.log('🔄 USING ENHANCED URL AS-IS:', result.enhancedImageUrl);
       
-      try {
-        // Fetch the image with a different approach
-        const imageResponse = await fetch(`/api/fetch-image?url=${encodeURIComponent(result.enhancedImageUrl)}`);
-        if (imageResponse.ok) {
-          const blob = await imageResponse.blob();
-          const blobUrl = URL.createObjectURL(blob);
-          console.log('✅ CONVERTED TO BLOB URL:', blobUrl);
-          
-          const result_final = {
-            originalUrl: URL.createObjectURL(file),
-            enhancedUrl: blobUrl, // Use blob URL from fetched data
-            originalFile: file,
-          };
-          
-          console.log('🎯 RETURNING BLOB-CONVERTED RESULT:', result_final);
-          return result_final;
-        }
-      } catch (fetchError) {
-        console.error('🚨 FETCH ERROR:', fetchError);
-      }
-      
-      // Fallback: use original URL if fetch fails
       const result_final = {
         originalUrl: URL.createObjectURL(file),
-        enhancedUrl: result.enhancedImageUrl,
+        enhancedUrl: result.enhancedImageUrl, // Use as-is
         originalFile: file,
       };
       
