@@ -23,11 +23,8 @@ export const ResultsDisplay = ({
   console.log('🎯 RESULTS DISPLAY: Received enhancedImage:', enhancedImage);
   console.log('🎯 RESULTS DISPLAY: Received originalImage:', originalImage);
   
-  // FORCE: Only render if we have a real Replicate URL or proxy URL
-  if (!enhancedImage || 
-      (!enhancedImage.startsWith('https://replicate.delivery/') && 
-       !enhancedImage.startsWith('/api/proxy-image'))) {
-    console.warn('🚫 REFUSING TO RENDER NON-REPLICATE/PROXY URL:', enhancedImage);
+  // NUCLEAR OPTION: Render ANY URL - no filtering
+  if (!enhancedImage) {
     return <div>Loading enhanced image...</div>;
   }
   const [comparison, setComparison] = useState(10); // Show more enhanced image by default

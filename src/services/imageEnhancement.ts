@@ -233,13 +233,12 @@ export const enhanceImage = async (
       // CRITICAL: Skip rest of function if API succeeded - don't let catch block run
       onProgress({ status: 'completed', progress: 100, message: 'Enhancement completed!' });
       
-      // PROXY FIX: Route Replicate URLs through our proxy to bypass DNS issues
-      const proxiedUrl = `/api/proxy-image?url=${encodeURIComponent(result.enhancedImageUrl)}`;
-      console.log('🔄 USING PROXY URL:', proxiedUrl);
+      // NUCLEAR OPTION: Use direct Replicate URL - no proxy
+      console.log('🔄 USING DIRECT REPLICATE URL:', result.enhancedImageUrl);
       
       const result_final = {
         originalUrl: URL.createObjectURL(file),
-        enhancedUrl: proxiedUrl, // Use proxy URL to bypass DNS issues
+        enhancedUrl: result.enhancedImageUrl, // Use direct URL
         originalFile: file,
       };
       
