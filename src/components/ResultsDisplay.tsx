@@ -210,6 +210,9 @@ export const ResultsDisplay = ({
               alt="Enhanced"
               className="absolute inset-0 w-full h-full object-cover"
               draggable={false}
+              onLoad={() => console.log('✅ ENHANCED IMAGE LOADED:', enhancedImage)}
+              onError={(e) => console.error('❌ ENHANCED IMAGE FAILED TO LOAD:', enhancedImage, e)}
+              crossOrigin="anonymous"
             />
             
             {/* Original image overlay with clip path (foreground - "Before") */}
