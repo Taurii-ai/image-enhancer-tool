@@ -230,6 +230,18 @@ export const enhanceImage = async (
         cost: result.estimatedCost
       });
       
+      // CRITICAL: Skip rest of function if API succeeded - don't let catch block run
+      onProgress({ status: 'completed', progress: 100, message: 'Enhancement completed!' });
+      
+      const result_final = {
+        originalUrl: URL.createObjectURL(file),
+        enhancedUrl: result.enhancedImageUrl, // Use API result directly
+        originalFile: file,
+      };
+      
+      console.log('🎯 RETURNING REAL API RESULT:', result_final);
+      return result_final;
+      
     } catch (apiError: unknown) {
       console.error('🚨 API Route Error:', apiError);
       console.error('Error details:', apiError instanceof Error ? apiError.message : 'Unknown error');
