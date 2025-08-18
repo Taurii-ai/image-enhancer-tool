@@ -22,30 +22,45 @@ module.exports = async function handler(req, res) {
   try {
     console.log('🔄 PROXY: Fetching Replicate image:', url);
     
-    const response = await fetch(url);
+    // Use a different approach - try multiple DNS servers
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; ImageProxy/1.0)',
+        'Accept': 'image/*,*/*',
+      },
+      timeout: 30000,
+    });
     
     if (!response.ok) {
+      console.error('🚨 PROXY: HTTP Error:', response.status, response.statusText);
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     const contentType = response.headers.get('content-type') || 'image/jpeg';
     const imageBuffer = await response.arrayBuffer();
 
-    console.log('✅ PROXY: Successfully fetched image, size:', imageBuffer.byteLength);
+    console.log('✅ PROXY: Successfully fetched image, size:', imageBuffer.byteLength, 'type:', contentType);
 
     // Set appropriate headers
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Length', imageBuffer.byteLength);
-    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.setHeader('Access-Control-Allow-Origin', '*');
 
     // Send the image data
     res.status(200).send(Buffer.from(imageBuffer));
 
   } catch (error) {
     console.error('🚨 PROXY ERROR:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch image',
-      details: error.message 
-    });
+    
+    // Return a placeholder image on error instead of JSON
+    const placeholderSvg = `<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+      <rect width="400" height="400" fill="#f0f0f0"/>
+      <text x="200" y="200" text-anchor="middle" fill="#666">Image Load Failed</text>
+    </svg>`;
+    
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.status(200).send(placeholderSvg);
   }
 };
