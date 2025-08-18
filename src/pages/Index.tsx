@@ -70,9 +70,11 @@ const Index = () => {
       console.log('🎯 INDEX: Got result from enhanceImage:', result);
       console.log('🎯 INDEX: Setting enhancedUrl to:', result.enhancedUrl);
       
-      // FORCE: Only use Replicate URLs, ignore blob URLs
-      if (result.enhancedUrl && result.enhancedUrl.startsWith('https://replicate.delivery/')) {
-        console.log('✅ USING REAL REPLICATE URL:', result.enhancedUrl);
+      // FORCE: Only use Replicate URLs or proxy URLs, ignore blob URLs
+      if (result.enhancedUrl && 
+          (result.enhancedUrl.startsWith('https://replicate.delivery/') || 
+           result.enhancedUrl.startsWith('/api/proxy-image'))) {
+        console.log('✅ USING REAL/PROXY URL:', result.enhancedUrl);
         setEnhancedUrl(result.enhancedUrl);
         setAppState('results');
       } else {
