@@ -282,6 +282,7 @@ const Index = () => {
 
           {appState === 'results' && previewUrl && enhancedUrl && uploadedFile && (
             <ResultsDisplay
+              key={enhancedUrl} // Force re-render when enhancedUrl changes
               originalImage={previewUrl}
               enhancedImage={enhancedUrl}
               originalFile={uploadedFile}

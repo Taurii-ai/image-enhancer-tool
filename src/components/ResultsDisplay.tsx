@@ -20,6 +20,8 @@ export const ResultsDisplay = ({
   onStartOver,
   planType = 'trial'
 }: ResultsDisplayProps) => {
+  console.log('🎯 RESULTS DISPLAY: Received enhancedImage:', enhancedImage);
+  console.log('🎯 RESULTS DISPLAY: Received originalImage:', originalImage);
   const [comparison, setComparison] = useState(50);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
