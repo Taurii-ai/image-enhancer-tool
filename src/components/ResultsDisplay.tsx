@@ -22,7 +22,13 @@ export const ResultsDisplay = ({
 }: ResultsDisplayProps) => {
   console.log('🎯 RESULTS DISPLAY: Received enhancedImage:', enhancedImage);
   console.log('🎯 RESULTS DISPLAY: Received originalImage:', originalImage);
-  const [comparison, setComparison] = useState(50);
+  
+  // FORCE: Only render if we have a real Replicate URL
+  if (!enhancedImage || !enhancedImage.startsWith('https://replicate.delivery/')) {
+    console.warn('🚫 REFUSING TO RENDER NON-REPLICATE URL:', enhancedImage);
+    return <div>Loading enhanced image...</div>;
+  }
+  const [comparison, setComparison] = useState(10); // Show more enhanced image by default
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
@@ -227,6 +233,8 @@ export const ResultsDisplay = ({
                 alt="Original"
                 className="w-full h-full object-cover"
                 draggable={false}
+                onLoad={() => console.log('✅ ORIGINAL IMAGE LOADED:', originalImage)}
+                onError={(e) => console.error('❌ ORIGINAL IMAGE FAILED TO LOAD:', originalImage, e)}
               />
             </div>
 
