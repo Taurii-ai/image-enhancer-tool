@@ -67,6 +67,8 @@ const Index = () => {
         setEnhancementProgress(progress);
       }, testUserEmail);
 
+      console.log('🎯 INDEX: Got result from enhanceImage:', result);
+      console.log('🎯 INDEX: Setting enhancedUrl to:', result.enhancedUrl);
       setEnhancedUrl(result.enhancedUrl);
       setAppState('results');
       
@@ -96,10 +98,11 @@ const Index = () => {
       URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
     }
-    if (enhancedUrl && enhancedUrl !== previewUrl) {
+    // Only revoke blob URLs, not Replicate URLs
+    if (enhancedUrl && enhancedUrl !== previewUrl && enhancedUrl.startsWith('blob:')) {
       URL.revokeObjectURL(enhancedUrl);
-      setEnhancedUrl(null);
     }
+    setEnhancedUrl(null);
   };
 
   const handleCancelProcessing = () => {
