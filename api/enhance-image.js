@@ -63,9 +63,9 @@ module.exports = async function handler(req, res) {
     let output;
     
     try {
-      // Add timeout wrapper for Replicate API call
+      // Add timeout wrapper for Replicate API call (extended to 300 seconds)
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Replicate API timeout after 120 seconds')), 120000)
+        setTimeout(() => reject(new Error('Replicate API timeout after 300 seconds')), 300000)
       );
       
       const replicatePromise = replicate.run(modelVersion, {

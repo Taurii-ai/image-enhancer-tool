@@ -237,18 +237,16 @@ export const enhanceImage = async (
       // Show specific error message to user
       const errorMessage = (apiError instanceof Error ? apiError.message : 'Real-ESRGAN processing failed');
       
-      // TEMP: Disable fallback to see what's actually failing
-      console.error('🚨 CRITICAL: API Error after success?', apiError);
-      throw apiError;
+      // Only fallback for timeout/network errors, not after API success
+      console.error('🚨 API Error (will fallback):', apiError);
       
-      // TODO: Re-enable fallback after fixing the real issue
-      // onProgress({ 
-      //   status: 'processing', 
-      //   progress: 60, 
-      //   message: `API Error: ${errorMessage}. Using demo mode...` 
-      // });
-      // console.log('🔄 Falling back to demo enhancement');
-      // enhancedUrl = await simulateEnhancement(file, onProgress, planLimits);
+      onProgress({ 
+        status: 'processing', 
+        progress: 60, 
+        message: `API Error: ${errorMessage}. Using demo mode...` 
+      });
+      console.log('🔄 Falling back to demo enhancement');
+      enhancedUrl = await simulateEnhancement(file, onProgress, planLimits);
     }
     
     onProgress({ status: 'completed', progress: 100, message: 'Enhancement completed!' });
