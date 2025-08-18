@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
+import { useImageLoader } from '@/hooks/useImageLoader';
 
 interface ResultsDisplayProps {
   originalImage: string;
@@ -23,10 +24,23 @@ export const ResultsDisplay = ({
   console.log('🎯 RESULTS DISPLAY: Received enhancedImage:', enhancedImage);
   console.log('🎯 RESULTS DISPLAY: Received originalImage:', originalImage);
   
-  // NUCLEAR OPTION: Render ANY URL - no filtering
+  // Use the image loader for enhanced images (handles CORS)
+  const { imageSrc: loadedEnhancedImage, isLoading: enhancedLoading, error: enhancedError } = useImageLoader(enhancedImage);
+  
   if (!enhancedImage) {
     return <div>Loading enhanced image...</div>;
   }
+  
+  if (enhancedLoading) {
+    return <div>Loading enhanced image...</div>;
+  }
+  
+  if (enhancedError) {
+    console.error('Enhanced image loading error:', enhancedError);
+  }
+  
+  // Use the loaded image or fallback to original
+  const finalEnhancedImage = loadedEnhancedImage || enhancedImage;
   const [comparison, setComparison] = useState(10); // Show more enhanced image by default
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -110,8 +124,8 @@ export const ResultsDisplay = ({
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      // Download the enhanced image
-      const response = await fetch(enhancedImage);
+      // Download the enhanced image (use the loaded version)
+      const response = await fetch(finalEnhancedImage);
       const blob = await response.blob();
       
       // Preserve the original file format and name
@@ -211,19 +225,13 @@ export const ResultsDisplay = ({
           >
             {/* Enhanced image (background - "After") */}
             <img
-              src={enhancedImage}
+              src={finalEnhancedImage}
               alt="Enhanced"
               className="absolute inset-0 w-full h-full object-cover"
               draggable={false}
-              onLoad={() => console.log('✅ ENHANCED IMAGE LOADED:', enhancedImage)}
+              onLoad={() => console.log('✅ ENHANCED IMAGE LOADED:', finalEnhancedImage)}
               onError={(e) => {
-                console.error('❌ ENHANCED IMAGE FAILED TO LOAD:', enhancedImage, e);
-                // Try to reload using our own proxy
-                const img = e.target as HTMLImageElement;
-                if (img && enhancedImage.startsWith('https://replicate.delivery/')) {
-                  console.log('🔄 RETRYING WITH SERVER PROXY...');
-                  img.src = `/api/proxy-image?url=${encodeURIComponent(enhancedImage)}`;
-                }
+                console.error('❌ ENHANCED IMAGE FAILED TO LOAD:', finalEnhancedImage, e);
               }}
               crossOrigin="anonymous"
             />

@@ -17,13 +17,48 @@ export interface EnhancementResult {
   originalFile: File;
 }
 
-// Convert File to base64 data URL for Replicate API
+// Convert File to compressed base64 data URL for Replicate API
 const fileToDataURL = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      // Compress large images to reduce payload size
+      const maxSize = 1024; // Max 1024px on longest side
+      let { width, height } = img;
+      
+      if (width > maxSize || height > maxSize) {
+        const ratio = Math.min(maxSize / width, maxSize / height);
+        width *= ratio;
+        height *= ratio;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to base64 with compression
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          } else {
+            reject(new Error('Failed to compress image'));
+          }
+        }, 'image/jpeg', 0.8); // 80% quality
+      } else {
+        reject(new Error('Failed to get canvas context'));
+      }
+    };
+    
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
   });
 };
 
@@ -233,18 +268,12 @@ export const enhanceImage = async (
       // CRITICAL: Skip rest of function if API succeeded - don't let catch block run
       onProgress({ status: 'completed', progress: 100, message: 'Enhancement completed!' });
       
-      // Use proxy for Replicate URLs to avoid CORS issues
-      let finalEnhancedUrl = result.enhancedImageUrl;
-      if (result.enhancedImageUrl.startsWith('https://replicate.delivery/')) {
-        finalEnhancedUrl = `/api/proxy-image?url=${encodeURIComponent(result.enhancedImageUrl)}`;
-        console.log('🔄 USING PROXIED URL:', finalEnhancedUrl);
-      } else {
-        console.log('🔄 USING DIRECT URL:', finalEnhancedUrl);
-      }
+      // Always use the direct Replicate URL - let the component handle CORS
+      console.log('🔄 USING DIRECT REPLICATE URL:', result.enhancedImageUrl);
       
       const result_final = {
         originalUrl: URL.createObjectURL(file),
-        enhancedUrl: finalEnhancedUrl,
+        enhancedUrl: result.enhancedImageUrl, // Use direct URL
         originalFile: file,
       };
       
