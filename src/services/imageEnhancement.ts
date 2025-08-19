@@ -157,12 +157,26 @@ const simulateEnhancement = async (
   });
 };
 
+const debugLog = (level: 'info' | 'error' | 'success' | 'warning', message: string, data?: any) => {
+  console.log(`[${level.toUpperCase()}] ${message}`, data || '');
+  if ((window as any).debugLog) {
+    (window as any).debugLog(level, message, data);
+  }
+};
+
 export const enhanceImage = async (
   file: File,
   onProgress: (progress: EnhancementProgress) => void,
   userEmail?: string
 ): Promise<EnhancementResult> => {
   const startTime = Date.now();
+  
+  debugLog('info', '🚀 STARTING IMAGE ENHANCEMENT', {
+    fileName: file.name,
+    fileSize: file.size,
+    fileType: file.type,
+    userEmail: userEmail
+  });
   
   try {
     onProgress({ status: 'starting', progress: 0, message: 'Starting enhancement...' });
@@ -182,59 +196,88 @@ export const enhanceImage = async (
     
     // USE API ROUTE METHOD (proper serverless approach)
     try {
+      debugLog('info', '📤 PREPARING API REQUEST');
       onProgress({ status: 'processing', progress: 10, message: 'Preparing image...' });
       
       // Convert file to data URL for API
+      debugLog('info', '🔄 CONVERTING FILE TO DATA URL');
       const imageDataUrl = await fileToDataURL(file);
+      debugLog('success', '✅ FILE CONVERTED TO DATA URL', {
+        dataUrlLength: imageDataUrl.length,
+        dataUrlStart: imageDataUrl.substring(0, 100)
+      });
       
       onProgress({ status: 'processing', progress: 20, message: 'Connecting to enhancement API...' });
       
-      console.log('🔥 API ROUTE: Using enhance-image API endpoint...');
+      const apiPayload = {
+        imageData: imageDataUrl,
+        scale: 4,
+        userEmail: userEmail || 'test@enhpix.com'
+      };
+      
+      debugLog('info', '🔥 CALLING API ENDPOINT', {
+        endpoint: '/api/enhance-image',
+        payloadSize: JSON.stringify(apiPayload).length,
+        scale: 4,
+        userEmail: userEmail || 'test@enhpix.com'
+      });
       
       const response = await fetch('/api/enhance-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          imageData: imageDataUrl,
-          scale: 4,
-          userEmail: userEmail || 'test@enhpix.com'
-        })
+        body: JSON.stringify(apiPayload)
+      });
+
+      debugLog('info', '📡 API RESPONSE RECEIVED', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        debugLog('error', '❌ API REQUEST FAILED', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData: errorData
+        });
         throw new Error(errorData.details || errorData.error || `API request failed with status ${response.status}`);
       }
 
-      onProgress({ status: 'processing', progress: 30, message: 'Starting Real-ESRGAN (Anime 6B) model...' });
+      onProgress({ status: 'processing', progress: 30, message: 'Processing API response...' });
 
       const result = await response.json();
       
+      debugLog('success', '📥 API RESPONSE PARSED', {
+        success: result.success,
+        hasEnhancedImageUrl: !!result.enhancedImageUrl,
+        enhancedImageUrlLength: result.enhancedImageUrl?.length,
+        modelUsed: result.modelUsed,
+        processingTime: result.processingTime
+      });
+      
       if (!result.success) {
+        debugLog('error', '❌ API RETURNED FAILURE', result);
         throw new Error(result.details || result.error || 'Enhancement failed');
       }
 
       onProgress({ status: 'processing', progress: 80, message: `Processing with ${result.modelUsed}...` });
-
-      console.log('📥 API Response:', {
-        success: result.success,
-        modelUsed: result.modelUsed,
-        processingTime: result.processingTime,
-        imageSizeMB: (result.enhancedImageUrl?.length || 0) / 1024 / 1024
-      });
       
       if (!result.enhancedImageUrl) {
-        console.error('🚨 Missing enhancedImageUrl in response:', result);
+        debugLog('error', '❌ MISSING ENHANCED IMAGE URL', result);
         throw new Error('No enhanced image URL in response');
       }
 
       enhancedUrl = result.enhancedImageUrl;
       onProgress({ status: 'processing', progress: 95, message: `${result.modelUsed} enhancement complete! (${result.processingTime}ms)` });
       
-      console.log('✅ API ROUTE: PRODUCTION Real-ESRGAN successful!', {
-        url: result.enhancedImageUrl,
+      debugLog('success', '🎉 API ENHANCEMENT SUCCESSFUL', {
+        enhancedUrlType: typeof result.enhancedImageUrl,
+        enhancedUrlLength: result.enhancedImageUrl?.length,
+        enhancedUrlStart: result.enhancedImageUrl?.substring(0, 100),
         model: result.modelUsed,
         processingTime: result.processingTime,
         cost: result.estimatedCost
@@ -243,16 +286,19 @@ export const enhanceImage = async (
       // CRITICAL: Skip rest of function if API succeeded - don't let catch block run
       onProgress({ status: 'completed', progress: 100, message: 'Enhancement completed!' });
       
-      // Use the base64 data URL for reliable display
-      console.log('✅ Using enhanced base64 image');
-      
       const result_final = {
         originalUrl: URL.createObjectURL(file),
         enhancedUrl: result.enhancedImageUrl, // Use base64 data URL
         originalFile: file,
       };
       
-      console.log('🎯 RETURNING FINAL RESULT - Enhanced image ready');
+      debugLog('success', '🎯 RETURNING FINAL RESULT', {
+        originalUrl: !!result_final.originalUrl,
+        enhancedUrlType: typeof result_final.enhancedUrl,
+        enhancedUrlLength: result_final.enhancedUrl?.length,
+        hasOriginalFile: !!result_final.originalFile
+      });
+      
       return result_final;
       
     } catch (apiError: unknown) {

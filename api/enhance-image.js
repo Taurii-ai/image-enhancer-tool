@@ -6,27 +6,44 @@ const replicate = new Replicate({
 });
 
 export default async function handler(req, res) {
+  const startTime = Date.now();
+  const requestId = Math.random().toString(36).substring(7);
+  
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
+  console.log(`[${requestId}] 🔥 API REQUEST RECEIVED`, {
+    method: req.method,
+    headers: Object.keys(req.headers),
+    timestamp: new Date().toISOString()
+  });
+
   if (req.method === 'OPTIONS') {
+    console.log(`[${requestId}] ✅ CORS PREFLIGHT HANDLED`);
     res.status(200).end();
     return;
   }
 
   if (req.method !== 'POST') {
+    console.log(`[${requestId}] ❌ INVALID METHOD:`, req.method);
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
     const { imageData, scale = 4, userEmail } = req.body;
 
-    console.log('🔍 PRODUCTION API: Starting image enhancement...');
-    console.log('Scale:', scale);
-    console.log('User:', userEmail);
-    console.log('Has API token:', !!process.env.REPLICATE_API_TOKEN);
+    console.log(`[${requestId}] 📋 REQUEST PARAMETERS:`, {
+      hasImageData: !!imageData,
+      imageDataLength: imageData?.length,
+      imageDataType: typeof imageData,
+      imageDataStart: imageData?.substring(0, 50),
+      scale: scale,
+      userEmail: userEmail,
+      hasApiToken: !!process.env.REPLICATE_API_TOKEN,
+      apiTokenLength: process.env.REPLICATE_API_TOKEN?.length
+    });
 
     // Validate inputs
     if (!imageData) {

@@ -30,27 +30,48 @@ const Dashboard = () => {
     setSubscriptionInfo(formatSubscriptionInfo());
   }, []);
 
+  const debugLog = (level: 'info' | 'error' | 'success' | 'warning', message: string, data?: any) => {
+    console.log(`[DASHBOARD ${level.toUpperCase()}] ${message}`, data || '');
+    if ((window as any).debugLog) {
+      (window as any).debugLog(level, `[DASHBOARD] ${message}`, data);
+    }
+  };
+
   const handleImageUpload = async (file: File) => {
-    // TEMPORARILY DISABLE SUBSCRIPTION CHECKS - Focus on getting Real-ESRGAN working
-    console.log('🔍 DASHBOARD: Starting image upload (subscription checks disabled)', file.name, file.size);
+    debugLog('info', '🚀 STARTING IMAGE UPLOAD', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type
+    });
+    
     setCurrentFile(file);
     setProcessingState('processing');
     setProgress(null);
     setResult(null);
 
     try {
-      console.log('🔍 DASHBOARD: Calling enhanceImage...');
+      debugLog('info', '📞 CALLING ENHANCE IMAGE FUNCTION');
       const enhancementResult = await enhanceImage(file, setProgress);
-      console.log('🔍 DASHBOARD: Enhancement completed successfully!');
+      
+      debugLog('success', '✅ ENHANCEMENT COMPLETED', {
+        originalUrl: enhancementResult?.originalUrl,
+        enhancedUrlType: typeof enhancementResult?.enhancedUrl,
+        enhancedUrlLength: enhancementResult?.enhancedUrl?.length,
+        hasOriginalFile: !!enhancementResult?.originalFile
+      });
+      
       setResult(enhancementResult);
       setProcessingState('completed');
       
       // TEMPORARILY DISABLE CREDIT CONSUMPTION
       // consumeImageCredit();
       // setSubscriptionInfo(formatSubscriptionInfo());
-      console.log('🔍 DASHBOARD: Enhancement completed successfully!');
+      debugLog('info', '🔧 UPDATING UI STATE');
     } catch (error) {
-      console.error('🚨 DASHBOARD: Enhancement failed:', error);
+      debugLog('error', '❌ ENHANCEMENT FAILED', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       setProcessingState('idle');
     }
   };
