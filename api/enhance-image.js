@@ -53,8 +53,8 @@ module.exports = async function handler(req, res) {
 
     console.log('✅ API token validation passed');
 
-    // Use Real-ESRGAN for general image upscaling - works on any type of image
-    const modelVersion = 'nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36f297e2db670c5145f24897844ac8';
+    // Use the correct Real-ESRGAN model from Replicate
+    const modelVersion = 'xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56';
     
     console.log('🚀 Starting Real-ESRGAN enhancement...');
     
@@ -70,9 +70,10 @@ module.exports = async function handler(req, res) {
       
       const replicatePromise = replicate.run(modelVersion, {
         input: {
-          image: imageData,
-          scale: 4, // Real-ESRGAN 4x upscaling
-          face_enhance: false // Disable face enhancement for general images
+          img: imageData,
+          scale: 4,
+          version: "General - RealESRGANplus",
+          face_enhance: false
         }
       });
       
@@ -126,9 +127,9 @@ module.exports = async function handler(req, res) {
       enhancedImageUrl: upscaledUrl,
       processingTime: Date.now() - startTime,
       estimatedCost,
-      modelUsed: 'nightmareai/real-esrgan',
-      scale: 4, // Real-ESRGAN does 4x scaling
-      version: 'latest'
+      modelUsed: 'xinntao/realesrgan',
+      scale: 4,
+      version: 'General - RealESRGANplus'
     });
 
   } catch (error) {
