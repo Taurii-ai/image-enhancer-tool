@@ -109,7 +109,7 @@ export const updateSubscriptionAfterPayment = (
 };
 
 // Use an image (decrement counter)
-export const useImage = (): { success: boolean; remaining: number; error?: string } => {
+export const consumeImageCredit = (): { success: boolean; remaining: number; error?: string } => {
   if (currentUserSubscription.imagesRemaining <= 0) {
     return {
       success: false,

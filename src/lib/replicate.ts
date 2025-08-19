@@ -112,7 +112,7 @@ const getOptimalModel = (imageType: string, userPlan: string): string => {
 }
 
 // Poll prediction status with progress tracking
-const pollPrediction = async (id: string, onProgress?: (progress: number) => void): Promise<any> => {
+const pollPrediction = async (id: string, onProgress?: (progress: number) => void): Promise<string | string[]> => {
   let prediction = await replicate.predictions.get(id)
   let attempts = 0
   

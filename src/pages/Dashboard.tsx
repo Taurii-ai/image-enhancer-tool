@@ -9,7 +9,7 @@ import { ResultsDisplay } from '@/components/ResultsDisplay';
 import { enhanceImage, EnhancementProgress, EnhancementResult } from '@/services/imageEnhancement';
 import { 
   getUserSubscription, 
-  useImage, 
+  consumeImageCredit, 
   formatSubscriptionInfo,
   getCurrentPlanLimits 
 } from '@/services/subscriptionManager';
@@ -47,7 +47,7 @@ const Dashboard = () => {
       setProcessingState('completed');
       
       // Use image credit
-      useImage();
+      consumeImageCredit();
       setSubscriptionInfo(formatSubscriptionInfo());
     } catch (error) {
       console.error('Enhancement failed:', error);

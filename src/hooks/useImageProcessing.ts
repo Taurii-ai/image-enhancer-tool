@@ -97,8 +97,8 @@ export const useImageProcessing = () => {
         isDemoMode: false
       };
 
-    } catch (err: any) {
-      const errorMessage = err.message || 'Image processing failed';
+    } catch (err: unknown) {
+      const errorMessage = (err instanceof Error ? err.message : 'Image processing failed');
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {

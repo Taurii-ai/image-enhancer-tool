@@ -80,7 +80,7 @@ const server = createServer(async (req, res) => {
   res.status(404).json({ error: 'API endpoint not found' });
 });
 
-const PORT = 3001;
+const PORT = 3002;
 server.listen(PORT, () => {
   console.log(`🚀 Development API server running on http://localhost:${PORT}`);
   console.log('📡 Available endpoints:');

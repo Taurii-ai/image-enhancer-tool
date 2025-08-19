@@ -24,7 +24,7 @@ export const ResultsDisplay = ({
   console.log('🎯 RESULTS DISPLAY: Received originalImage:', originalImage);
   
   // Use proxy for Replicate URLs to handle CORS
-  const getProxiedImageUrl = (url: string | any) => {
+  const getProxiedImageUrl = (url: string | unknown) => {
     // Ensure url is a string
     const urlString = typeof url === 'string' ? url : String(url || '');
     console.log('🔍 URL TYPE CHECK:', typeof url, 'VALUE:', url);
