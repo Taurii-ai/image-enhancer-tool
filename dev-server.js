@@ -45,6 +45,7 @@ const server = createServer(async (req, res) => {
   // Handle API routes
   if (url.pathname.startsWith('/api/')) {
     const apiPath = url.pathname.replace('/api/', '');
+    console.log('🔍 API Request:', url.pathname, '-> Loading:', `${apiPath}.js`);
     const handler = await loadHandler(`${apiPath}.js`);
     
     if (handler) {

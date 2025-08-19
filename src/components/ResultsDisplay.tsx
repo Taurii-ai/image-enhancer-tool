@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
-import { useImageLoader } from '@/hooks/useImageLoader';
 
 interface ResultsDisplayProps {
   originalImage: string;
@@ -24,8 +23,15 @@ export const ResultsDisplay = ({
   console.log('🎯 RESULTS DISPLAY: Received enhancedImage:', enhancedImage);
   console.log('🎯 RESULTS DISPLAY: Received originalImage:', originalImage);
   
-  // For now, directly use the enhanced image URL - simpler approach
-  const finalEnhancedImage = enhancedImage;
+  // Use proxy for Replicate URLs to handle CORS
+  const getProxiedImageUrl = (url: string) => {
+    if (url.startsWith('https://replicate.delivery/')) {
+      return `/api/proxy-image?url=${encodeURIComponent(url)}`;
+    }
+    return url;
+  };
+  
+  const finalEnhancedImage = getProxiedImageUrl(enhancedImage);
   const [comparison, setComparison] = useState(10); // Show more enhanced image by default
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -156,13 +162,6 @@ export const ResultsDisplay = ({
 
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6 overflow-x-hidden max-w-full">
-      {/* Debug Info */}
-      <div className="p-4 bg-gray-100 rounded text-sm font-mono">
-        <div>Enhanced URL: {enhancedImage}</div>
-        <div>Original URL: {originalImage}</div>
-        <div>Final URL: {finalEnhancedImage}</div>
-      </div>
-      
       {/* Results Header */}
       <Card className="p-2 sm:p-4 md:p-6 bg-card shadow-card border-border overflow-x-hidden max-w-full">
         <div className="flex flex-col gap-4">
@@ -205,39 +204,121 @@ export const ResultsDisplay = ({
         </div>
       </Card>
 
-      {/* Simple Image Display for Debugging */}
+      {/* Image Comparison - Beautiful Slider */}
       <Card className="p-6 bg-card shadow-card border-border">
         <div className="space-y-6">
           <div className="text-center">
-            <h4 className="text-2xl font-bold text-foreground mb-2">Results</h4>
+            <h4 className="text-2xl font-bold text-foreground mb-2">See the difference instantly</h4>
+            <p className="text-muted-foreground">
+              Drag the slider to compare before and after enhancement
+            </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* Original Image */}
-            <div>
-              <h5 className="text-lg font-semibold mb-2">Original</h5>
+          <div 
+            ref={containerRef}
+            className="relative rounded-2xl overflow-hidden bg-black cursor-grab active:cursor-grabbing select-none shadow-2xl group"
+            onMouseDown={handleMouseDown}
+            onTouchStart={handleTouchStart}
+            style={{ 
+              userSelect: 'none',
+              aspectRatio: imageAspectRatio ? `${imageAspectRatio}` : '16/9',
+              maxHeight: '70vh',
+              width: '100%'
+            }}
+          >
+            {/* Enhanced image (background - "After") */}
+            <img
+              src={finalEnhancedImage}
+              alt="Enhanced"
+              className="absolute inset-0 w-full h-full object-cover"
+              draggable={false}
+              onLoad={() => console.log('✅ ENHANCED IMAGE LOADED:', finalEnhancedImage)}
+              onError={(e) => {
+                console.error('❌ ENHANCED IMAGE FAILED TO LOAD:', finalEnhancedImage, e);
+              }}
+            />
+            
+            {/* Original image overlay with clip path (foreground - "Before") */}
+            <div 
+              className="absolute inset-0"
+              style={{ 
+                clipPath: `inset(0 ${100 - comparison}% 0 0)`,
+              }}
+            >
               <img
                 src={originalImage}
                 alt="Original"
-                className="w-full h-auto rounded-lg border"
+                className="w-full h-full object-cover"
+                draggable={false}
                 onLoad={() => console.log('✅ ORIGINAL IMAGE LOADED:', originalImage)}
                 onError={(e) => console.error('❌ ORIGINAL IMAGE FAILED TO LOAD:', originalImage, e)}
               />
             </div>
-            
-            {/* Enhanced Image */}
-            <div>
-              <h5 className="text-lg font-semibold mb-2">Enhanced</h5>
-              <img
-                src={finalEnhancedImage}
-                alt="Enhanced"
-                className="w-full h-auto rounded-lg border"
-                onLoad={() => console.log('✅ ENHANCED IMAGE LOADED:', finalEnhancedImage)}
-                onError={(e) => {
-                  console.error('❌ ENHANCED IMAGE FAILED TO LOAD:', finalEnhancedImage, e);
-                }}
-              />
+
+            {/* Labels */}
+            <div className="absolute top-20 left-6 z-10">
+              <div className="bg-black/50 backdrop-blur-sm text-white px-3 py-2 rounded-full text-sm font-medium">
+                Before
+              </div>
             </div>
+            <div className="absolute top-20 right-6 z-10">
+              <div className="bg-black/50 backdrop-blur-sm text-white px-3 py-2 rounded-full text-sm font-medium">
+                After
+              </div>
+            </div>
+
+            {/* Vertical Divider Line */}
+            <div 
+              className={`absolute top-0 bottom-0 bg-white z-20 ${
+                isDragging ? 'w-1' : 'w-0.5'
+              }`}
+              style={{ 
+                left: `${comparison}%`,
+                transform: 'translateX(-50%)',
+                boxShadow: isDragging 
+                  ? '0 0 20px rgba(255,255,255,0.3), 0 0 40px rgba(255,255,255,0.1)' 
+                  : '0 0 10px rgba(255,255,255,0.2)',
+                transition: 'width 100ms ease-out, box-shadow 100ms ease-out'
+              }}
+            />
+
+            {/* Draggable Handle */}
+            <div 
+              className="absolute top-1/2 z-30 cursor-grab active:cursor-grabbing"
+              style={{ 
+                left: `${comparison}%`,
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
+              <div 
+                className={`bg-white rounded-full flex items-center justify-center border border-gray-100 ${
+                  isDragging ? 'w-14 h-14' : 'w-12 h-12'
+                }`}
+                style={{
+                  transform: isDragging ? 'scale(1.05)' : 'scale(1)',
+                  boxShadow: isDragging 
+                    ? '0 8px 30px rgba(0,0,0,0.12)' 
+                    : '0 4px 20px rgba(0,0,0,0.1)',
+                  transition: 'transform 150ms ease-out, box-shadow 150ms ease-out, width 100ms ease-out, height 100ms ease-out'
+                }}
+              >
+                <Code 
+                  className={`text-gray-600 ${isDragging ? 'w-5 h-5' : 'w-4 h-4'}`} 
+                  strokeWidth={1.5}
+                  style={{ transition: 'width 100ms ease-out, height 100ms ease-out' }}
+                />
+              </div>
+            </div>
+
+            {/* Overlay for interaction */}
+            <div className="absolute inset-0 z-10" />
+          </div>
+
+          {/* Instruction text */}
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Click and drag anywhere on the image to compare
+            </p>
           </div>
         </div>
       </Card>
