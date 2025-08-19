@@ -242,50 +242,126 @@ export const enhanceImage = async (
       onProgress({ status: 'processing', progress: 40, message: 'Backend processing with Replicate...' });
 
       const result = await response.json();
+      debugLog('📥 STEP 3 RAW RESPONSE: Backend response received', { 
+        status: response.status,
+        success: result.success,
+        hasOutput: !!result.output,
+        outputType: typeof result.output,
+        outputLength: result.output ? result.output.length : 0,
+        requestId: result.requestId,
+        processingTime: result.processingTime,
+        error: result.error,
+        details: result.details
+      });
       
       if (!result.success) {
-        debugLog('❌ STEP 4-7 FAILED: Replicate processing failed', result);
-        throw new Error(result.details || result.error || 'Replicate enhancement failed');
+        debugLog('❌ PIPELINE BROKEN: Backend/Replicate processing failed', { 
+          error: result.error,
+          details: result.details,
+          requestId: result.requestId,
+          fullResult: result
+        });
+        throw new Error(result.details || result.error || 'Backend/Replicate processing failed');
       }
 
-      debugLog('✅ STEP 4: Backend sent to Replicate with secret token', { requestId: result.requestId });
-      debugLog('✅ STEP 5: Replicate processed with Real-ESRGAN', { processingTime: result.processingTime + 'ms' });
-      debugLog('✅ STEP 6: Replicate sent enhanced URL back to backend', { 
-        outputType: typeof result.output,
-        outputPreview: result.output ? result.output.substring(0, 100) + '...' : 'none'
+      // Only claim success if we actually have valid output
+      if (!result.output) {
+        debugLog('❌ PIPELINE BROKEN: Backend claims success but no output URL', result);
+        throw new Error('Backend claims success but provided no enhanced image URL');
+      }
+
+      if (typeof result.output !== 'string') {
+        debugLog('❌ PIPELINE BROKEN: Output is not a string URL', { 
+          outputType: typeof result.output,
+          outputValue: result.output
+        });
+        throw new Error('Invalid output format - expected string URL');
+      }
+
+      // Validate URL format
+      const isValidUrl = result.output.startsWith('data:image/') || result.output.startsWith('https://');
+      if (!isValidUrl) {
+        debugLog('❌ PIPELINE BROKEN: Invalid URL format', { 
+          output: result.output,
+          startsWithData: result.output.startsWith('data:'),
+          startsWithHttps: result.output.startsWith('https://')
+        });
+        throw new Error('Invalid enhanced image URL format');
+      }
+
+      debugLog('✅ STEP 4: Backend successfully sent to Replicate', { requestId: result.requestId });
+      debugLog('✅ STEP 5: Replicate successfully processed with Real-ESRGAN', { 
+        processingTime: result.processingTime + 'ms',
+        estimatedCost: result.estimatedCost
       });
-      debugLog('✅ STEP 7: Backend sent URL back to frontend', { 
+      debugLog('✅ STEP 6: Replicate returned valid enhanced URL to backend', { 
+        urlType: result.output.startsWith('data:') ? 'base64_image' : 'external_url',
+        urlLength: result.output.length
+      });
+      debugLog('✅ STEP 7: Backend successfully sent URL back to frontend', { 
         success: result.success,
-        hasOutput: !!result.output
+        outputReceived: true
       });
       
       onProgress({ status: 'processing', progress: 80, message: 'Preparing enhanced image...' });
-      
-      if (!result.output) {
-        debugLog('❌ STEP 8 FAILED: No enhanced image URL received', result);
-        throw new Error('No enhanced image URL in response');
-      }
 
       enhancedUrl = result.output;
       debugLog('🖼️ STEP 8: Frontend preparing to display enhanced image', { 
         enhancedUrl: enhancedUrl.substring(0, 100) + '...',
-        urlType: enhancedUrl.startsWith('data:') ? 'base64_image' : 'external_url'
+        urlType: enhancedUrl.startsWith('data:') ? 'base64_image' : 'external_url',
+        urlLength: enhancedUrl.length
       });
       
       onProgress({ status: 'processing', progress: 95, message: 'Finalizing display...' });
       
+      // Create final result object
       const result_final = {
         originalUrl: URL.createObjectURL(file),
         enhancedUrl: result.output,
         originalFile: file,
       };
       
-      debugLog('✅ STEP 8 COMPLETED: Frontend displaying enhanced image to user!', {
-        originalUrl: result_final.originalUrl,
-        enhancedUrl: result_final.enhancedUrl.substring(0, 100) + '...',
-        totalProcessingTime: Date.now() - startTime + 'ms',
-        success: true
+      // Test if the enhanced image can actually be loaded
+      debugLog('🔍 STEP 8 VALIDATION: Testing if enhanced image loads...', {
+        testingUrl: enhancedUrl.substring(0, 100) + '...'
       });
+      
+      // Create a test image to validate
+      const testImg = new Image();
+      const imageLoadPromise = new Promise((resolve, reject) => {
+        testImg.onload = () => {
+          debugLog('✅ STEP 8 IMAGE VALIDATION: Enhanced image loads successfully!', {
+            width: testImg.width,
+            height: testImg.height,
+            naturalWidth: testImg.naturalWidth,
+            naturalHeight: testImg.naturalHeight
+          });
+          resolve(true);
+        };
+        testImg.onerror = (error) => {
+          debugLog('❌ STEP 8 IMAGE VALIDATION FAILED: Enhanced image cannot be loaded', {
+            error: error,
+            src: enhancedUrl.substring(0, 100) + '...'
+          });
+          reject(new Error('Generated enhanced image URL is not loadable'));
+        };
+        testImg.src = enhancedUrl;
+      });
+      
+      try {
+        await imageLoadPromise;
+        debugLog('✅ STEP 8 COMPLETED: Frontend successfully displaying enhanced image to user!', {
+          originalUrl: result_final.originalUrl,
+          enhancedUrl: result_final.enhancedUrl.substring(0, 100) + '...',
+          totalProcessingTime: Date.now() - startTime + 'ms',
+          imageValidated: true,
+          pipelineSuccess: true
+        });
+      } catch (imageError) {
+        debugLog('❌ STEP 8 FAILED: Image validation failed', { error: imageError.message });
+        throw imageError;
+      }
+      
       onProgress({ status: 'completed', progress: 100, message: 'Enhancement completed!' });
       
       return result_final;
