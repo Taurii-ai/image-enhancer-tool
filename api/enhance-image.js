@@ -43,22 +43,21 @@ export default async function handler(req, res) {
     const startTime = Date.now();
     
     try {
-      // Use replicate.run() method which is more reliable and simpler
-      console.log('🔄 Running Real-ESRGAN with replicate.run()...');
+      // Use replicate.run() method following official documentation
+      console.log('🔄 Running Real-ESRGAN model on Replicate...');
       
       const output = await replicate.run(
         "xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56",
         {
           input: {
             img: imageData,
-            scale: scale,
-            version: "General - RealESRGANplus",
-            face_enhance: false
+            scale: scale
           }
         }
       );
       
-      console.log('✅ Real-ESRGAN processing completed');
+      console.log('✅ Real-ESRGAN processing completed successfully');
+      console.log('🔍 Replicate output:', output);
       
       if (!output) {
         throw new Error('No output received from Real-ESRGAN');
