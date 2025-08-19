@@ -51,13 +51,15 @@ export default async function handler(req, res) {
         {
           input: {
             img: imageData,
-            scale: scale
+            scale: scale,
+            version: "General - v3",
+            face_enhance: false,
+            tile: 0
           }
         }
       );
       
       console.log('✅ Real-ESRGAN processing completed successfully');
-      console.log('🔍 Replicate output:', output);
       
       if (!output) {
         throw new Error('No output received from Real-ESRGAN');
@@ -65,20 +67,33 @@ export default async function handler(req, res) {
       
       const processingTime = Date.now() - startTime;
       console.log(`✅ Processing completed in ${processingTime}ms`);
-      console.log('🔍 Raw output:', JSON.stringify(output));
       
-      if (!output) {
-        throw new Error('No output received from model');
-      }
-
-      // Handle different output formats
+      // Handle ReadableStream from newer Replicate SDK
       let enhancedUrl;
-      if (Array.isArray(output)) {
-        enhancedUrl = output[0];
-      } else if (typeof output === 'string') {
+      if (output instanceof ReadableStream) {
+        console.log('🔄 Processing ReadableStream from Replicate...');
+        const reader = output.getReader();
+        const decoder = new TextDecoder();
+        let result = '';
+        
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          result += decoder.decode(value, { stream: true });
+        }
+        
+        // The stream should contain the URL
+        enhancedUrl = result.trim();
+        console.log('✅ Got URL from ReadableStream:', enhancedUrl);
+        
+      } else if (typeof output === 'string' && output.startsWith('https://')) {
         enhancedUrl = output;
+        console.log('✅ Got direct URL from Real-ESRGAN:', enhancedUrl);
       } else {
-        enhancedUrl = output;
+        console.log('🚨 Unexpected output format from Real-ESRGAN');
+        console.log('🔍 Output type:', typeof output);
+        console.log('🔍 Output:', output);
+        throw new Error(`Real-ESRGAN returned unexpected format: ${typeof output}`);
       }
       
       console.log(`🎯 Enhanced URL: ${enhancedUrl}`);
