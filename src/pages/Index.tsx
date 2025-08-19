@@ -292,6 +292,29 @@ const Index = () => {
               onStartOver={handleStartOver}
             />
           )}
+
+          {/* Debug Panel */}
+          <div className="mt-8 p-4 bg-gray-100 rounded-lg">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">🔍 Real-ESRGAN Debug Log</h3>
+              <button 
+                onClick={() => {
+                  const debugElement = document.getElementById('debug-log');
+                  if (debugElement) debugElement.innerHTML = '';
+                }}
+                className="px-3 py-1 bg-red-500 text-white rounded text-sm"
+              >
+                Clear Log
+              </button>
+            </div>
+            <div 
+              id="debug-log" 
+              className="h-64 overflow-y-auto bg-white p-3 rounded border text-xs"
+              style={{ fontFamily: 'monospace' }}
+            >
+              <div className="text-gray-500">Debug logs will appear here during image enhancement...</div>
+            </div>
+          </div>
         </div>
       </div>
 
