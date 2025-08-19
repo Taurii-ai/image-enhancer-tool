@@ -1,14 +1,1 @@
-FORCE DEPLOYMENT v4.0.0
-===================
-
-TIMESTAMP: 2025-08-16 22:08:30
-PROJECT: real-esrgan-upscaler
-VERSION: 4.0.0
-
-REAL-ESRGAN STATUS: ✅ READY
-- Direct Replicate client working
-- Actual AI 4x upscaling implemented  
-- 12-15 second processing time
-- All payment integration working
-
-THIS FILE EXISTS TO FORCE VERCEL DEPLOYMENT!
+FORCE_REDEPLOY: Wed Aug 20 02:32:29 EEST 2025
