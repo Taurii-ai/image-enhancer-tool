@@ -246,7 +246,7 @@ export const enhanceImage = async (
         throw new Error(result.details || result.error || 'Enhancement failed');
       }
 
-      onProgress({ status: 'processing', progress: 80, message: `Processing with ${result.modelUsed} (${result.version})...` });
+      onProgress({ status: 'processing', progress: 80, message: `Processing with ${result.modelUsed}...` });
 
       console.log('📥 API Response:', result);
       
@@ -260,7 +260,6 @@ export const enhanceImage = async (
       console.log('✅ API ROUTE: PRODUCTION Real-ESRGAN successful!', {
         url: result.enhancedImageUrl,
         model: result.modelUsed,
-        version: result.version,
         processingTime: result.processingTime,
         cost: result.estimatedCost
       });

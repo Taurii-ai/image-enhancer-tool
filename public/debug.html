@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Image Loading</title>
+</head>
+<body>
+    <h1>Debug Enhanced Image Loading</h1>
+    
+    <div>
+        <h2>Test Enhanced Image:</h2>
+        <img 
+            src="https://replicate.delivery/czjl/Tue0AhVqeNm8PEcfIK52m6gUKqH7nlJr3qeVYvnbV4sYjGyUB/out..jpg" 
+            alt="Enhanced Image"
+            style="max-width: 500px; border: 2px solid red;"
+            onload="console.log('✅ Image loaded successfully')"
+            onerror="console.error('❌ Image failed to load')"
+            crossorigin="anonymous"
+        />
+    </div>
+
+    <div style="margin-top: 20px;">
+        <h2>Test API Call:</h2>
+        <button onclick="testAPI()">Test Enhancement API</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function testAPI() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const response = await fetch('/api/enhance-image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        imageData: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAABAAEDAREAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=",
+                        scale: 2,
+                        userEmail: "test@example.com"
+                    })
+                });
+
+                const result = await response.json();
+                console.log('API Response:', result);
+                
+                if (result.success) {
+                    resultDiv.innerHTML = `
+                        <h3>✅ API Success!</h3>
+                        <p>Enhanced URL: <a href="${result.enhancedImageUrl}" target="_blank">${result.enhancedImageUrl}</a></p>
+                        <img src="${result.enhancedImageUrl}" style="max-width: 300px; border: 2px solid green;" crossorigin="anonymous" />
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<h3>❌ API Failed!</h3><pre>${JSON.stringify(result, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                console.error('API Error:', error);
+                resultDiv.innerHTML = `<h3>❌ Network Error!</h3><pre>${error.message}</pre>`;
+            }
+        }
+    </script>
+</body>
+</html>

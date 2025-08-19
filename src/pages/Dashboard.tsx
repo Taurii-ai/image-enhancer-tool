@@ -36,13 +36,16 @@ const Dashboard = () => {
       return;
     }
 
+    console.log('🔍 DASHBOARD: Starting image upload', file.name, file.size);
     setCurrentFile(file);
     setProcessingState('processing');
     setProgress(null);
     setResult(null);
 
     try {
+      console.log('🔍 DASHBOARD: Calling enhanceImage...');
       const enhancementResult = await enhanceImage(file, setProgress);
+      console.log('🔍 DASHBOARD: Enhancement result:', enhancementResult);
       setResult(enhancementResult);
       setProcessingState('completed');
       
@@ -50,7 +53,7 @@ const Dashboard = () => {
       consumeImageCredit();
       setSubscriptionInfo(formatSubscriptionInfo());
     } catch (error) {
-      console.error('Enhancement failed:', error);
+      console.error('🚨 DASHBOARD: Enhancement failed:', error);
       setProcessingState('idle');
     }
   };

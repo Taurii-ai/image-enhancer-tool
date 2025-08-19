@@ -22,6 +22,8 @@ export const ResultsDisplay = ({
 }: ResultsDisplayProps) => {
   console.log('🎯 RESULTS DISPLAY: Received enhancedImage:', enhancedImage);
   console.log('🎯 RESULTS DISPLAY: Received originalImage:', originalImage);
+  console.log('🎯 RESULTS DISPLAY: enhancedImage type:', typeof enhancedImage);
+  console.log('🎯 RESULTS DISPLAY: originalImage type:', typeof originalImage);
   
   // Use proxy for Replicate URLs to handle CORS
   const getProxiedImageUrl = (url: string | unknown) => {

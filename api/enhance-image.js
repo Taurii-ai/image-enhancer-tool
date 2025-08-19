@@ -96,10 +96,19 @@ export default async function handler(req, res) {
       
       console.log(`🎯 Enhanced URL: ${enhancedUrl}`);
 
-      // Return success response
+      // Fetch the image and convert to base64 for reliable delivery
+      console.log('🔄 Fetching enhanced image for base64 conversion...');
+      const imageResponse = await fetch(enhancedUrl);
+      const imageBuffer = await imageResponse.arrayBuffer();
+      const base64Image = `data:image/jpeg;base64,${Buffer.from(imageBuffer).toString('base64')}`;
+      
+      console.log(`✅ Converted to base64, size: ${base64Image.length} chars`);
+
+      // Return success response with base64 image
       return res.status(200).json({
         success: true,
-        enhancedImageUrl: enhancedUrl,
+        enhancedImageUrl: base64Image,
+        originalReplicateUrl: enhancedUrl,
         processingTime: processingTime,
         estimatedCost: 0.0025,
         modelUsed: 'xinntao/realesrgan'
