@@ -167,43 +167,13 @@ export const enhanceImage = async (
   try {
     onProgress({ status: 'starting', progress: 0, message: 'Starting enhancement...' });
     
-    // FOR TESTING: Check user subscription and usage from database
-    if (userEmail) {
-      console.log('🔍 TESTING: Checking user data for:', userEmail);
-      
-      const userInfo = await UserService.getUserInfo(userEmail);
-      if (userInfo) {
-        console.log('🔍 TESTING: User found in database:', {
-          user: userInfo.user.email,
-          subscription: userInfo.subscription?.plan_name,
-          status: userInfo.subscription?.status,
-          usage: `${userInfo.usage?.images_processed || 0}/${userInfo.usage?.images_limit || 0}`,
-          canProcess: userInfo.canProcessImages,
-          remaining: userInfo.remainingImages
-        });
-        
-        // Test processing an image for this user (increment usage)
-        const processResult = await UserService.processImageForUser(userEmail);
-        console.log('🔍 TESTING: Process result:', processResult);
-        
-        if (!processResult.success) {
-          onProgress({ 
-            status: 'failed', 
-            message: `Enhancement blocked: ${processResult.message}` 
-          });
-          throw new Error(processResult.message);
-        }
-        
-        onProgress({ status: 'processing', progress: 10, message: processResult.message });
-      } else {
-        console.log('🔍 TESTING: User not found in database, would need to sign up first');
-        onProgress({ 
-          status: 'processing', 
-          progress: 10, 
-          message: 'User not found - would need subscription in production' 
-        });
-      }
-    }
+    // TEMPORARILY DISABLE AUTH - Focus on getting Real-ESRGAN working
+    console.log('🔍 TESTING: Skipping user authentication for demo');
+    onProgress({ 
+      status: 'processing', 
+      progress: 10, 
+      message: 'Ready to process with Real-ESRGAN' 
+    });
     
     // Get user's plan limits for processing options
     const planLimits = getCurrentPlanLimits();
@@ -248,9 +218,15 @@ export const enhanceImage = async (
 
       onProgress({ status: 'processing', progress: 80, message: `Processing with ${result.modelUsed}...` });
 
-      console.log('📥 API Response:', result);
+      console.log('📥 API Response:', {
+        success: result.success,
+        modelUsed: result.modelUsed,
+        processingTime: result.processingTime,
+        imageSizeMB: (result.enhancedImageUrl?.length || 0) / 1024 / 1024
+      });
       
       if (!result.enhancedImageUrl) {
+        console.error('🚨 Missing enhancedImageUrl in response:', result);
         throw new Error('No enhanced image URL in response');
       }
 
@@ -267,16 +243,16 @@ export const enhanceImage = async (
       // CRITICAL: Skip rest of function if API succeeded - don't let catch block run
       onProgress({ status: 'completed', progress: 100, message: 'Enhancement completed!' });
       
-      // Always use the direct Replicate URL - let the component handle CORS
-      console.log('🔄 USING DIRECT REPLICATE URL:', result.enhancedImageUrl);
+      // Use the base64 data URL for reliable display
+      console.log('✅ Using enhanced base64 image');
       
       const result_final = {
         originalUrl: URL.createObjectURL(file),
-        enhancedUrl: result.enhancedImageUrl, // Use direct URL
+        enhancedUrl: result.enhancedImageUrl, // Use base64 data URL
         originalFile: file,
       };
       
-      console.log('🎯 RETURNING FINAL RESULT:', result_final);
+      console.log('🎯 RETURNING FINAL RESULT - Enhanced image ready');
       return result_final;
       
     } catch (apiError: unknown) {

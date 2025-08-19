@@ -31,12 +31,8 @@ const Dashboard = () => {
   }, []);
 
   const handleImageUpload = async (file: File) => {
-    if (subscriptionInfo.imagesRemaining <= 0) {
-      navigate('/pricing');
-      return;
-    }
-
-    console.log('🔍 DASHBOARD: Starting image upload', file.name, file.size);
+    // TEMPORARILY DISABLE SUBSCRIPTION CHECKS - Focus on getting Real-ESRGAN working
+    console.log('🔍 DASHBOARD: Starting image upload (subscription checks disabled)', file.name, file.size);
     setCurrentFile(file);
     setProcessingState('processing');
     setProgress(null);
@@ -45,13 +41,14 @@ const Dashboard = () => {
     try {
       console.log('🔍 DASHBOARD: Calling enhanceImage...');
       const enhancementResult = await enhanceImage(file, setProgress);
-      console.log('🔍 DASHBOARD: Enhancement result:', enhancementResult);
+      console.log('🔍 DASHBOARD: Enhancement completed successfully!');
       setResult(enhancementResult);
       setProcessingState('completed');
       
-      // Use image credit
-      consumeImageCredit();
-      setSubscriptionInfo(formatSubscriptionInfo());
+      // TEMPORARILY DISABLE CREDIT CONSUMPTION
+      // consumeImageCredit();
+      // setSubscriptionInfo(formatSubscriptionInfo());
+      console.log('🔍 DASHBOARD: Enhancement completed successfully!');
     } catch (error) {
       console.error('🚨 DASHBOARD: Enhancement failed:', error);
       setProcessingState('idle');
