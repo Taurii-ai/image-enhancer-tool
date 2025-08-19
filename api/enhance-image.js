@@ -23,11 +23,10 @@ export default async function handler(req, res) {
   try {
     const { imageData, scale = 4, userEmail } = req.body;
 
-    console.log('🔍 ENHANCE API: Starting Real-ESRGAN processing...');
+    console.log('🔍 NEW API: Starting image enhancement...');
     console.log('Scale:', scale);
     console.log('User:', userEmail);
     console.log('Has API token:', !!process.env.REPLICATE_API_TOKEN);
-    console.log('API token prefix:', process.env.REPLICATE_API_TOKEN?.substring(0, 3));
 
     // Validate inputs
     if (!imageData) {
@@ -35,35 +34,23 @@ export default async function handler(req, res) {
     }
 
     if (!process.env.REPLICATE_API_TOKEN) {
-      console.error('🚨 No REPLICATE_API_TOKEN found in environment');
       return res.status(500).json({ 
         error: 'API configuration error',
         details: 'REPLICATE_API_TOKEN not configured'
       });
     }
 
-    // Validate API token format
-    if (!process.env.REPLICATE_API_TOKEN.startsWith('r8_')) {
-      console.error('🚨 Invalid API token format:', process.env.REPLICATE_API_TOKEN.substring(0, 10));
-      return res.status(500).json({ 
-        error: 'Invalid API token format',
-        details: 'Token should start with r8_'
-      });
-    }
-
-    console.log('✅ API token validation passed');
-
-    console.log('🚀 Starting Real-ESRGAN enhancement...');
-    
     const startTime = Date.now();
     
     try {
-      // Use official Replicate predictions pattern as shown in documentation
+      // Use the original working Real-ESRGAN approach with prediction polling
+      console.log('🔄 Running Real-ESRGAN with predictions...');
+      
       const prediction = await replicate.predictions.create({
         version: "1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56",
         input: {
           img: imageData,
-          scale: 4,
+          scale: scale,
           version: "General - RealESRGANplus",
           face_enhance: false
         }
@@ -71,16 +58,13 @@ export default async function handler(req, res) {
       
       console.log('🔄 Prediction created:', prediction.id);
       
-      // Poll for completion (as shown in Next.js documentation)
+      // Poll for completion
       let result = prediction;
       while (result.status !== "succeeded" && result.status !== "failed") {
         await new Promise(resolve => setTimeout(resolve, 1000));
         result = await replicate.predictions.get(prediction.id);
         console.log('🔄 Prediction status:', result.status);
       }
-      
-      const processingTime = Date.now() - startTime;
-      console.log(`✅ Real-ESRGAN completed in ${processingTime}ms`);
       
       if (result.status === "failed") {
         throw new Error(`Prediction failed: ${result.error}`);
@@ -89,37 +73,49 @@ export default async function handler(req, res) {
       if (!result.output) {
         throw new Error('No output received from Real-ESRGAN');
       }
-
-      // Handle output as shown in documentation
-      const upscaledUrl = Array.isArray(result.output) ? result.output[result.output.length - 1] : result.output;
       
-      // Log cost information
-      const estimatedCost = 0.0025;
-      console.log(`💰 Estimated cost: $${estimatedCost.toFixed(4)}`);
-      console.log(`🎯 Final upscaled URL: ${upscaledUrl}`);
+      const output = result.output;
+      
+      const processingTime = Date.now() - startTime;
+      console.log(`✅ Processing completed in ${processingTime}ms`);
+      console.log('🔍 Raw output:', JSON.stringify(output));
+      
+      if (!output) {
+        throw new Error('No output received from model');
+      }
+
+      // Handle different output formats
+      let enhancedUrl;
+      if (Array.isArray(output)) {
+        enhancedUrl = output[0];
+      } else if (typeof output === 'string') {
+        enhancedUrl = output;
+      } else {
+        enhancedUrl = output;
+      }
+      
+      console.log(`🎯 Enhanced URL: ${enhancedUrl}`);
 
       // Return success response
       return res.status(200).json({
         success: true,
-        enhancedImageUrl: upscaledUrl,
+        enhancedImageUrl: enhancedUrl,
         processingTime: processingTime,
-        estimatedCost,
-        modelUsed: 'xinntao/realesrgan',
-        scale: 4,
-        version: 'General - RealESRGANplus'
+        estimatedCost: 0.0025,
+        modelUsed: 'xinntao/realesrgan'
       });
 
     } catch (replicateError) {
       console.error('🚨 Replicate API Error:', replicateError);
       return res.status(500).json({ 
-        error: 'Replicate API failed',
+        error: 'Model processing failed',
         details: replicateError.message,
         timestamp: new Date().toISOString()
       });
     }
 
   } catch (error) {
-    console.error('🚨 Unexpected error in enhance-image API:', error);
+    console.error('🚨 Unexpected error:', error);
     res.status(500).json({ 
       error: 'Internal server error',
       details: error.message,
