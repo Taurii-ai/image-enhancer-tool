@@ -23,7 +23,7 @@ export default async function handler(req, res) {
   try {
     const { imageData, scale = 4, userEmail } = req.body;
 
-    console.log('🔍 FIXED API: Starting image enhancement...');
+    console.log('🔍 PRODUCTION API: Starting image enhancement...');
     console.log('Scale:', scale);
     console.log('User:', userEmail);
     console.log('Has API token:', !!process.env.REPLICATE_API_TOKEN);
