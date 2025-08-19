@@ -58,31 +58,40 @@ export default async function handler(req, res) {
     const startTime = Date.now();
     
     try {
-      // Use proper replicate.run() without destructuring - Real-ESRGAN returns a single URL
-      const output = await replicate.run(
-        "xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56",
-        {
-          input: {
-            img: imageData,
-            scale: 4,
-            version: "General - RealESRGANplus",
-            face_enhance: false
-          }
+      // Use official Replicate predictions pattern as shown in documentation
+      const prediction = await replicate.predictions.create({
+        version: "1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56",
+        input: {
+          img: imageData,
+          scale: 4,
+          version: "General - RealESRGANplus",
+          face_enhance: false
         }
-      );
+      });
+      
+      console.log('🔄 Prediction created:', prediction.id);
+      
+      // Poll for completion (as shown in Next.js documentation)
+      let result = prediction;
+      while (result.status !== "succeeded" && result.status !== "failed") {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        result = await replicate.predictions.get(prediction.id);
+        console.log('🔄 Prediction status:', result.status);
+      }
       
       const processingTime = Date.now() - startTime;
       console.log(`✅ Real-ESRGAN completed in ${processingTime}ms`);
-      console.log('Raw output:', output);
-      console.log('Output type:', typeof output);
-      console.log('Is array:', Array.isArray(output));
       
-      if (!output) {
+      if (result.status === "failed") {
+        throw new Error(`Prediction failed: ${result.error}`);
+      }
+      
+      if (!result.output) {
         throw new Error('No output received from Real-ESRGAN');
       }
 
-      // Handle different output formats - Real-ESRGAN can return URL directly or in array
-      const upscaledUrl = Array.isArray(output) ? output[0] : output;
+      // Handle output as shown in documentation
+      const upscaledUrl = Array.isArray(result.output) ? result.output[result.output.length - 1] : result.output;
       
       // Log cost information
       const estimatedCost = 0.0025;

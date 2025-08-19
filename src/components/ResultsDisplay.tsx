@@ -24,14 +24,18 @@ export const ResultsDisplay = ({
   console.log('🎯 RESULTS DISPLAY: Received originalImage:', originalImage);
   
   // Use proxy for Replicate URLs to handle CORS
-  const getProxiedImageUrl = (url: string) => {
-    if (url.startsWith('https://replicate.delivery/')) {
-      const proxied = `/api/proxy-image?url=${encodeURIComponent(url)}`;
-      console.log('🔄 PROXYING URL:', url, '→', proxied);
+  const getProxiedImageUrl = (url: string | any) => {
+    // Ensure url is a string
+    const urlString = typeof url === 'string' ? url : String(url || '');
+    console.log('🔍 URL TYPE CHECK:', typeof url, 'VALUE:', url);
+    
+    if (urlString.startsWith('https://replicate.delivery/')) {
+      const proxied = `/api/proxy-image?url=${encodeURIComponent(urlString)}`;
+      console.log('🔄 PROXYING URL:', urlString, '→', proxied);
       return proxied;
     }
-    console.log('🔄 USING DIRECT URL:', url);
-    return url;
+    console.log('🔄 USING DIRECT URL:', urlString);
+    return urlString;
   };
   
   const finalEnhancedImage = getProxiedImageUrl(enhancedImage);
