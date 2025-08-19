@@ -58,8 +58,8 @@ export default async function handler(req, res) {
     const startTime = Date.now();
     
     try {
-      // Use official Replicate pattern with destructured output
-      const [output] = await replicate.run(
+      // Use proper replicate.run() without destructuring - Real-ESRGAN returns a single URL
+      const output = await replicate.run(
         "xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56",
         {
           input: {
@@ -73,14 +73,16 @@ export default async function handler(req, res) {
       
       const processingTime = Date.now() - startTime;
       console.log(`✅ Real-ESRGAN completed in ${processingTime}ms`);
-      console.log('Output URL:', output);
+      console.log('Raw output:', output);
+      console.log('Output type:', typeof output);
+      console.log('Is array:', Array.isArray(output));
       
       if (!output) {
         throw new Error('No output received from Real-ESRGAN');
       }
 
-      // Output is already the URL string from the destructured array
-      const upscaledUrl = output;
+      // Handle different output formats - Real-ESRGAN can return URL directly or in array
+      const upscaledUrl = Array.isArray(output) ? output[0] : output;
       
       // Log cost information
       const estimatedCost = 0.0025;
