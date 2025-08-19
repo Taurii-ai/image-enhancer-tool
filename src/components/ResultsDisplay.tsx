@@ -29,10 +29,10 @@ export const ResultsDisplay = ({
     const urlString = typeof url === 'string' ? url : String(url || '');
     console.log('🔍 URL TYPE CHECK:', typeof url, 'VALUE:', url);
     
+    // For production, try direct URLs first to avoid proxy issues
     if (urlString.startsWith('https://replicate.delivery/')) {
-      const proxied = `/api/proxy-image?url=${encodeURIComponent(urlString)}`;
-      console.log('🔄 PROXYING URL:', urlString, '→', proxied);
-      return proxied;
+      console.log('🔄 USING DIRECT REPLICATE URL:', urlString);
+      return urlString;
     }
     console.log('🔄 USING DIRECT URL:', urlString);
     return urlString;
@@ -45,6 +45,7 @@ export const ResultsDisplay = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
+  const [imagesLoaded, setImagesLoaded] = useState({ original: false, enhanced: false });
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -235,16 +236,34 @@ export const ResultsDisplay = ({
               width: '100%'
             }}
           >
+            {/* Loading overlay */}
+            {!imagesLoaded.enhanced && (
+              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <div className="text-white text-sm">Loading enhanced image...</div>
+              </div>
+            )}
+            
             {/* Enhanced image (background - "After") */}
             <img
               src={finalEnhancedImage}
               alt="Enhanced"
               className="absolute inset-0 w-full h-full object-cover"
               draggable={false}
-              onLoad={() => console.log('✅ ENHANCED IMAGE LOADED:', finalEnhancedImage)}
+              onLoad={() => {
+                console.log('✅ ENHANCED IMAGE LOADED:', finalEnhancedImage);
+                setImagesLoaded(prev => ({ ...prev, enhanced: true }));
+              }}
               onError={(e) => {
                 console.error('❌ ENHANCED IMAGE FAILED TO LOAD:', finalEnhancedImage, e);
+                // Try to reload with CORS mode
+                const img = e.target as HTMLImageElement;
+                if (img.src.includes('replicate.delivery')) {
+                  console.log('🔄 Retrying with crossOrigin anonymous...');
+                  img.crossOrigin = 'anonymous';
+                  img.src = img.src + '?retry=1';
+                }
               }}
+              crossOrigin="anonymous"
             />
             
             {/* Original image overlay with clip path (foreground - "Before") */}
@@ -259,8 +278,14 @@ export const ResultsDisplay = ({
                 alt="Original"
                 className="w-full h-full object-cover"
                 draggable={false}
-                onLoad={() => console.log('✅ ORIGINAL IMAGE LOADED:', originalImage)}
-                onError={(e) => console.error('❌ ORIGINAL IMAGE FAILED TO LOAD:', originalImage, e)}
+                onLoad={() => {
+                  console.log('✅ ORIGINAL IMAGE LOADED:', originalImage);
+                  setImagesLoaded(prev => ({ ...prev, original: true }));
+                }}
+                onError={(e) => {
+                  console.error('❌ ORIGINAL IMAGE FAILED TO LOAD:', originalImage, e);
+                }}
+                crossOrigin="anonymous"
               />
             </div>
 
