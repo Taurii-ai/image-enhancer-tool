@@ -294,25 +294,41 @@ const Index = () => {
           )}
 
           {/* Debug Panel */}
-          <div className="mt-8 p-4 bg-gray-100 rounded-lg">
+          <div className="mt-8 p-4 bg-white border-2 border-gray-300 rounded-lg">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">🔍 Real-ESRGAN Debug Log</h3>
+              <h3 className="text-lg font-semibold text-black">🔍 Real-ESRGAN Pipeline Debug</h3>
               <button 
                 onClick={() => {
                   const debugElement = document.getElementById('debug-log');
-                  if (debugElement) debugElement.innerHTML = '';
+                  if (debugElement) debugElement.innerHTML = '<div class="text-gray-600 text-sm">Debug logs will appear here during image enhancement...</div>';
                 }}
-                className="px-3 py-1 bg-red-500 text-white rounded text-sm"
+                className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
               >
                 Clear Log
               </button>
             </div>
+            
+            {/* Pipeline Steps */}
+            <div className="mb-4 p-3 bg-gray-50 rounded border">
+              <h4 className="font-semibold text-black mb-2">Expected Pipeline:</h4>
+              <ol className="text-sm text-black space-y-1">
+                <li>1. 📤 Image gets uploaded to website</li>
+                <li>2. 🔧 Website prepares the file (convert to base64)</li>
+                <li>3. 🌐 Website sends file to backend API</li>
+                <li>4. 🔑 Backend sends to Replicate with secret token</li>
+                <li>5. ⚡ Replicate processes with Real-ESRGAN</li>
+                <li>6. 📥 Replicate sends enhanced URL back to backend</li>
+                <li>7. 🔄 Backend sends URL back to frontend</li>
+                <li>8. 🖼️ Frontend displays enhanced image to user</li>
+              </ol>
+            </div>
+            
             <div 
               id="debug-log" 
-              className="h-64 overflow-y-auto bg-white p-3 rounded border text-xs"
-              style={{ fontFamily: 'monospace' }}
+              className="h-64 overflow-y-auto bg-gray-50 p-3 rounded border text-sm"
+              style={{ fontFamily: 'monospace', color: 'black' }}
             >
-              <div className="text-gray-500">Debug logs will appear here during image enhancement...</div>
+              <div className="text-gray-600 text-sm">Debug logs will appear here during image enhancement...</div>
             </div>
           </div>
         </div>

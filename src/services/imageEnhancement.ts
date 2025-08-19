@@ -175,36 +175,35 @@ export const enhanceImage = async (
     const debugElement = document.getElementById('debug-log');
     if (debugElement) {
       const logEntry = document.createElement('div');
-      logEntry.style.cssText = 'margin: 2px 0; padding: 4px; background: #f0f0f0; border-radius: 4px; font-family: monospace; font-size: 11px;';
-      logEntry.textContent = `[${timestamp.split('T')[1].split('.')[0]}] ${step} ${data ? JSON.stringify(data) : ''}`;
+      logEntry.style.cssText = 'margin: 3px 0; padding: 6px; background: #ffffff; border: 1px solid #e5e5e5; border-radius: 4px; font-family: monospace; font-size: 12px; color: black;';
+      logEntry.innerHTML = `<strong>[${timestamp.split('T')[1].split('.')[0]}]</strong> ${step}${data ? '<br><span style="color: #666; font-size: 11px;">' + JSON.stringify(data, null, 2) + '</span>' : ''}`;
       debugElement.appendChild(logEntry);
       debugElement.scrollTop = debugElement.scrollHeight;
     }
   };
   
   try {
-    debugLog('🚀 STEP 1: Starting enhancement process', { debugId, fileName: file.name, fileSize: file.size });
+    debugLog('📤 STEP 1: Image uploaded to website', { fileName: file.name, fileSize: file.size, debugId });
     onProgress({ status: 'starting', progress: 0, message: 'Starting enhancement...' });
     
     // Get user's plan limits for processing options
     const planLimits = getCurrentPlanLimits();
-    debugLog('📋 STEP 2: Got plan limits', planLimits);
     
     let enhancedUrl: string;
     
     try {
-      debugLog('🔄 STEP 3: Converting image to base64...');
+      debugLog('🔧 STEP 2: Website preparing file (converting to base64)');
       onProgress({ status: 'processing', progress: 10, message: 'Converting image to base64...' });
       
       // Convert file to data URL for API
       const imageDataUrl = await fileToDataURL(file);
-      debugLog('✅ STEP 4: Image converted to base64', { 
-        dataUrlLength: imageDataUrl.length,
-        dataUrlType: imageDataUrl.substring(0, 50) + '...'
+      debugLog('✅ STEP 2 COMPLETED: File prepared successfully', { 
+        base64Length: imageDataUrl.length,
+        imageType: imageDataUrl.substring(0, 30) + '...'
       });
       
-      debugLog('🌐 STEP 5: Connecting to Real-ESRGAN API...');
-      onProgress({ status: 'processing', progress: 20, message: 'Connecting to Real-ESRGAN API...' });
+      debugLog('🌐 STEP 3: Website sending file to backend API');
+      onProgress({ status: 'processing', progress: 20, message: 'Connecting to backend API...' });
       
       const apiPayload = {
         imageBase64: imageDataUrl,
@@ -212,9 +211,10 @@ export const enhanceImage = async (
         face_enhance: true
       };
       
-      debugLog('📤 STEP 6: Sending to API', { 
+      debugLog('📤 STEP 3 IN PROGRESS: Sending to backend', { 
         payloadSize: JSON.stringify(apiPayload).length,
-        apiEndpoint: '/api/enhance-image'
+        endpoint: '/api/enhance-image',
+        method: 'POST'
       });
       
       const response = await fetch('/api/enhance-image', {
@@ -225,52 +225,54 @@ export const enhanceImage = async (
         body: JSON.stringify(apiPayload)
       });
 
-      debugLog('📥 STEP 7: Got API response', { 
+      debugLog('📥 STEP 3 RESPONSE: Backend API responded', { 
         status: response.status,
         statusText: response.statusText,
-        ok: response.ok
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        debugLog('❌ STEP 8: API Error', errorData);
-        throw new Error(errorData.details || errorData.error || `API request failed with status ${response.status}`);
+        debugLog('❌ STEP 3 FAILED: Backend API error', { error: errorData, status: response.status });
+        throw new Error(errorData.details || errorData.error || `Backend API failed with status ${response.status}`);
       }
 
-      debugLog('🔄 STEP 8: Real-ESRGAN processing in progress...');
-      onProgress({ status: 'processing', progress: 40, message: 'Real-ESRGAN processing...' });
+      debugLog('✅ STEP 3 COMPLETED: Backend received request successfully');
+      onProgress({ status: 'processing', progress: 40, message: 'Backend processing with Replicate...' });
 
       const result = await response.json();
-      debugLog('✅ STEP 9: Got result from API', { 
-        success: result.success,
-        hasOutput: !!result.output,
-        outputType: typeof result.output,
-        outputPreview: result.output ? result.output.substring(0, 100) + '...' : 'none',
-        requestId: result.requestId,
-        processingTime: result.processingTime
-      });
       
       if (!result.success) {
-        debugLog('❌ STEP 10: Enhancement failed', result);
-        throw new Error(result.details || result.error || 'Enhancement failed');
+        debugLog('❌ STEP 4-7 FAILED: Replicate processing failed', result);
+        throw new Error(result.details || result.error || 'Replicate enhancement failed');
       }
 
-      debugLog('🖼️ STEP 10: Processing enhanced image...');
-      onProgress({ status: 'processing', progress: 80, message: 'Processing enhanced image...' });
+      debugLog('✅ STEP 4: Backend sent to Replicate with secret token', { requestId: result.requestId });
+      debugLog('✅ STEP 5: Replicate processed with Real-ESRGAN', { processingTime: result.processingTime + 'ms' });
+      debugLog('✅ STEP 6: Replicate sent enhanced URL back to backend', { 
+        outputType: typeof result.output,
+        outputPreview: result.output ? result.output.substring(0, 100) + '...' : 'none'
+      });
+      debugLog('✅ STEP 7: Backend sent URL back to frontend', { 
+        success: result.success,
+        hasOutput: !!result.output
+      });
+      
+      onProgress({ status: 'processing', progress: 80, message: 'Preparing enhanced image...' });
       
       if (!result.output) {
-        debugLog('❌ STEP 11: No output URL', result);
+        debugLog('❌ STEP 8 FAILED: No enhanced image URL received', result);
         throw new Error('No enhanced image URL in response');
       }
 
       enhancedUrl = result.output;
-      debugLog('🎉 STEP 11: Got enhanced image URL', { 
+      debugLog('🖼️ STEP 8: Frontend preparing to display enhanced image', { 
         enhancedUrl: enhancedUrl.substring(0, 100) + '...',
-        urlType: enhancedUrl.startsWith('data:') ? 'base64' : 'external'
+        urlType: enhancedUrl.startsWith('data:') ? 'base64_image' : 'external_url'
       });
       
-      debugLog('🏁 STEP 12: Finalizing enhancement...');
-      onProgress({ status: 'processing', progress: 95, message: 'Finalizing enhancement...' });
+      onProgress({ status: 'processing', progress: 95, message: 'Finalizing display...' });
       
       const result_final = {
         originalUrl: URL.createObjectURL(file),
@@ -278,10 +280,11 @@ export const enhanceImage = async (
         originalFile: file,
       };
       
-      debugLog('✅ STEP 13: Enhancement completed successfully!', {
+      debugLog('✅ STEP 8 COMPLETED: Frontend displaying enhanced image to user!', {
         originalUrl: result_final.originalUrl,
         enhancedUrl: result_final.enhancedUrl.substring(0, 100) + '...',
-        totalTime: Date.now() - startTime
+        totalProcessingTime: Date.now() - startTime + 'ms',
+        success: true
       });
       onProgress({ status: 'completed', progress: 100, message: 'Enhancement completed!' });
       

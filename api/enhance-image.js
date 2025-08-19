@@ -67,7 +67,8 @@ export default async function handler(req, res) {
     runCount++; // Increment counter for rate limiting
     
     try {
-      console.log(`[${requestId}] 🔄 Running Real-ESRGAN model on Replicate...`);
+      console.log(`[${requestId}] 🔑 STEP 4: Backend sending to Replicate with secret token...`);
+      console.log(`[${requestId}] 🔑 Token available: ${!!process.env.REPLICATE_API_TOKEN}`);
       
       const input = { 
         image: imageBase64, 
@@ -75,12 +76,20 @@ export default async function handler(req, res) {
         face_enhance: face_enhance 
       };
       
+      console.log(`[${requestId}] 📤 STEP 4 SENDING: Calling Replicate API...`, {
+        model: "nightmareai/real-esrgan",
+        inputScale: scale,
+        faceEnhance: face_enhance,
+        imageDataSize: imageBase64.length
+      });
+      
       const output = await replicate.run(
         "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
         { input }
       );
       
-      console.log(`[${requestId}] ✅ Real-ESRGAN processing completed`);
+      console.log(`[${requestId}] ⚡ STEP 5: Replicate Real-ESRGAN processing completed`);
+      console.log(`[${requestId}] 📥 STEP 6: Replicate sending result back to backend...`);
       
       if (!output) {
         throw new Error('No output received from Real-ESRGAN');
@@ -148,7 +157,12 @@ export default async function handler(req, res) {
         requestId: requestId
       };
 
-      console.log(`[${requestId}] ✅ RETURNING SUCCESS RESPONSE`);
+      console.log(`[${requestId}] 🔄 STEP 7: Backend sending URL back to frontend...`);
+      console.log(`[${requestId}] ✅ SUCCESS: Complete pipeline working!`, {
+        outputUrlType: enhancedImageUrl.startsWith('data:') ? 'base64' : 'external',
+        outputLength: enhancedImageUrl.length,
+        processingTime: processingTime + 'ms'
+      });
       return res.status(200).json(response);
 
     } catch (replicateError) {
