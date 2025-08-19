@@ -26,12 +26,17 @@ export const ResultsDisplay = ({
   // Use proxy for Replicate URLs to handle CORS
   const getProxiedImageUrl = (url: string) => {
     if (url.startsWith('https://replicate.delivery/')) {
-      return `/api/proxy-image?url=${encodeURIComponent(url)}`;
+      const proxied = `/api/proxy-image?url=${encodeURIComponent(url)}`;
+      console.log('🔄 PROXYING URL:', url, '→', proxied);
+      return proxied;
     }
+    console.log('🔄 USING DIRECT URL:', url);
     return url;
   };
   
   const finalEnhancedImage = getProxiedImageUrl(enhancedImage);
+  console.log('🎯 FINAL ENHANCED IMAGE URL:', finalEnhancedImage);
+  console.log('🎯 ORIGINAL IMAGE URL:', originalImage);
   const [comparison, setComparison] = useState(10); // Show more enhanced image by default
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);

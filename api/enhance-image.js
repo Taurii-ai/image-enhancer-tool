@@ -53,8 +53,8 @@ module.exports = async function handler(req, res) {
 
     console.log('✅ API token validation passed');
 
-    // Use a different working model version - tencentarc/gfpgan works better for testing
-    const modelVersion = 'tencentarc/gfpgan:0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c';
+    // Use Real-ESRGAN for general image upscaling - works on any type of image
+    const modelVersion = 'nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36f297e2db670c5145f24897844ac8';
     
     console.log('🚀 Starting Real-ESRGAN enhancement...');
     
@@ -70,9 +70,9 @@ module.exports = async function handler(req, res) {
       
       const replicatePromise = replicate.run(modelVersion, {
         input: {
-          img: imageData,
-          version: "v1.4", // GFPGAN version parameter
-          scale: 2 // GFPGAN typically does 2x scaling
+          image: imageData,
+          scale: 4, // Real-ESRGAN 4x upscaling
+          face_enhance: false // Disable face enhancement for general images
         }
       });
       
@@ -126,9 +126,9 @@ module.exports = async function handler(req, res) {
       enhancedImageUrl: upscaledUrl,
       processingTime: Date.now() - startTime,
       estimatedCost,
-      modelUsed: 'tencentarc/gfpgan',
-      scale: 2, // GFPGAN does 2x scaling
-      version: 'v1.4'
+      modelUsed: 'nightmareai/real-esrgan',
+      scale: 4, // Real-ESRGAN does 4x scaling
+      version: 'latest'
     });
 
   } catch (error) {
