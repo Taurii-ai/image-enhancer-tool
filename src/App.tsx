@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { DebugPanel } from "@/components/DebugPanel";
+import { EnhancementTracker } from "@/components/EnhancementTracker";
 import Index from "./pages/Index";
 import Pricing from "./pages/Pricing";
 import About from "./pages/About";
@@ -57,6 +58,7 @@ const App = () => {
             <Route path="*" element={<NotFound />} />
           </Routes>
           <DebugPanel />
+          <EnhancementTracker />
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
