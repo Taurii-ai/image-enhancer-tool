@@ -87,66 +87,89 @@ export default async function handler(req, res) {
       
       // Handle ReadableStream from newer Replicate SDK
       let enhancedUrl;
+      
+      console.log(`[${requestId}] 🔍 OUTPUT TYPE:`, typeof output);
+      console.log(`[${requestId}] 🔍 OUTPUT INSTANCE:`, output instanceof ReadableStream);
+      
       if (output instanceof ReadableStream) {
-        console.log('🔄 Processing ReadableStream from Replicate...');
+        console.log(`[${requestId}] 🔄 Processing ReadableStream from Replicate...`);
+        
+        // For Real-ESRGAN, the ReadableStream contains binary image data, not a URL
+        // We need to convert the stream to a buffer and then to base64
+        const chunks = [];
         const reader = output.getReader();
-        const decoder = new TextDecoder();
-        let result = '';
         
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          result += decoder.decode(value, { stream: true });
+          chunks.push(value);
         }
         
-        // The stream should contain the URL
-        enhancedUrl = result.trim();
-        console.log('✅ Got URL from ReadableStream:', enhancedUrl);
+        // Combine all chunks into a single buffer
+        const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+        const imageBuffer = new Uint8Array(totalLength);
+        let offset = 0;
+        
+        for (const chunk of chunks) {
+          imageBuffer.set(chunk, offset);
+          offset += chunk.length;
+        }
+        
+        // Convert to base64
+        const base64Image = Buffer.from(imageBuffer).toString('base64');
+        enhancedUrl = `data:image/jpeg;base64,${base64Image}`;
+        
+        console.log(`[${requestId}] ✅ Converted ReadableStream to base64:`, {
+          totalBytes: totalLength,
+          base64Length: base64Image.length
+        });
         
       } else if (typeof output === 'string' && output.startsWith('https://')) {
         enhancedUrl = output;
-        console.log('✅ Got direct URL from Real-ESRGAN:', enhancedUrl);
+        console.log(`[${requestId}] ✅ Got direct URL from Real-ESRGAN:`, enhancedUrl);
       } else {
-        console.log('🚨 Unexpected output format from Real-ESRGAN');
-        console.log('🔍 Output type:', typeof output);
-        console.log('🔍 Output:', output);
+        console.log(`[${requestId}] 🚨 Unexpected output format from Real-ESRGAN`);
+        console.log(`[${requestId}] 🔍 Output type:`, typeof output);
+        console.log(`[${requestId}] 🔍 Output:`, output);
         throw new Error(`Real-ESRGAN returned unexpected format: ${typeof output}`);
       }
       
-      console.log(`🎯 Enhanced URL: ${enhancedUrl}`);
-
-      // Fetch the image and convert to base64 for reliable delivery
-      console.log('🔄 Fetching enhanced image for base64 conversion...');
-      const imageResponse = await fetch(enhancedUrl);
-      const imageBuffer = await imageResponse.arrayBuffer();
-      const base64Image = `data:image/jpeg;base64,${Buffer.from(imageBuffer).toString('base64')}`;
-      
-      console.log(`✅ Converted to base64, size: ${base64Image.length} chars`);
-
-      // Return success response with base64 image
-      return res.status(200).json({
-        success: true,
-        enhancedImageUrl: base64Image,
-        originalReplicateUrl: enhancedUrl,
-        processingTime: processingTime,
-        estimatedCost: 0.0025,
-        modelUsed: 'xinntao/realesrgan'
+      console.log(`[${requestId}] 🎯 Final Enhanced URL:`, {
+        type: typeof enhancedUrl,
+        length: enhancedUrl?.length,
+        isDataUrl: enhancedUrl?.startsWith('data:'),
+        isHttpUrl: enhancedUrl?.startsWith('https://')
       });
 
+      // Return success response with the enhanced image
+      const finalResponse = {
+        success: true,
+        enhancedImageUrl: enhancedUrl,
+        processingTime: processingTime,
+        estimatedCost: 0.0025,
+        modelUsed: 'xinntao/realesrgan',
+        requestId: requestId
+      };
+
+      console.log(`[${requestId}] ✅ RETURNING SUCCESS RESPONSE`);
+      return res.status(200).json(finalResponse);
+
     } catch (replicateError) {
-      console.error('🚨 Replicate API Error:', replicateError);
+      console.error(`[${requestId}] 🚨 Replicate API Error:`, replicateError);
       return res.status(500).json({ 
         error: 'Model processing failed',
         details: replicateError.message,
+        requestId: requestId,
         timestamp: new Date().toISOString()
       });
     }
 
   } catch (error) {
-    console.error('🚨 Unexpected error:', error);
+    console.error(`[${requestId}] 🚨 Unexpected error:`, error);
     res.status(500).json({ 
       error: 'Internal server error',
       details: error.message,
+      requestId: requestId,
       timestamp: new Date().toISOString()
     });
   }
