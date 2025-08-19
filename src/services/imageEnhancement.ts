@@ -157,19 +157,6 @@ const simulateEnhancement = async (
   });
 };
 
-const debugLog = (level: 'info' | 'error' | 'success' | 'warning', message: string, data?: any) => {
-  console.log(`[${level.toUpperCase()}] ${message}`, data || '');
-  if ((window as any).debugLog) {
-    (window as any).debugLog(level, message, data);
-  }
-};
-
-const trackStep = (stepId: string, status: 'pending' | 'processing' | 'success' | 'error', message: string, data?: any) => {
-  debugLog(status === 'error' ? 'error' : status === 'success' ? 'success' : 'info', `[${stepId}] ${message}`, data);
-  if ((window as any).enhancementTracker) {
-    (window as any).enhancementTracker.updateStep(stepId, status, message, data);
-  }
-};
 
 export const enhanceImage = async (
   file: File,
@@ -178,53 +165,27 @@ export const enhanceImage = async (
 ): Promise<EnhancementResult> => {
   const startTime = Date.now();
   
-  // Reset tracker and start
-  if ((window as any).enhancementTracker) {
-    (window as any).enhancementTracker.resetTracker();
-  }
-  
-  trackStep('file-select', 'success', `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`, {
-    fileName: file.name,
-    fileSize: file.size,
-    fileType: file.type,
-    userEmail: userEmail
-  });
   
   try {
     onProgress({ status: 'starting', progress: 0, message: 'Starting enhancement...' });
-    
-    // TEMPORARILY DISABLE AUTH - Focus on getting Real-ESRGAN working
-    console.log('🔍 TESTING: Skipping user authentication for demo');
-    onProgress({ 
-      status: 'processing', 
-      progress: 10, 
-      message: 'Ready to process with Real-ESRGAN' 
-    });
     
     // Get user's plan limits for processing options
     const planLimits = getCurrentPlanLimits();
     
     let enhancedUrl: string;
     
-    // USE API ROUTE METHOD (proper serverless approach)
     try {
-      trackStep('file-convert', 'processing', 'Converting file to base64...');
       onProgress({ status: 'processing', progress: 10, message: 'Converting image to base64...' });
       
       // Convert file to data URL for API
       const imageDataUrl = await fileToDataURL(file);
-      trackStep('file-convert', 'success', `Converted to base64 (${(imageDataUrl.length / 1024).toFixed(1)} KB)`, {
-        dataUrlLength: imageDataUrl.length,
-        dataUrlStart: imageDataUrl.substring(0, 100)
-      });
       
-      trackStep('api-call', 'processing', 'Sending to Real-ESRGAN API...');
       onProgress({ status: 'processing', progress: 20, message: 'Connecting to Real-ESRGAN API...' });
       
       const apiPayload = {
-        imageData: imageDataUrl,
+        imageBase64: imageDataUrl,
         scale: 4,
-        userEmail: userEmail || 'test@enhpix.com'
+        face_enhance: true
       };
       
       const response = await fetch('/api/enhance-image', {
@@ -235,103 +196,59 @@ export const enhanceImage = async (
         body: JSON.stringify(apiPayload)
       });
 
-      trackStep('api-call', response.ok ? 'success' : 'error', 
-        `API Response: ${response.status} ${response.statusText}`, {
-        status: response.status,
-        statusText: response.statusText,
-        payloadSize: JSON.stringify(apiPayload).length
-      });
-
-      debugLog('info', '📡 API RESPONSE RECEIVED', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        trackStep('replicate-auth', 'error', `Authentication failed: ${response.status}`, errorData);
         throw new Error(errorData.details || errorData.error || `API request failed with status ${response.status}`);
       }
 
-      trackStep('replicate-auth', 'success', 'Authenticated with Replicate API');
-      trackStep('replicate-process', 'processing', 'Real-ESRGAN model processing image...');
       onProgress({ status: 'processing', progress: 40, message: 'Real-ESRGAN processing...' });
 
       const result = await response.json();
       
       if (!result.success) {
-        trackStep('replicate-process', 'error', `Processing failed: ${result.details || result.error}`, result);
         throw new Error(result.details || result.error || 'Enhancement failed');
       }
 
-      trackStep('replicate-process', 'success', `Enhanced in ${result.processingTime}ms (€${result.estimatedCost})`, {
-        processingTime: result.processingTime,
-        cost: result.estimatedCost,
-        model: result.modelUsed
-      });
-
-      trackStep('stream-handle', 'processing', 'Handling enhanced image data...');
       onProgress({ status: 'processing', progress: 80, message: 'Processing enhanced image...' });
       
-      if (!result.enhancedImageUrl) {
-        trackStep('stream-handle', 'error', 'No enhanced image URL in response', result);
+      if (!result.output) {
         throw new Error('No enhanced image URL in response');
       }
 
-      enhancedUrl = result.enhancedImageUrl;
-      trackStep('stream-handle', 'success', `Received enhanced image (${(enhancedUrl.length / 1024).toFixed(1)} KB)`, {
-        enhancedUrlType: typeof result.enhancedImageUrl,
-        enhancedUrlLength: result.enhancedImageUrl?.length
-      });
+      enhancedUrl = result.output;
       
-      trackStep('image-return', 'processing', 'Preparing final result...');
       onProgress({ status: 'processing', progress: 95, message: 'Finalizing enhancement...' });
       
       const result_final = {
         originalUrl: URL.createObjectURL(file),
-        enhancedUrl: result.enhancedImageUrl,
+        enhancedUrl: result.output,
         originalFile: file,
       };
       
-      trackStep('image-return', 'success', 'Enhanced image ready for display');
-      trackStep('ui-display', 'success', 'Ready to display in UI');
       onProgress({ status: 'completed', progress: 100, message: 'Enhancement completed!' });
       
       return result_final;
       
     } catch (apiError: unknown) {
-      console.error('🚨 API Route Error:', apiError);
-      console.error('Error details:', apiError instanceof Error ? apiError.message : 'Unknown error');
-      
-      // Show specific error message to user
+      // Fallback to demo enhancement
       const errorMessage = (apiError instanceof Error ? apiError.message : 'Real-ESRGAN processing failed');
-      
-      // Only fallback for timeout/network errors, not after API success
-      console.error('🚨 API Error (will fallback):', apiError);
       
       onProgress({ 
         status: 'processing', 
         progress: 60, 
-        message: `API Error: ${errorMessage}. Using demo mode...` 
+        message: `Using demo enhancement...` 
       });
-      console.log('🔄 Falling back to demo enhancement');
       enhancedUrl = await simulateEnhancement(file, onProgress, planLimits);
     }
     
     onProgress({ status: 'completed', progress: 100, message: 'Enhancement completed!' });
     
-    console.log('🎯 PREPARING RESULT with enhancedUrl:', enhancedUrl);
-    
-    // Prepare the result first (most important)
+    // Prepare the result
     const result = {
       originalUrl: URL.createObjectURL(file),
       enhancedUrl,
       originalFile: file,
     };
-    
-    console.log('🎯 FINAL RESULT OBJECT:', result);
     
     // Track analytics separately - don't let analytics errors break the main flow
     try {
@@ -352,7 +269,6 @@ export const enhanceImage = async (
       console.warn('Analytics tracking failed (non-critical):', analyticsError);
     }
     
-    console.log('🎯 RETURNING RESULT:', result);
     return result;
     
   } catch (error) {
