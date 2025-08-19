@@ -1,11 +1,11 @@
-const Replicate = require('replicate');
+import Replicate from "replicate";
 
-// Initialize Replicate with proper environment variable (no VITE_ prefix for serverless)
+// Initialize Replicate following official documentation
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -53,84 +53,59 @@ module.exports = async function handler(req, res) {
 
     console.log('✅ API token validation passed');
 
-    // Use the correct Real-ESRGAN model from Replicate
-    const modelVersion = 'xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56';
-    
     console.log('🚀 Starting Real-ESRGAN enhancement...');
     
-    // Call Real-ESRGAN with the exact format from previous instructions
     const startTime = Date.now();
-    let output;
     
     try {
-      // Add timeout wrapper for Replicate API call (extended to 300 seconds)
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Replicate API timeout after 300 seconds')), 300000)
+      // Use official Replicate pattern with destructured output
+      const [output] = await replicate.run(
+        "xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56",
+        {
+          input: {
+            img: imageData,
+            scale: 4,
+            version: "General - RealESRGANplus",
+            face_enhance: false
+          }
+        }
       );
       
-      const replicatePromise = replicate.run(modelVersion, {
-        input: {
-          img: imageData,
-          scale: 4,
-          version: "General - RealESRGANplus",
-          face_enhance: false
-        }
-      });
-      
-      output = await Promise.race([replicatePromise, timeoutPromise]);
-      
       const processingTime = Date.now() - startTime;
-      console.log(`✅ PRODUCTION xinntao/realesrgan completed in ${processingTime}ms`);
-      console.log('Output:', output);
-      console.log('Output type:', typeof output);
-      console.log('Output array length:', Array.isArray(output) ? output.length : 'not array');
+      console.log(`✅ Real-ESRGAN completed in ${processingTime}ms`);
+      console.log('Output URL:', output);
       
+      if (!output) {
+        throw new Error('No output received from Real-ESRGAN');
+      }
+
+      // Output is already the URL string from the destructured array
+      const upscaledUrl = output;
+      
+      // Log cost information
+      const estimatedCost = 0.0025;
+      console.log(`💰 Estimated cost: $${estimatedCost.toFixed(4)}`);
+      console.log(`🎯 Final upscaled URL: ${upscaledUrl}`);
+
+      // Return success response
+      return res.status(200).json({
+        success: true,
+        enhancedImageUrl: upscaledUrl,
+        processingTime: processingTime,
+        estimatedCost,
+        modelUsed: 'xinntao/realesrgan',
+        scale: 4,
+        version: 'General - RealESRGANplus'
+      });
+
     } catch (replicateError) {
       console.error('🚨 Replicate API Error:', replicateError);
-      console.error('Error details:', replicateError.message);
-      console.error('Error stack:', replicateError.stack);
-      
       return res.status(500).json({ 
         error: 'Replicate API failed',
         details: replicateError.message,
         timestamp: new Date().toISOString()
       });
     }
-
-    if (!output) {
-      console.error('🚨 No output received from PRODUCTION xinntao/realesrgan');
-      return res.status(500).json({ 
-        error: 'No output from AI model',
-        details: 'PRODUCTION xinntao/realesrgan returned empty response'
-      });
-    }
-
-    // Extract the upscaled image URL from the output array (following previous instructions)
-    const upscaledUrl = Array.isArray(output) ? output[0] : output;
-    
-    if (!upscaledUrl) {
-      console.error('🚨 No valid URL in output:', output);
-      return res.status(500).json({ 
-        error: 'Invalid output from AI model',
-        details: 'Could not extract upscaled image URL'
-      });
-    }
-
-    // Log cost information (following previous instructions)
-    const estimatedCost = 0.0025;
-    console.log(`💰 Estimated cost: $${estimatedCost.toFixed(4)}`);
-    console.log(`🎯 Final upscaled URL: ${upscaledUrl}`);
-
-    // Return success response (following previous instructions format)
-    res.status(200).json({
-      success: true,
-      enhancedImageUrl: upscaledUrl,
-      processingTime: Date.now() - startTime,
-      estimatedCost,
-      modelUsed: 'xinntao/realesrgan',
-      scale: 4,
-      version: 'General - RealESRGANplus'
-    });
 
   } catch (error) {
     console.error('🚨 Unexpected error in enhance-image API:', error);

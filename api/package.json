@@ -1,6 +1,6 @@
 {
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
-    "replicate": "^0.25.2"
+    "replicate": "^1.0.1"
   }
 }
