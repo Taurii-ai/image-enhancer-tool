@@ -43,38 +43,26 @@ export default async function handler(req, res) {
     const startTime = Date.now();
     
     try {
-      // Use the original working Real-ESRGAN approach with prediction polling
-      console.log('🔄 Running Real-ESRGAN with predictions...');
+      // Use replicate.run() method which is more reliable and simpler
+      console.log('🔄 Running Real-ESRGAN with replicate.run()...');
       
-      const prediction = await replicate.predictions.create({
-        version: "1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56",
-        input: {
-          img: imageData,
-          scale: scale,
-          version: "General - RealESRGANplus",
-          face_enhance: false
+      const output = await replicate.run(
+        "xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56",
+        {
+          input: {
+            img: imageData,
+            scale: scale,
+            version: "General - RealESRGANplus",
+            face_enhance: false
+          }
         }
-      });
+      );
       
-      console.log('🔄 Prediction created:', prediction.id);
+      console.log('✅ Real-ESRGAN processing completed');
       
-      // Poll for completion
-      let result = prediction;
-      while (result.status !== "succeeded" && result.status !== "failed") {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        result = await replicate.predictions.get(prediction.id);
-        console.log('🔄 Prediction status:', result.status);
-      }
-      
-      if (result.status === "failed") {
-        throw new Error(`Prediction failed: ${result.error}`);
-      }
-      
-      if (!result.output) {
+      if (!output) {
         throw new Error('No output received from Real-ESRGAN');
       }
-      
-      const output = result.output;
       
       const processingTime = Date.now() - startTime;
       console.log(`✅ Processing completed in ${processingTime}ms`);
