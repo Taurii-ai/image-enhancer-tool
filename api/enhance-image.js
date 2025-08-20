@@ -97,18 +97,39 @@ export default async function handler(req, res) {
       
       const processingTime = Date.now() - startTime;
       
-      // Handle output format - following Replicate Node.js guide
+      // Handle output format - Real-ESRGAN can return different formats
       let enhancedImageUrl;
       
-      // The Real-ESRGAN model typically returns a URL string or array with URL
+      console.log(`[${requestId}] 🔍 Analyzing output:`, { 
+        type: typeof output, 
+        isArray: Array.isArray(output),
+        keys: output && typeof output === 'object' ? Object.keys(output) : null,
+        value: output
+      });
+      
       if (typeof output === 'string') {
         enhancedImageUrl = output;
-        console.log(`[${requestId}] ✅ Got direct URL:`, enhancedImageUrl);
+        console.log(`[${requestId}] ✅ Got direct URL string:`, enhancedImageUrl);
       } else if (Array.isArray(output) && output.length > 0) {
         enhancedImageUrl = output[0];
         console.log(`[${requestId}] ✅ Got URL from array:`, enhancedImageUrl);
+      } else if (output && typeof output === 'object') {
+        // Handle object response - check common properties
+        if (output.url) {
+          enhancedImageUrl = output.url;
+          console.log(`[${requestId}] ✅ Got URL from object.url:`, enhancedImageUrl);
+        } else if (output.output) {
+          enhancedImageUrl = output.output;
+          console.log(`[${requestId}] ✅ Got URL from object.output:`, enhancedImageUrl);
+        } else if (output.image) {
+          enhancedImageUrl = output.image;
+          console.log(`[${requestId}] ✅ Got URL from object.image:`, enhancedImageUrl);
+        } else {
+          console.error(`[${requestId}] ❌ Object has no recognizable URL property:`, Object.keys(output));
+          throw new Error(`Object output has no URL property. Keys: ${Object.keys(output).join(', ')}`);
+        }
       } else {
-        console.error(`[${requestId}] ❌ Unexpected output format:`, typeof output, output);
+        console.error(`[${requestId}] ❌ Completely unexpected output:`, { type: typeof output, value: output });
         throw new Error(`Unexpected output format: ${typeof output}`);
       }
       

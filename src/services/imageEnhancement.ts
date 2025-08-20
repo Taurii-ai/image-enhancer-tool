@@ -168,9 +168,6 @@ export const enhanceImage = async (
   try {
     onProgress({ status: 'starting', progress: 0, message: 'Starting enhancement...' });
     
-    // Get user's plan limits for processing options
-    const planLimits = getCurrentPlanLimits();
-    
     let enhancedUrl: string;
     
     try {
@@ -227,47 +224,10 @@ export const enhanceImage = async (
       return result_final;
       
     } catch (apiError: unknown) {
-      // Fallback to demo enhancement
-      const errorMessage = (apiError instanceof Error ? apiError.message : 'Real-ESRGAN processing failed');
-      console.warn('Real-ESRGAN failed, using demo:', errorMessage);
-      
-      onProgress({ 
-        status: 'processing', 
-        progress: 60, 
-        message: `Using demo enhancement...` 
-      });
-      enhancedUrl = await simulateEnhancement(file, onProgress, planLimits);
+      // No demo fallback - throw the real error
+      console.error('Real-ESRGAN failed:', apiError);
+      throw apiError;
     }
-    
-    onProgress({ status: 'completed', progress: 100, message: 'Enhancement completed!' });
-    
-    // Prepare the result
-    const result = {
-      originalUrl: URL.createObjectURL(file),
-      enhancedUrl,
-      originalFile: file,
-    };
-    
-    // Track analytics separately - don't let analytics errors break the main flow
-    try {
-      const processingTime = Date.now() - startTime;
-      const fileSizeMB = file.size / 1024 / 1024;
-      
-      trackImageEnhancement(
-        'basic', // Using 'basic' since we're using single Real-ESRGAN model
-        4, // Real-ESRGAN does 4x upscaling
-        fileSizeMB,
-        processingTime,
-        true
-      );
-      
-      // Track API cost - using basic as fallback since we're using single Real-ESRGAN model
-      trackApiCost('basic', MODEL_COSTS['basic']);
-    } catch (analyticsError) {
-      console.warn('Analytics tracking failed (non-critical):', analyticsError);
-    }
-    
-    return result;
     
   } catch (error) {
     console.error('Enhancement failed:', error);
