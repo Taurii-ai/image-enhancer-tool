@@ -28,14 +28,16 @@ export default async function handler(req, res) {
       auth: process.env.REPLICATE_API_TOKEN
     });
     
-    // Call Real-ESRGAN model
+    // Call Real-ESRGAN model with correct parameters
     const output = await replicate.run(
-      "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
+      "xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56",
       {
         input: {
-          image: imageBase64,
+          img: imageBase64,
           scale: 4,
-          face_enhance: true
+          version: "General - v3",
+          face_enhance: false,
+          tile: 0
         }
       }
     );
