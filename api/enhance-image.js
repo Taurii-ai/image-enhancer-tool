@@ -28,8 +28,8 @@ export default async function handler(req, res) {
       auth: process.env.REPLICATE_API_TOKEN
     });
     
-    // EXACT guide pattern with array destructuring
-    const [output] = await replicate.run(
+    // Call Real-ESRGAN model
+    const output = await replicate.run(
       "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
       {
         input: {
@@ -40,11 +40,17 @@ export default async function handler(req, res) {
       }
     );
     
-    console.log("Image saved as output");
+    console.log("Real-ESRGAN completed. Output:", typeof output, output);
+    
+    // Handle different output formats
+    let enhancedUrl = output;
+    if (Array.isArray(output) && output.length > 0) {
+      enhancedUrl = output[0];
+    }
     
     return res.status(200).json({
       success: true,
-      output: output,
+      output: enhancedUrl,
       estimatedCost: 0.0025
     });
 
