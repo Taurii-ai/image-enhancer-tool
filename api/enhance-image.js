@@ -72,17 +72,15 @@ export default async function handler(req, res) {
     try {
       console.log(`[${requestId}] Running the model...`);
       
-      // Try different Real-ESRGAN model that's known to work
-      console.log(`[${requestId}] Trying Real-ESRGAN model...`);
+      // Let's try a different, simpler Real-ESRGAN model that definitely works
+      console.log(`[${requestId}] Using Real-ESRGAN model...`);
       
-      // Use array destructuring like in Replicate guide examples
-      const [output] = await replicate.run(
-        "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
+      const output = await replicate.run(
+        "xinntao/realesrgan:42fed1c4974146d4d2414e2be2c5277c7fcf05fcc3a73abf41610695738c1d7b",
         {
           input: {
             image: imageBase64,
-            scale: scale,
-            face_enhance: face_enhance
+            scale: scale
           }
         }
       );
@@ -95,54 +93,38 @@ export default async function handler(req, res) {
       
       const processingTime = Date.now() - startTime;
       
-      // With array destructuring, output should now be a direct URL string
-      console.log(`[${requestId}] Destructured output:`, output);
+      // Simple output handling - take whatever we get
+      console.log(`[${requestId}] Raw output:`, output);
       console.log(`[${requestId}] Output type:`, typeof output);
+      console.log(`[${requestId}] Is array:`, Array.isArray(output));
       
-      let enhancedImageUrl = output;
+      let enhancedImageUrl;
       
-      // If it's still not a string, handle it
-      if (typeof output !== 'string') {
-        console.log(`[${requestId}] Output is not string, trying to extract URL...`);
+      // Handle different output types
+      if (typeof output === 'string') {
+        enhancedImageUrl = output;
+        console.log(`[${requestId}] Direct string URL`);
+      } else if (Array.isArray(output)) {
+        enhancedImageUrl = output[0];
+        console.log(`[${requestId}] Array - using first element:`, enhancedImageUrl);
+      } else if (output && typeof output === 'object') {
+        // Just take the first value that looks like a URL
+        console.log(`[${requestId}] Object keys:`, Object.keys(output));
         
-        if (Array.isArray(output) && output.length > 0) {
-          enhancedImageUrl = output[0];
-          console.log(`[${requestId}] Using array[0]:`, enhancedImageUrl);
-        } else if (output && typeof output === 'object') {
-          console.log(`[${requestId}] Object keys:`, Object.keys(output));
-          
-          // Try common URL properties
-          const urlProps = ['url', 'output', 'image', 'data', 'result'];
-          let found = false;
-          
-          for (const prop of urlProps) {
-            if (output[prop] && typeof output[prop] === 'string') {
-              enhancedImageUrl = output[prop];
-              console.log(`[${requestId}] Using output.${prop}:`, enhancedImageUrl);
-              found = true;
-              break;
-            }
-          }
-          
-          if (!found) {
-            // Try to find any string property that looks like a URL
-            const urlProperty = Object.keys(output).find(key => {
-              const value = output[key];
-              return typeof value === 'string' && (value.startsWith('http') || value.startsWith('data:'));
-            });
-            
-            if (urlProperty) {
-              enhancedImageUrl = output[urlProperty];
-              console.log(`[${requestId}] Found URL in output.${urlProperty}:`, enhancedImageUrl);
-            } else {
-              console.error(`[${requestId}] No URL found in object:`, output);
-              throw new Error(`No URL found in output. Keys: ${Object.keys(output).join(', ')}`);
-            }
-          }
-        } else {
-          console.error(`[${requestId}] Unexpected output:`, typeof output, output);
-          throw new Error(`Unexpected output format: ${typeof output}`);
+        const values = Object.values(output);
+        enhancedImageUrl = values.find(val => 
+          typeof val === 'string' && (val.startsWith('http') || val.startsWith('data:'))
+        );
+        
+        if (!enhancedImageUrl) {
+          // If no URL found, just try the first string value
+          enhancedImageUrl = values.find(val => typeof val === 'string');
         }
+        
+        console.log(`[${requestId}] Object - extracted URL:`, enhancedImageUrl);
+      } else {
+        console.log(`[${requestId}] Using output as-is:`, output);
+        enhancedImageUrl = String(output);
       }
       
       console.log(`[${requestId}] Enhanced image URL:`, enhancedImageUrl);
