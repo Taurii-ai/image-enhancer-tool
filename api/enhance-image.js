@@ -1,7 +1,5 @@
 import Replicate from "replicate";
 
-const replicate = new Replicate();
-
 export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -24,6 +22,11 @@ export default async function handler(req, res) {
     }
 
     console.log("Running the model...");
+    
+    // Initialize Replicate with explicit auth token
+    const replicate = new Replicate({
+      auth: process.env.REPLICATE_API_TOKEN
+    });
     
     // EXACT guide pattern with array destructuring
     const [output] = await replicate.run(
