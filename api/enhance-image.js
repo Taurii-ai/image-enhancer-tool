@@ -1,9 +1,6 @@
-const Replicate = require("replicate");
+import Replicate from "replicate";
 
-// Rate limiting for cost control
-const MAX_RUNS_PER_MINUTE = process.env.NODE_ENV === "production" ? 20 : Infinity;
-let runCount = 0;
-let resetTime = Date.now() + 60000; // 1 minute from now
+const replicate = new Replicate();
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -28,10 +25,7 @@ export default async function handler(req, res) {
 
     console.log("Running the model...");
     
-    // Initialize Replicate client exactly like the guide
-    const replicate = new Replicate();
-    
-    // Following the exact Replicate Node.js guide pattern
+    // Following the EXACT Replicate Node.js guide pattern
     const output = await replicate.run(
       "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
       {
