@@ -39,6 +39,7 @@ export default async function handler(req, res) {
   }
   
   console.log(`[${requestId}] ✅ REPLICATE_API_TOKEN is set (length: ${process.env.REPLICATE_API_TOKEN.length})`);
+  console.log(`[${requestId}] Token starts with: ${process.env.REPLICATE_API_TOKEN.substring(0, 10)}...`);
 
   // Rate limiting
   if (Date.now() > resetTime) {
@@ -114,10 +115,16 @@ export default async function handler(req, res) {
       });
 
     } catch (replicateError) {
-      console.error(`[${requestId}] 🚨 Replicate API Error:`, replicateError);
+      console.error(`[${requestId}] 🚨 Replicate API Error:`, {
+        message: replicateError.message,
+        stack: replicateError.stack,
+        name: replicateError.name,
+        cause: replicateError.cause,
+        fullError: replicateError
+      });
       return res.status(500).json({ 
-        error: 'Upscaling failed',
-        details: replicateError.message || replicateError,
+        error: 'Replicate API failed',
+        details: replicateError.message || String(replicateError),
         requestId: requestId
       });
     }

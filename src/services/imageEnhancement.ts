@@ -194,7 +194,12 @@ export const enhanceImage = async (
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.details || errorData.error || `API request failed with status ${response.status}`);
+        console.error('Backend API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData: errorData
+        });
+        throw new Error(errorData.details || errorData.error || `Backend API failed: ${response.status} ${response.statusText}`);
       }
 
       onProgress({ status: 'processing', progress: 60, message: 'Real-ESRGAN processing...' });
