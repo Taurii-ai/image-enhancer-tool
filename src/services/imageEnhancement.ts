@@ -224,9 +224,27 @@ export const enhanceImage = async (
       return result_final;
       
     } catch (apiError: unknown) {
-      // No demo fallback - throw the real error
-      console.error('Real-ESRGAN failed:', apiError);
-      throw apiError;
+      // Fallback to demo enhancement like before
+      const errorMessage = (apiError instanceof Error ? apiError.message : 'Real-ESRGAN processing failed');
+      console.warn('Real-ESRGAN failed, using demo:', errorMessage);
+      
+      onProgress({ 
+        status: 'processing', 
+        progress: 60, 
+        message: `API failed, using demo enhancement...` 
+      });
+      
+      // Get plan limits for demo
+      const planLimits = getCurrentPlanLimits();
+      enhancedUrl = await simulateEnhancement(file, onProgress, planLimits);
+      
+      onProgress({ status: 'completed', progress: 100, message: 'Demo enhancement completed!' });
+      
+      return {
+        originalUrl: URL.createObjectURL(file),
+        enhancedUrl,
+        originalFile: file,
+      };
     }
     
   } catch (error) {

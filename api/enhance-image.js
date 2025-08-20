@@ -71,17 +71,17 @@ export default async function handler(req, res) {
     try {
       console.log(`[${requestId}] 🔄 Running Real-ESRGAN model...`);
       
-      // Following official Replicate Node.js guide pattern
-      const output = await replicate.run(
-        "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
-        {
-          input: {
-            image: imageBase64,
-            scale: scale,
-            face_enhance: face_enhance
-          }
+      // Using the correct Real-ESRGAN model 
+      const modelId = "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa";
+      console.log(`[${requestId}] 📤 Calling Replicate with model:`, modelId);
+      
+      const output = await replicate.run(modelId, {
+        input: {
+          image: imageBase64,
+          scale: scale,
+          face_enhance: face_enhance
         }
-      );
+      });
       
       console.log(`[${requestId}] ✅ Replicate completed. Output type:`, typeof output);
       console.log(`[${requestId}] 📊 Output details:`, {
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
         type: typeof output, 
         isArray: Array.isArray(output),
         keys: output && typeof output === 'object' ? Object.keys(output) : null,
-        value: output
+        value: JSON.stringify(output)
       });
       
       if (typeof output === 'string') {
@@ -133,8 +133,17 @@ export default async function handler(req, res) {
         throw new Error(`Unexpected output format: ${typeof output}`);
       }
       
-      // Return success response
-      console.log(`[${requestId}] ✅ Returning enhanced image URL to frontend`);
+      // Validate URL before returning
+      if (!enhancedImageUrl) {
+        console.error(`[${requestId}] ❌ No enhanced image URL extracted`);
+        throw new Error('Failed to extract enhanced image URL from Replicate response');
+      }
+
+      console.log(`[${requestId}] ✅ Returning enhanced image URL to frontend:`, {
+        url: enhancedImageUrl,
+        urlLength: enhancedImageUrl.length,
+        urlType: enhancedImageUrl.startsWith('data:') ? 'base64' : 'external'
+      });
       
       return res.status(200).json({
         success: true,
