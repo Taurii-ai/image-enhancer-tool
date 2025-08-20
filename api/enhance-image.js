@@ -92,13 +92,50 @@ export default async function handler(req, res) {
       
       const processingTime = Date.now() - startTime;
       
-      // Handle output - Real-ESRGAN typically returns a URL string
+      // Handle output - Real-ESRGAN can return different formats
       let enhancedImageUrl;
+      
+      console.log(`[${requestId}] Raw output:`, JSON.stringify(output, null, 2));
+      console.log(`[${requestId}] Output type:`, typeof output);
+      console.log(`[${requestId}] Is array:`, Array.isArray(output));
       
       if (typeof output === 'string') {
         enhancedImageUrl = output;
+        console.log(`[${requestId}] Using string output`);
       } else if (Array.isArray(output) && output.length > 0) {
         enhancedImageUrl = output[0];
+        console.log(`[${requestId}] Using array[0] output`);
+      } else if (output && typeof output === 'object') {
+        // Handle object - look for common URL properties
+        console.log(`[${requestId}] Object keys:`, Object.keys(output));
+        
+        if (output.url) {
+          enhancedImageUrl = output.url;
+          console.log(`[${requestId}] Using output.url`);
+        } else if (output.output) {
+          enhancedImageUrl = output.output;
+          console.log(`[${requestId}] Using output.output`);
+        } else if (output.image) {
+          enhancedImageUrl = output.image;
+          console.log(`[${requestId}] Using output.image`);
+        } else if (output.data) {
+          enhancedImageUrl = output.data;
+          console.log(`[${requestId}] Using output.data`);
+        } else {
+          // Try to find any property that looks like a URL
+          const urlProperty = Object.keys(output).find(key => {
+            const value = output[key];
+            return typeof value === 'string' && (value.startsWith('http') || value.startsWith('data:'));
+          });
+          
+          if (urlProperty) {
+            enhancedImageUrl = output[urlProperty];
+            console.log(`[${requestId}] Using output.${urlProperty}`);
+          } else {
+            console.error(`[${requestId}] No URL found in object:`, output);
+            throw new Error(`Object output has no URL property. Keys: ${Object.keys(output).join(', ')}`);
+          }
+        }
       } else {
         console.error(`[${requestId}] Unexpected output format:`, typeof output, output);
         throw new Error(`Unexpected output format: ${typeof output}`);
