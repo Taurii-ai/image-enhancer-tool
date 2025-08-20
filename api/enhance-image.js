@@ -23,31 +23,35 @@ export default async function handler(req, res) {
 
     console.log("Running the model...");
     
-    // Initialize Replicate with explicit auth token
-    const replicate = new Replicate({
-      auth: process.env.REPLICATE_API_TOKEN
-    });
+    // Initialize Replicate client exactly as per documentation
+    const replicate = new Replicate();
     
-    // Call Real-ESRGAN model with correct parameters
+    // Follow EXACT documentation pattern for xinntao/realesrgan
+    const input = {
+      img: imageBase64,
+      version: "General - v3",
+      scale: 4,
+      face_enhance: false,
+      tile: 0
+    };
+
     const output = await replicate.run(
-      "xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56",
-      {
-        input: {
-          img: imageBase64,
-          scale: 4,
-          version: "General - v3",
-          face_enhance: false,
-          tile: 0
-        }
-      }
+      "xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56", 
+      { input }
     );
     
-    console.log("Real-ESRGAN completed. Output:", typeof output, output);
+    console.log("Real-ESRGAN completed. Output:", output);
     
-    // Handle different output formats
-    let enhancedUrl = output;
-    if (Array.isArray(output) && output.length > 0) {
+    // Handle output according to documentation
+    let enhancedUrl;
+    if (output && typeof output.url === 'function') {
+      enhancedUrl = output.url();
+    } else if (typeof output === 'string') {
+      enhancedUrl = output;
+    } else if (Array.isArray(output) && output.length > 0) {
       enhancedUrl = output[0];
+    } else {
+      enhancedUrl = output;
     }
     
     return res.status(200).json({
