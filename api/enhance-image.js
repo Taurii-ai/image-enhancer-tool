@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { imageBase64, scale = 4, face_enhance = true } = req.body;
+    const { imageBase64 } = req.body;
 
     if (!imageBase64) {
       return res.status(400).json({ error: 'Missing imageBase64' });
@@ -25,14 +25,14 @@ export default async function handler(req, res) {
 
     console.log("Running the model...");
     
-    // EXACT Replicate guide pattern
-    const output = await replicate.run(
+    // EXACT guide pattern with array destructuring
+    const [output] = await replicate.run(
       "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
       {
         input: {
           image: imageBase64,
-          scale: scale,
-          face_enhance: face_enhance
+          scale: 4,
+          face_enhance: true
         }
       }
     );
