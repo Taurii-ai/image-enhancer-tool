@@ -41,10 +41,21 @@ export default async function handler(req, res) {
     );
     
     console.log("Model completed. Output:", output);
+    console.log("Output type:", typeof output);
+    
+    // Handle different output formats
+    let enhancedImageUrl;
+    if (typeof output === 'string') {
+      enhancedImageUrl = output;
+    } else if (Array.isArray(output) && output.length > 0) {
+      enhancedImageUrl = output[0];
+    } else {
+      enhancedImageUrl = output;
+    }
     
     return res.status(200).json({
       success: true,
-      output: output,
+      output: enhancedImageUrl,
       estimatedCost: 0.0025
     });
 
