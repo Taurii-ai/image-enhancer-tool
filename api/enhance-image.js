@@ -1,7 +1,5 @@
 import Replicate from "replicate";
 
-const replicate = new Replicate();
-
 export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -25,7 +23,12 @@ export default async function handler(req, res) {
 
     console.log("Running the model...");
     
-    // Following the EXACT Replicate Node.js guide pattern
+    // Initialize fresh Replicate client for each request with explicit auth
+    const replicate = new Replicate({
+      auth: process.env.REPLICATE_API_TOKEN
+    });
+    
+    // Following the exact Replicate Node.js guide pattern
     const output = await replicate.run(
       "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
       {
