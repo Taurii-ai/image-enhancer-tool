@@ -1,4 +1,4 @@
-import Replicate from "replicate";
+const Replicate = require("replicate");
 
 // Rate limiting for cost control
 const MAX_RUNS_PER_MINUTE = process.env.NODE_ENV === "production" ? 20 : Infinity;
@@ -28,10 +28,8 @@ export default async function handler(req, res) {
 
     console.log("Running the model...");
     
-    // Initialize fresh Replicate client for each request
-    const replicate = new Replicate({
-      auth: process.env.REPLICATE_API_TOKEN
-    });
+    // Initialize Replicate client exactly like the guide
+    const replicate = new Replicate();
     
     // Following the exact Replicate Node.js guide pattern
     const output = await replicate.run(

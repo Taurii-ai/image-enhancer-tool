@@ -4,8 +4,8 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
-// Load environment variables from .env.local
-dotenv.config({ path: '.env.local' });
+// Load environment variables from .env.local with override
+dotenv.config({ path: '.env.local', override: true });
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
