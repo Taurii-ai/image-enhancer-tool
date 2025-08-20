@@ -72,8 +72,8 @@ export default async function handler(req, res) {
     try {
       console.log(`[${requestId}] Running the model...`);
       
-      // Following the exact Replicate Node.js guide pattern
-      const [output] = await replicate.run(
+      // Remove array destructuring - it's causing "not iterable" error
+      const output = await replicate.run(
         "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
         {
           input: {
@@ -84,17 +84,31 @@ export default async function handler(req, res) {
         }
       );
       
-      console.log(`[${requestId}] Enhanced image URL:`, output);
+      console.log(`[${requestId}] Raw output:`, output);
+      console.log(`[${requestId}] Output type:`, typeof output);
       
       if (!output) {
         throw new Error('No enhanced image received from model');
       }
       
+      // Handle the output format
+      let enhancedImageUrl;
+      if (typeof output === 'string') {
+        enhancedImageUrl = output;
+      } else if (Array.isArray(output)) {
+        enhancedImageUrl = output[0];
+      } else {
+        // Try to extract URL from object or just stringify
+        enhancedImageUrl = String(output);
+      }
+      
+      console.log(`[${requestId}] Final image URL:`, enhancedImageUrl);
+      
       const processingTime = Date.now() - startTime;
       
       return res.status(200).json({
         success: true,
-        output: output,
+        output: enhancedImageUrl,
         processingTime: processingTime,
         estimatedCost: 0.0025,
         requestId: requestId
