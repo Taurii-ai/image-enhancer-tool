@@ -1,9 +1,7 @@
 import Replicate from "replicate";
 
-// Initialize Replicate client following official guide
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
-});
+// Initialize Replicate client exactly like the official guide
+const replicate = new Replicate();
 
 // Rate limiting for cost control
 const MAX_RUNS_PER_MINUTE = process.env.NODE_ENV === "production" ? 20 : Infinity;
@@ -34,11 +32,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Check API token
+  // Check API token - following Replicate guide requirements
   if (!process.env.REPLICATE_API_TOKEN) {
-    console.error(`[${requestId}] ❌ Missing REPLICATE_API_TOKEN env var`);
-    return res.status(500).json({ error: 'Server misconfigured' });
+    console.error(`[${requestId}] ❌ Missing REPLICATE_API_TOKEN environment variable`);
+    return res.status(500).json({ error: 'REPLICATE_API_TOKEN environment variable not set' });
   }
+  
+  console.log(`[${requestId}] ✅ REPLICATE_API_TOKEN is set (length: ${process.env.REPLICATE_API_TOKEN.length})`);
 
   // Rate limiting
   if (Date.now() > resetTime) {
@@ -69,81 +69,41 @@ export default async function handler(req, res) {
     runCount++; // Increment counter for rate limiting
     
     try {
-      console.log(`[${requestId}] 🔄 Running Real-ESRGAN model...`);
+      console.log(`[${requestId}] Running the model...`);
       
-      // Using the correct Real-ESRGAN model 
-      const modelId = "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa";
-      console.log(`[${requestId}] 📤 Calling Replicate with model:`, modelId);
-      
-      const output = await replicate.run(modelId, {
-        input: {
-          image: imageBase64,
-          scale: scale,
-          face_enhance: face_enhance
+      // Following exact Replicate Node.js guide pattern
+      const output = await replicate.run(
+        "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
+        {
+          input: {
+            image: imageBase64,
+            scale: scale,
+            face_enhance: face_enhance
+          }
         }
-      });
+      );
       
-      console.log(`[${requestId}] ✅ Replicate completed. Output type:`, typeof output);
-      console.log(`[${requestId}] 📊 Output details:`, {
-        isArray: Array.isArray(output),
-        isString: typeof output === 'string',
-        isStream: output instanceof ReadableStream,
-        length: Array.isArray(output) ? output.length : 'N/A'
-      });
+      console.log(`[${requestId}] Model completed. Output:`, output);
       
       if (!output) {
-        throw new Error('No output received from Real-ESRGAN');
+        throw new Error('No output received from model');
       }
       
       const processingTime = Date.now() - startTime;
       
-      // Handle output format - Real-ESRGAN can return different formats
+      // Handle output - Real-ESRGAN typically returns a URL string
       let enhancedImageUrl;
-      
-      console.log(`[${requestId}] 🔍 Analyzing output:`, { 
-        type: typeof output, 
-        isArray: Array.isArray(output),
-        keys: output && typeof output === 'object' ? Object.keys(output) : null,
-        value: JSON.stringify(output)
-      });
       
       if (typeof output === 'string') {
         enhancedImageUrl = output;
-        console.log(`[${requestId}] ✅ Got direct URL string:`, enhancedImageUrl);
       } else if (Array.isArray(output) && output.length > 0) {
         enhancedImageUrl = output[0];
-        console.log(`[${requestId}] ✅ Got URL from array:`, enhancedImageUrl);
-      } else if (output && typeof output === 'object') {
-        // Handle object response - check common properties
-        if (output.url) {
-          enhancedImageUrl = output.url;
-          console.log(`[${requestId}] ✅ Got URL from object.url:`, enhancedImageUrl);
-        } else if (output.output) {
-          enhancedImageUrl = output.output;
-          console.log(`[${requestId}] ✅ Got URL from object.output:`, enhancedImageUrl);
-        } else if (output.image) {
-          enhancedImageUrl = output.image;
-          console.log(`[${requestId}] ✅ Got URL from object.image:`, enhancedImageUrl);
-        } else {
-          console.error(`[${requestId}] ❌ Object has no recognizable URL property:`, Object.keys(output));
-          throw new Error(`Object output has no URL property. Keys: ${Object.keys(output).join(', ')}`);
-        }
       } else {
-        console.error(`[${requestId}] ❌ Completely unexpected output:`, { type: typeof output, value: output });
+        console.error(`[${requestId}] Unexpected output format:`, typeof output, output);
         throw new Error(`Unexpected output format: ${typeof output}`);
       }
       
-      // Validate URL before returning
-      if (!enhancedImageUrl) {
-        console.error(`[${requestId}] ❌ No enhanced image URL extracted`);
-        throw new Error('Failed to extract enhanced image URL from Replicate response');
-      }
-
-      console.log(`[${requestId}] ✅ Returning enhanced image URL to frontend:`, {
-        url: enhancedImageUrl,
-        urlLength: enhancedImageUrl.length,
-        urlType: enhancedImageUrl.startsWith('data:') ? 'base64' : 'external'
-      });
+      console.log(`[${requestId}] Enhanced image URL:`, enhancedImageUrl);
       
       return res.status(200).json({
         success: true,
