@@ -160,8 +160,9 @@ export const ResultsDisplay = ({
     }
   };
 
-  // Show loading state if no enhanced image
-  if (!enhancedImage) {
+  // Show loading state if no enhanced image URL is provided
+  if (!enhancedImage || enhancedImage === '') {
+    console.log('🚫 NO ENHANCED IMAGE PROVIDED:', enhancedImage);
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
@@ -171,9 +172,15 @@ export const ResultsDisplay = ({
       </div>
     );
   }
+  
+  console.log('✅ RENDERING RESULTS DISPLAY WITH ENHANCED IMAGE:', enhancedImage);
 
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6 overflow-x-hidden max-w-full">
+      {/* Debug info */}
+      <div className="text-xs text-gray-500 p-2 bg-gray-100 rounded">
+        DEBUG: Enhanced URL = {typeof enhancedImage === 'string' ? enhancedImage.substring(0, 50) + '...' : String(enhancedImage)}
+      </div>
       {/* Results Header */}
       <Card className="p-2 sm:p-4 md:p-6 bg-card shadow-card border-border overflow-x-hidden max-w-full">
         <div className="flex flex-col gap-4">
@@ -257,12 +264,20 @@ export const ResultsDisplay = ({
               }}
               onError={(e) => {
                 console.error('❌ ENHANCED IMAGE FAILED TO LOAD:', finalEnhancedImage, e);
-                // Try to reload with CORS mode
+                // Try various fixes for image loading
                 const img = e.target as HTMLImageElement;
-                if (img.src.includes('replicate.delivery')) {
-                  console.log('🔄 Retrying with crossOrigin anonymous...');
-                  img.crossOrigin = 'anonymous';
-                  img.src = img.src + '?retry=1';
+                if (!img.dataset.retryAttempted) {
+                  console.log('🔄 Retrying image load with different settings...');
+                  img.dataset.retryAttempted = 'true';
+                  
+                  // Remove crossOrigin first, then add it back
+                  img.removeAttribute('crossorigin');
+                  setTimeout(() => {
+                    img.crossOrigin = 'anonymous';
+                    img.src = finalEnhancedImage + (finalEnhancedImage.includes('?') ? '&' : '?') + 'cache_bust=' + Date.now();
+                  }, 100);
+                } else {
+                  console.error('🔴 FINAL IMAGE LOAD FAILED - all retry attempts exhausted');
                 }
               }}
               crossOrigin="anonymous"
