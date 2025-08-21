@@ -1,17 +1,13 @@
+/** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
   images: {
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "replicate.com",
-      },
-      {
-        protocol: "https",
-        hostname: "replicate.delivery",
-      },
+      { protocol: "https", hostname: "replicate.delivery" },
+      { protocol: "https", hostname: "replicate.com" },
+      // Public Vercel Blob host (adjust if your store is named differently)
+      { protocol: "https", hostname: "**.public.blob.vercel-storage.com" },
     ],
   },
+  reactStrictMode: true,
 };
-
 export default nextConfig;
