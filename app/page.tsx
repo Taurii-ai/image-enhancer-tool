@@ -2,15 +2,13 @@
 'use client';
 
 import { useState } from "react";
-import dynamic from "next/dynamic";
-
-// Lazy-load the compare slider to keep bundle light
-const Compare = dynamic(() => import("react-compare-image"), { ssr: false });
+import ImageEnhancer from "./components/ImageEnhancer";
 
 export default function Home() {
   const [originalUrl, setOriginalUrl] = useState<string | null>(null);
   const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [err, setErr] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -18,6 +16,7 @@ export default function Home() {
     setErr(null);
     setEnhancedUrl(null);
     setBusy(true);
+    setProgress(0);
 
     const fd = new FormData(e.currentTarget);
     const file = (fd.get("image") as File) || null;
@@ -27,26 +26,60 @@ export default function Home() {
       return;
     }
 
+    // Create blob URL for original image preview
+    const originalBlob = URL.createObjectURL(file);
+    setOriginalUrl(originalBlob);
+
     try {
+      // Simulate progress during upload/processing
+      setProgress(10);
+      
       const res = await fetch("/api/enhance", { method: "POST", body: fd });
+      setProgress(30);
+      
       const data = await res.json();
+      setProgress(60);
+      
       if (!res.ok || !data?.enhancedUrl) {
         throw new Error(data?.error || data?.detail || "Failed to enhance.");
       }
-      setOriginalUrl(data.originalUrl);
+      
+      setProgress(90);
       setEnhancedUrl(`${data.enhancedUrl}?v=${Date.now()}`); // cache-bust
+      setProgress(100);
+      
+      // Clean up after a brief delay to show completion
+      setTimeout(() => {
+        setBusy(false);
+        setProgress(0);
+      }, 500);
+      
     } catch (e: any) {
       setErr(e.message || "Enhance failed.");
-    } finally {
       setBusy(false);
+      setProgress(0);
+      // Clean up blob URL on error
+      URL.revokeObjectURL(originalBlob);
+      setOriginalUrl(null);
     }
   }
 
-  return (
-    <main className="max-w-3xl mx-auto p-6 space-y-6">
-      <h1 className="text-2xl font-semibold">Image Enhancer (Real-ESRGAN)</h1>
+  const handleReset = () => {
+    if (originalUrl && originalUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(originalUrl);
+    }
+    setOriginalUrl(null);
+    setEnhancedUrl(null);
+    setBusy(false);
+    setProgress(0);
+    setErr(null);
+  };
 
-      <form onSubmit={handleSubmit} className="space-y-3">
+  return (
+    <main className="max-w-4xl mx-auto p-6 space-y-6">
+      <h1 className="text-2xl font-semibold text-center">Image Enhancer (Real-ESRGAN)</h1>
+
+      <form onSubmit={handleSubmit} className="space-y-3 max-w-md mx-auto">
         <input type="file" name="image" accept="image/*" required />
         <div className="flex items-center gap-3">
           <label className="text-sm">Scale:</label>
@@ -60,29 +93,35 @@ export default function Home() {
           </label>
         </div>
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
-        >
-          {busy ? "Enhancing…" : "Enhance"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            disabled={busy}
+            className="px-4 py-2 rounded bg-black text-white disabled:opacity-50 flex-1"
+          >
+            {busy ? "Enhancing…" : "Enhance"}
+          </button>
+          
+          {(originalUrl || enhancedUrl) && (
+            <button
+              type="button"
+              onClick={handleReset}
+              className="px-4 py-2 rounded border border-gray-300 hover:bg-gray-50"
+            >
+              Reset
+            </button>
+          )}
+        </div>
       </form>
 
-      {err && <p className="text-red-600">{err}</p>}
+      {err && <p className="text-red-600 text-center">{err}</p>}
 
-      {originalUrl && enhancedUrl && (
-        <div className="border rounded overflow-hidden">
-          {/* Use plain <img> so blob/public URLs always render; Next/Image is fine too since we whitelisted domains */}
-          <Compare
-            leftImage={originalUrl}
-            rightImage={enhancedUrl}
-            sliderPositionPercentage={50}
-            leftImageAlt="Original"
-            rightImageAlt="Enhanced"
-          />
-        </div>
-      )}
+      <ImageEnhancer
+        originalImage={originalUrl}
+        enhancedImage={enhancedUrl}
+        isLoading={busy}
+        progress={progress}
+      />
     </main>
   );
 }
