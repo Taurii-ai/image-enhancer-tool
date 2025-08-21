@@ -2,12 +2,10 @@
 const nextConfig = {
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "replicate.delivery" },
       { protocol: "https", hostname: "replicate.com" },
-      // Public Vercel Blob host (adjust if your store is named differently)
-      { protocol: "https", hostname: "**.public.blob.vercel-storage.com" },
+      { protocol: "https", hostname: "replicate.delivery" },
     ],
   },
-  reactStrictMode: true,
+  experimental: { serverActions: { bodySizeLimit: '20mb' } }, // optional: bigger uploads
 };
 export default nextConfig;

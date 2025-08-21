@@ -1,127 +1,202 @@
-// app/page.tsx
-'use client';
+"use client";
 
-import { useState } from "react";
-import ImageEnhancer from "./components/ImageEnhancer";
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export default function Home() {
-  const [originalUrl, setOriginalUrl] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [originalPreview, setOriginalPreview] = useState<string | null>(null);
+  const [predictionId, setPredictionId] = useState<string | null>(null);
   const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [err, setErr] = useState<string | null>(null);
+  const [status, setStatus] = useState<string>("idle");
+  const [progress, setProgress] = useState<number>(0);
+  const [error, setError] = useState<string | null>(null);
+  const [slider, setSlider] = useState<number>(50);
+  const pollingRef = useRef<any>(null);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setErr(null);
+  function reset() {
+    setPredictionId(null);
     setEnhancedUrl(null);
-    setBusy(true);
+    setStatus("idle");
     setProgress(0);
-
-    const fd = new FormData(e.currentTarget);
-    const file = (fd.get("image") as File) || null;
-    if (!file) {
-      setErr("Please choose an image.");
-      setBusy(false);
-      return;
-    }
-
-    // Create blob URL for original image preview
-    const originalBlob = URL.createObjectURL(file);
-    setOriginalUrl(originalBlob);
-
-    try {
-      // Simulate progress during upload/processing
-      setProgress(10);
-      
-      const res = await fetch("/api/enhance", { method: "POST", body: fd });
-      setProgress(30);
-      
-      const data = await res.json();
-      setProgress(60);
-      
-      if (!res.ok || !data?.enhancedUrl) {
-        throw new Error(data?.error || data?.detail || "Failed to enhance.");
-      }
-      
-      setProgress(90);
-      setEnhancedUrl(`${data.enhancedUrl}?v=${Date.now()}`); // cache-bust
-      setProgress(100);
-      
-      // Clean up after a brief delay to show completion
-      setTimeout(() => {
-        setBusy(false);
-        setProgress(0);
-      }, 500);
-      
-    } catch (e: any) {
-      setErr(e.message || "Enhance failed.");
-      setBusy(false);
-      setProgress(0);
-      // Clean up blob URL on error
-      URL.revokeObjectURL(originalBlob);
-      setOriginalUrl(null);
-    }
+    setError(null);
   }
 
-  const handleReset = () => {
-    if (originalUrl && originalUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(originalUrl);
-    }
-    setOriginalUrl(null);
-    setEnhancedUrl(null);
-    setBusy(false);
-    setProgress(0);
-    setErr(null);
-  };
-
   return (
-    <main className="max-w-4xl mx-auto p-6 space-y-6">
-      <h1 className="text-2xl font-semibold text-center">Image Enhancer (Real-ESRGAN)</h1>
+    <div className="mx-auto max-w-2xl p-6">
+      <h1 className="text-2xl font-bold mb-4">Image Enhancer</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-3 max-w-md mx-auto">
-        <input type="file" name="image" accept="image/*" required />
-        <div className="flex items-center gap-3">
-          <label className="text-sm">Scale:</label>
-          <select name="scale" defaultValue="4" className="border rounded px-2 py-1">
-            <option value="2">2x</option>
-            <option value="4">4x</option>
-          </select>
-          <label className="text-sm ml-4">
-            <input type="checkbox" name="faceEnhance" className="mr-2" />
-            Face enhance
-          </label>
-        </div>
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setError(null);
+          setEnhancedUrl(null);
+          setStatus("uploading");
+          setProgress(5);
 
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            disabled={busy}
-            className="px-4 py-2 rounded bg-black text-white disabled:opacity-50 flex-1"
-          >
-            {busy ? "Enhancing…" : "Enhance"}
-          </button>
-          
-          {(originalUrl || enhancedUrl) && (
-            <button
-              type="button"
-              onClick={handleReset}
-              className="px-4 py-2 rounded border border-gray-300 hover:bg-gray-50"
-            >
-              Reset
-            </button>
-          )}
-        </div>
+          if (!file) {
+            setError("Please choose an image.");
+            return;
+          }
+
+          // Local preview for the "before" side (safe, does not leave browser)
+          const preview = URL.createObjectURL(file);
+          setOriginalPreview(preview);
+
+          // Send file to our API (multipart/form-data)
+          const fd = new FormData();
+          fd.append("image", file);
+
+          const res = await fetch("/api/predictions", {
+            method: "POST",
+            body: fd,
+          });
+
+          const json = await res.json();
+          if (!res.ok) {
+            setError(json?.error || "Failed to start prediction.");
+            setStatus("error");
+            return;
+          }
+
+          setPredictionId(json.id);
+          setStatus("queued");
+          setProgress(10);
+
+          // Start polling
+          async function poll() {
+            try {
+              if (!json.id) return;
+              const r = await fetch(`/api/predictions/${json.id}`);
+              const p = await r.json();
+              if (!r.ok) {
+                setError(p?.error || "Polling failed.");
+                setStatus("error");
+                return;
+              }
+
+              setStatus(p.status);
+              setProgress(p.progress ?? 0);
+
+              if (p.status === "succeeded") {
+                // Some models return array; take the last item
+                const out =
+                  Array.isArray(p.output)
+                    ? p.output[p.output.length - 1]
+                    : p.output;
+                setEnhancedUrl(out || null);
+                setProgress(100);
+                clearInterval(pollingRef.current);
+              } else if (p.status === "failed" || p.status === "canceled") {
+                setError("Enhancement failed.");
+                clearInterval(pollingRef.current);
+              }
+            } catch (e: any) {
+              setError(e?.message || String(e));
+              clearInterval(pollingRef.current);
+            }
+          }
+
+          await sleep(800);
+          pollingRef.current = setInterval(poll, 1200);
+          poll();
+        }}
+        className="space-y-3"
+      >
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            reset();
+            const f = e.target.files?.[0] || null;
+            setFile(f);
+            setOriginalPreview(f ? URL.createObjectURL(f) : null);
+          }}
+        />
+        <button
+          type="submit"
+          className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
+          disabled={!file || status === "uploading" || status === "processing" || status === "queued"}
+        >
+          {status === "idle" && "Enhance"}
+          {status === "uploading" && "Uploading…"}
+          {(status === "queued" || status === "starting") && "Queued…"}
+          {status === "processing" && "Enhancing…"}
+        </button>
       </form>
 
-      {err && <p className="text-red-600 text-center">{err}</p>}
+      {/* Progress bar */}
+      {status !== "idle" && (
+        <div className="mt-4">
+          <div className="h-2 bg-gray-200 rounded">
+            <div
+              className="h-2 bg-black rounded"
+              style={{ width: `${progress}%`, transition: "width 300ms ease" }}
+            />
+          </div>
+          <div className="text-sm mt-1 opacity-70">
+            {status} • {progress}%
+          </div>
+        </div>
+      )}
 
-      <ImageEnhancer
-        originalImage={originalUrl}
-        enhancedImage={enhancedUrl}
-        isLoading={busy}
-        progress={progress}
-      />
-    </main>
+      {error && (
+        <div className="mt-4 text-red-600">
+          {error}
+        </div>
+      )}
+
+      {/* Before / After slider */}
+      {originalPreview && enhancedUrl && (
+        <div className="mt-6">
+          <div className="relative w-full aspect-square overflow-hidden rounded-lg">
+            {/* AFTER (enhanced) sits at the back */}
+            <Image
+              src={`${enhancedUrl}?id=${predictionId}`} // cache-bust
+              alt="Enhanced"
+              fill
+              sizes="100vw"
+              style={{ objectFit: "contain" }}
+              unoptimized
+            />
+            {/* BEFORE on top, masked by slider */}
+            <div
+              className="absolute top-0 left-0 h-full overflow-hidden pointer-events-none"
+              style={{ width: `${slider}%` }}
+            >
+              <Image
+                src={originalPreview}
+                alt="Original"
+                fill
+                sizes="100vw"
+                style={{ objectFit: "contain" }}
+                unoptimized
+              />
+            </div>
+
+            {/* Divider line */}
+            <div
+              className="absolute top-0 h-full border-l border-white"
+              style={{ left: `${slider}%` }}
+            />
+          </div>
+
+          <input
+            className="w-full mt-3"
+            type="range"
+            min={0}
+            max={100}
+            value={slider}
+            onChange={(e) => setSlider(Number(e.target.value))}
+          />
+          <div className="flex justify-between text-sm opacity-70">
+            <span>Before</span>
+            <span>After</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
