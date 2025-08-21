@@ -2,7 +2,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "api/enhance-image.js": {
+    "api/image-processing.js": {
       "maxDuration": 300
     }
   },
