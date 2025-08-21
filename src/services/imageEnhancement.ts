@@ -178,18 +178,13 @@ export const enhanceImage = async (
       
       onProgress({ status: 'processing', progress: 20, message: 'Sending to Real-ESRGAN...' });
       
-      const apiPayload = {
-        imageBase64: imageDataUrl,
-        scale: 4,
-        face_enhance: true
-      };
-      
+      // Send image URL to backend (exactly as specified)
       const response = await fetch('/api/enhance-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(apiPayload)
+        body: JSON.stringify({ image: imageDataUrl })
       });
 
       if (!response.ok) {
@@ -206,21 +201,22 @@ export const enhanceImage = async (
 
       const result = await response.json();
       
-      if (!result.success) {
-        throw new Error(result.details || result.error || 'Enhancement failed');
+      if (result.error) {
+        throw new Error(result.error || 'Enhancement failed');
       }
 
       if (!result.output) {
         throw new Error('No enhanced image URL in response');
       }
 
-      enhancedUrl = result.output;
+      // Handle array output (Replicate returns array)
+      enhancedUrl = Array.isArray(result.output) ? result.output[0] : result.output;
       
       onProgress({ status: 'processing', progress: 90, message: 'Finalizing...' });
       
       const result_final = {
         originalUrl: URL.createObjectURL(file),
-        enhancedUrl: result.output,
+        enhancedUrl: enhancedUrl,
         originalFile: file,
       };
       

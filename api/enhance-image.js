@@ -1,105 +1,45 @@
 export default async function handler(req, res) {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const { imageBase64 } = req.body;
-
-    if (!imageBase64) {
-      return res.status(400).json({ error: 'Missing imageBase64' });
-    }
-
-    console.log("Running Real-ESRGAN model...");
-    console.log("API Token available:", !!process.env.REPLICATE_API_TOKEN);
-    
-    // Make direct API call to Replicate with correct Token auth
-    const response = await fetch("https://api.replicate.com/v1/predictions", {
+    const replicateResponse = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
         "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56",
+        version: "928d65b2de4210da5c58e058f5f20830ad8e10e773b0a4f3e18b0569e3a0db58", // Real-ESRGAN 4x model
         input: {
-          img: imageBase64,
-          scale: 4,
-          version: "General - v3",
-          face_enhance: false,
-          tile: 0
+          image: req.body.image // frontend sends image URL
         }
       }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error("Replicate API Error:", response.status, errorData);
-      return res.status(500).json({
-        success: false,
-        error: `Replicate API failed: ${response.status}`,
-        details: errorData
-      });
-    }
+    let prediction = await replicateResponse.json();
 
-    const prediction = await response.json();
-    console.log("Prediction created:", prediction.id);
-
-    // Poll for completion
-    let result = prediction;
-    let attempts = 0;
-    while (result.status === 'starting' || result.status === 'processing') {
-      if (attempts > 60) break; // 5 minute timeout
-      
-      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
-      
-      const pollResponse = await fetch(result.urls.get, {
+    // Poll until done
+    while (prediction.status !== "succeeded" && prediction.status !== "failed") {
+      await new Promise(r => setTimeout(r, 2000)); // wait 2 sec
+      const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
         headers: {
           "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}`,
-        }
+          "Content-Type": "application/json",
+        },
       });
-      
-      if (!pollResponse.ok) {
-        console.error("Polling failed:", pollResponse.status);
-        break;
-      }
-      
-      result = await pollResponse.json();
-      attempts++;
-      console.log(`Status: ${result.status} (attempt ${attempts})`);
+      prediction = await pollRes.json();
     }
 
-    if (result.status === 'succeeded' && result.output) {
-      console.log("Real-ESRGAN completed successfully!");
-      return res.status(200).json({
-        success: true,
-        output: result.output,
-        estimatedCost: 0.0025
-      });
+    if (prediction.status === "succeeded") {
+      return res.status(200).json({ output: prediction.output });
     } else {
-      console.error("Real-ESRGAN failed:", result);
-      return res.status(500).json({
-        success: false,
-        error: result.error || 'Processing failed',
-        status: result.status
-      });
+      return res.status(500).json({ error: "Enhancement failed", details: prediction });
     }
 
   } catch (error) {
-    console.error("API Error:", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-      details: 'Real-ESRGAN processing failed'
-    });
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 }
