@@ -16,13 +16,10 @@ export function ImageEnhancerSlider() {
     setLoading(true);
     setEnhanced(null);
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
       const res = await fetch("/api/enhance-image", {
         method: "POST",
-        body: formData,
+        body: file, // direct stream
       });
       
       if (!res.ok) {
@@ -32,14 +29,15 @@ export function ImageEnhancerSlider() {
       const data = await res.json();
       console.log('API Response:', data);
 
-      if (data.output) {
-        // Enhancement completed
+      if (data?.output) {
         const outputUrl = Array.isArray(data.output) ? data.output[data.output.length - 1] : data.output;
         setEnhanced(outputUrl);
       } else if (data.status === 'failed') {
         throw new Error(data.error || 'Enhancement failed');
       } else {
-        throw new Error('Unexpected response format');
+        // Handle case where we got a prediction ID but no output yet
+        console.log('Got prediction response, might need polling:', data);
+        throw new Error('Enhancement not yet complete');
       }
       
       setLoading(false);
