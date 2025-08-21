@@ -110,8 +110,10 @@ async function handleEnhance(req, res) {
   }
 
   const imageData = req.body.image;
-  console.log('📥 BACKEND: Received image URL:', imageData.substring(0, 100) + '...');
+  console.log('📥 BACKEND: Received image data type:', imageData.startsWith('data:') ? 'data URL' : imageData.startsWith('blob:') ? 'blob URL' : 'other');
+  console.log('📥 BACKEND: First 100 chars:', imageData.substring(0, 100) + '...');
 
+  // For now, test direct data URL with Replicate to see if it works
   const versionId = "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa";
 
   const createRes = await fetch("https://api.replicate.com/v1/predictions", {
