@@ -1,12 +1,4 @@
 // pages/api/enhance-image.js
-import formidable from 'formidable';
-import fs from 'fs';
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -19,44 +11,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Check if request is multipart/form-data (file upload) or JSON (base64)
-    const contentType = req.headers['content-type'] || '';
-    
-    let imageData;
-    
-    if (contentType.includes('multipart/form-data')) {
-      // Handle file upload
-      const form = formidable({});
-      const [fields, files] = await form.parse(req);
-      const file = files.file?.[0];
-      
-      if (!file) {
-        return res.status(400).json({ error: "No image file uploaded" });
-      }
-      
-      // Convert file to base64
-      const fileBuffer = fs.readFileSync(file.filepath);
-      const base64 = fileBuffer.toString('base64');
-      const mimeType = file.mimetype || 'image/jpeg';
-      imageData = `data:${mimeType};base64,${base64}`;
-      
-    } else {
-      // Handle JSON request with base64 or URL
-      let body = '';
-      req.on('data', chunk => {
-        body += chunk.toString();
-      });
-      
-      await new Promise(resolve => {
-        req.on('end', resolve);
-      });
-      
-      const parsedBody = JSON.parse(body || '{}');
-      if (!parsedBody || !parsedBody.image) {
-        return res.status(400).json({ error: "No image data provided" });
-      }
-      imageData = parsedBody.image;
+    // Parse JSON body
+    if (!req.body || !req.body.image) {
+      return res.status(400).json({ error: "No image URL provided in request body" });
     }
+
+    const imageData = req.body.image;
+    console.log('📥 BACKEND: Received image URL:', imageData.substring(0, 100) + '...');
 
     const versionId = "xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56";
 
@@ -69,7 +30,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         version: versionId,
         input: { 
-          image: imageData,
+          img: imageData,
           scale: 4,
           model_name: "General - RealESRGANplus"
         },

@@ -35,7 +35,25 @@ export const useImageProcessing = () => {
     }
   };
 
-  // Convert File to base64 for backend API
+  // Upload file to get public URL for Replicate
+  const uploadImageToPublicStorage = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/upload-image', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to upload image to public storage');
+    }
+
+    const result = await response.json();
+    return result.url;
+  };
+
+  // Convert File to base64 for backend API (fallback)
   const fileToDataURL = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -54,18 +72,19 @@ export const useImageProcessing = () => {
     setError(null);
 
     try {
-      // Step 1: Convert to data URL for backend
-      setProgress(20);
-      const imageDataUrl = await fileToDataURL(file);
+      // Step 1: Upload image to get public URL
+      setProgress(10);
+      const publicImageUrl = await uploadImageToPublicStorage(file);
+      console.log('📤 UPLOADED IMAGE URL:', publicImageUrl);
 
-      // Step 2: Call backend API only (never Replicate directly)
+      // Step 2: Call backend API with public URL
       setProgress(30);
       const response = await fetch('/api/enhance-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ image: imageDataUrl })
+        body: JSON.stringify({ image: publicImageUrl })
       });
 
       if (!response.ok) {
