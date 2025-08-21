@@ -179,7 +179,7 @@ export const enhanceImage = async (
       onProgress({ status: 'processing', progress: 20, message: 'Sending to Real-ESRGAN...' });
       
       // Send image URL to backend (exactly as specified)
-      const response = await fetch('/api/enhance-image', {
+      const response = await fetch('/api/image-processing?action=enhance', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

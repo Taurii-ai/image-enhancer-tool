@@ -40,7 +40,7 @@ export const useImageProcessing = () => {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch('/api/upload-image', {
+    const response = await fetch('/api/image-processing?action=upload', {
       method: 'POST',
       body: formData
     });
@@ -79,7 +79,7 @@ export const useImageProcessing = () => {
 
       // Step 2: Call backend API with public URL
       setProgress(30);
-      const response = await fetch('/api/enhance-image', {
+      const response = await fetch('/api/image-processing?action=enhance', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

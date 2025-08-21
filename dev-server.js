@@ -88,7 +88,7 @@ const PORT = 3002;
 server.listen(PORT, () => {
   console.log(`🚀 Development API server running on http://localhost:${PORT}`);
   console.log('📡 Available endpoints:');
-  console.log('  POST /api/enhance-image');
-  console.log('  GET  /api/proxy-image');
-  console.log('  GET  /api/fetch-image');
+  console.log('  POST /api/image-processing?action=enhance');
+  console.log('  GET  /api/image-processing?action=proxy');
+  console.log('  GET  /api/image-processing?action=fetch');
 });

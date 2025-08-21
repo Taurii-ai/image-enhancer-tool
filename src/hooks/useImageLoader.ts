@@ -18,7 +18,7 @@ export const useImageLoader = (src: string) => {
           console.log('🔄 LOADING REPLICATE IMAGE VIA SERVER PROXY:', src);
           
           // Use our own proxy endpoint
-          const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(src)}`;
+          const proxyUrl = `/api/image-processing?action=proxy&url=${encodeURIComponent(src)}`;
           
           const response = await fetch(proxyUrl);
           

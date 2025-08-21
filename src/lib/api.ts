@@ -67,7 +67,7 @@ export const processImage = async (request: ProcessImageRequest): Promise<Proces
     }
 
     // 5. Enhance image via backend API (never call Replicate directly)
-    const response = await fetch('/api/enhance-image', {
+    const response = await fetch('/api/image-processing?action=enhance', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

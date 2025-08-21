@@ -7,7 +7,7 @@ const Debug = () => {
   const testEnhancement = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/enhance-image', {
+      const response = await fetch('/api/image-processing?action=enhance', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -28,7 +28,7 @@ export default function ReplicateEnhancer() {
       const imageDataUrl = await fileToDataURL(file);
       
       // Call the existing enhance-image API which works
-      const response = await fetch('/api/enhance-image', {
+      const response = await fetch('/api/image-processing?action=enhance', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
