@@ -59,23 +59,23 @@ async function handleUpload(req, res) {
     // Read file buffer
     const fileBuffer = await fs.promises.readFile(file.filepath);
 
-    // Upload file to file.io for public URL
+    // Upload file to tmpfiles.org for public URL (alternative to file.io)
     const formData = new FormData();
     formData.append('file', new Blob([fileBuffer], { type: file.mimetype }), file.originalFilename || 'image.jpg');
 
-    const uploadRes = await fetch('https://file.io', {
+    const uploadRes = await fetch('https://tmpfiles.org/api/v1/upload', {
       method: 'POST',
       body: formData
     });
 
     const uploadJson = await uploadRes.json();
-    console.log('📤 FILE.IO UPLOAD RESULT:', uploadJson);
+    console.log('📤 TMPFILES.ORG UPLOAD RESULT:', uploadJson);
 
-    if (!uploadJson.success) {
-      throw new Error(`File.io upload failed: ${uploadJson.message || 'Unknown error'}`);
+    if (uploadJson.status !== 'success') {
+      throw new Error(`tmpfiles.org upload failed: ${uploadJson.error || 'Unknown error'}`);
     }
 
-    const publicUrl = uploadJson.link;
+    const publicUrl = uploadJson.data.url.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
     console.log('✅ PUBLIC URL CREATED:', publicUrl);
 
     return res.status(200).json({
@@ -85,7 +85,7 @@ async function handleUpload(req, res) {
     });
 
   } catch (error) {
-    console.error('Upload to file.io failed:', error);
+    console.error('Upload to tmpfiles.org failed:', error);
     return res.status(500).json({ 
       error: 'Failed to upload image to public storage', 
       details: error.message 
