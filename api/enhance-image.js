@@ -4,6 +4,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  if (!process.env.REPLICATE_API_TOKEN) {
+    console.error("Missing REPLICATE_API_TOKEN");
+    return res.status(500).json({ error: "Server misconfiguration: missing token" });
+  }
+
   try {
     // Step 1: Create prediction
     const createRes = await fetch("https://api.replicate.com/v1/predictions", {
@@ -18,20 +23,23 @@ export default async function handler(req, res) {
       }),
     });
 
+    if (!createRes.ok) {
+      const errorText = await createRes.text();
+      console.error("Replicate error:", errorText);
+      return res.status(createRes.status).json({ error: errorText });
+    }
+
     let prediction = await createRes.json();
 
     // Step 2: Poll until finished
     while (prediction.status !== "succeeded" && prediction.status !== "failed") {
-      await new Promise(r => setTimeout(r, 2000)); // wait 2 sec
-      const pollRes = await fetch(
-        `https://api.replicate.com/v1/predictions/${prediction.id}`,
-        {
-          headers: {
-            "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      await new Promise(r => setTimeout(r, 2000));
+      const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+        headers: {
+          "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      });
       prediction = await pollRes.json();
     }
 
@@ -41,7 +49,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Enhancement failed", details: prediction });
     }
   } catch (error) {
-    console.error(error);
+    console.error("Handler error:", error);
     res.status(500).json({ error: error.message });
   }
 }
