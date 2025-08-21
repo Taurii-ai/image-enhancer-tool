@@ -1,4 +1,13 @@
 // pages/api/enhance-image.js
+import formidable from 'formidable';
+import fs from 'fs';
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -10,6 +19,45 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Check if request is multipart/form-data (file upload) or JSON (base64)
+    const contentType = req.headers['content-type'] || '';
+    
+    let imageData;
+    
+    if (contentType.includes('multipart/form-data')) {
+      // Handle file upload
+      const form = formidable({});
+      const [fields, files] = await form.parse(req);
+      const file = files.file?.[0];
+      
+      if (!file) {
+        return res.status(400).json({ error: "No image file uploaded" });
+      }
+      
+      // Convert file to base64
+      const fileBuffer = fs.readFileSync(file.filepath);
+      const base64 = fileBuffer.toString('base64');
+      const mimeType = file.mimetype || 'image/jpeg';
+      imageData = `data:${mimeType};base64,${base64}`;
+      
+    } else {
+      // Handle JSON request with base64 or URL
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+      });
+      
+      await new Promise(resolve => {
+        req.on('end', resolve);
+      });
+      
+      const parsedBody = JSON.parse(body || '{}');
+      if (!parsedBody || !parsedBody.image) {
+        return res.status(400).json({ error: "No image data provided" });
+      }
+      imageData = parsedBody.image;
+    }
+
     const versionId = "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa";
 
     const createRes = await fetch("https://api.replicate.com/v1/predictions", {
@@ -20,7 +68,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         version: versionId,
-        input: { image: req.body.image },
+        input: { image: imageData },
       }),
     });
 
@@ -55,6 +103,7 @@ export default async function handler(req, res) {
     } else {
       return res.status(500).json({ error: "Enhancement failed", details: prediction });
     }
+
   } catch (error) {
     console.error("Handler error:", error);
     res.status(500).json({ error: error.message });
