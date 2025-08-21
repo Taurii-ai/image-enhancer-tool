@@ -7,6 +7,7 @@ import { EnhpixLogo } from '@/components/ui/enhpix-logo';
 import { ImageUploader } from '@/components/ImageUploader';
 import { ProcessingStatus } from '@/components/ProcessingStatus';
 import { ResultsDisplay } from '@/components/ResultsDisplay';
+import { ImageEnhancerSlider } from '@/components/ImageEnhancerSlider';
 import { Button } from '@/components/ui/button';
 import { enhanceImage, type EnhancementProgress } from '@/services/imageEnhancement';
 import heroBackground from '@/assets/hero-bg.jpg';
@@ -294,6 +295,11 @@ const Index = () => {
           )}
 
         </div>
+      </div>
+
+      {/* Image Enhancer with Before/After Slider */}
+      <div className="px-2 sm:px-3 md:px-6 py-4 sm:py-6 md:py-12 bg-muted/30">
+        <ImageEnhancerSlider />
       </div>
 
       {/* Features Section */}

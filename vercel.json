@@ -4,6 +4,9 @@
   "functions": {
     "api/image-processing.js": {
       "maxDuration": 300
+    },
+    "api/enhance-image.js": {
+      "maxDuration": 300
     }
   },
   "rewrites": [
