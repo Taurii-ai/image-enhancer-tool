@@ -58,7 +58,7 @@ export default async function handler(req, res) {
       imageData = parsedBody.image;
     }
 
-    const versionId = "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa";
+    const versionId = "lucataco/real-esrgan:3febd19381dd7e1f52a3ed3260b5b0a5636353de45e37e7c1c3cd814b24077a3";
 
     const createRes = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
@@ -68,7 +68,11 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         version: versionId,
-        input: { image: imageData },
+        input: { 
+          image: imageData,
+          scale: 4,
+          face_enhance: true
+        },
       }),
     });
 
