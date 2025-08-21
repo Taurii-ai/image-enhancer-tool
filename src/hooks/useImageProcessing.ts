@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { enhanceImage, isReplicateAvailable, MODEL_CONFIGS } from '@/lib/replicate';
 
 export interface ProcessingOptions {
   imageType: 'universal' | 'photo' | 'artwork' | 'logo';
@@ -15,7 +14,7 @@ export const useImageProcessing = () => {
   const uploadToCloudinary = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'enhpix_uploads'); // You'll need to create this in Cloudinary
+    formData.append('upload_preset', 'enhpix_uploads');
     
     try {
       const response = await fetch(
@@ -36,9 +35,14 @@ export const useImageProcessing = () => {
     }
   };
 
-  const getScaleForPlan = (plan: string): number => {
-    const config = MODEL_CONFIGS[plan as keyof typeof MODEL_CONFIGS];
-    return Math.min(config?.maxScale || 4, 4); // Start with 4x for all plans
+  // Convert File to base64 for backend API
+  const fileToDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   const processImage = async (
@@ -50,50 +54,47 @@ export const useImageProcessing = () => {
     setError(null);
 
     try {
-      // Step 1: Upload image (or create blob URL for development)
+      // Step 1: Convert to data URL for backend
       setProgress(20);
-      const imageUrl = await uploadToCloudinary(file);
+      const imageDataUrl = await fileToDataURL(file);
 
-      // Step 2: Check if Replicate is available
-      if (!isReplicateAvailable()) {
-        // Demo mode - simulate processing
-        setProgress(50);
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate processing time
-        setProgress(100);
-        
-        return {
-          success: true,
-          originalUrl: imageUrl,
-          enhancedUrl: imageUrl, // In demo, enhanced is same as original
-          processingTime: 2000,
-          model: 'demo',
-          isDemoMode: true
-        };
-      }
-
-      // Step 3: Process with Replicate
+      // Step 2: Call backend API only (never Replicate directly)
       setProgress(30);
-      const scale = getScaleForPlan(options.userPlan);
-      
-      const result = await enhanceImage(
-        imageUrl,
-        {
-          scale,
-          model: options.quality,
-          imageType: options.imageType,
-          userPlan: options.userPlan
+      const response = await fetch('/api/enhance-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        (replicateProgress) => {
-          setProgress(30 + (replicateProgress * 0.7)); // 30-100%
-        }
-      );
+        body: JSON.stringify({ image: imageDataUrl })
+      });
 
-      if (!result.success) {
-        throw new Error(result.error || 'Processing failed');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Backend API failed: ${response.status}`);
       }
+
+      setProgress(60);
+      const result = await response.json();
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      if (!result.output) {
+        throw new Error('No enhanced image URL in response');
+      }
+
+      setProgress(100);
+
+      // Handle array output (Replicate returns array)
+      const enhancedUrl = Array.isArray(result.output) ? result.output[0] : result.output;
 
       return {
-        ...result,
+        success: true,
+        originalUrl: URL.createObjectURL(file),
+        enhancedUrl: enhancedUrl,
+        processingTime: 5000, // Estimate
+        model: 'Real-ESRGAN',
         isDemoMode: false
       };
 
@@ -118,6 +119,6 @@ export const useImageProcessing = () => {
     progress, 
     error, 
     resetProcessing,
-    isReplicateAvailable: isReplicateAvailable() 
+    isReplicateAvailable: true // Always true since backend handles it
   };
 };

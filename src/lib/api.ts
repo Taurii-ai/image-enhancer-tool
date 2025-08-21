@@ -1,5 +1,4 @@
 import { supabase } from './supabase'
-import { enhanceImage } from './replicate'
 import { uploadToStorage } from './storage'
 import { deductCredits, getUserCredits } from './credits'
 import type { Upload } from './supabase'
@@ -67,15 +66,32 @@ export const processImage = async (request: ProcessImageRequest): Promise<Proces
       }
     }
 
-    // 5. Enhance image with Replicate
-    const enhancementOptions = {
-      scale: getScaleForPlan(plan),
-      model: getModelForPlan(plan)
+    // 5. Enhance image via backend API (never call Replicate directly)
+    const response = await fetch('/api/enhance-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ image: originalUrl })
+    });
+
+    if (!response.ok) {
+      // Update status to failed
+      await supabase
+        .from('uploads')
+        .update({ status: 'failed' })
+        .eq('id', upload.id)
+
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.error || 'Image enhancement failed'
+      }
     }
 
-    const result = await enhanceImage(originalUrl, enhancementOptions)
+    const result = await response.json();
     
-    if (!result.success || !result.enhancedUrl) {
+    if (result.error || !result.output) {
       // Update status to failed
       await supabase
         .from('uploads')
@@ -88,11 +104,13 @@ export const processImage = async (request: ProcessImageRequest): Promise<Proces
       }
     }
 
+    const enhancedUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+
     // 6. Update upload record with enhanced URL
     await supabase
       .from('uploads')
       .update({ 
-        enhanced_url: result.enhancedUrl,
+        enhanced_url: enhancedUrl,
         status: 'completed'
       })
       .eq('id', upload.id)
@@ -100,7 +118,7 @@ export const processImage = async (request: ProcessImageRequest): Promise<Proces
     return {
       success: true,
       uploadId: upload.id,
-      enhancedUrl: result.enhancedUrl
+      enhancedUrl: enhancedUrl
     }
 
   } catch (error) {
