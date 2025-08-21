@@ -1,4 +1,3 @@
-// pages/api/enhance-image.js
 import { put } from "@vercel/blob";
 import { v4 as uuidv4 } from "uuid";
 
@@ -14,21 +13,22 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Collect raw file bytes
     const chunks = [];
     for await (const chunk of req) {
       chunks.push(chunk);
     }
     const buffer = Buffer.concat(chunks);
 
-    // Save to Vercel Blob
+    // Save original upload to Vercel Blob
     const blob = await put(`uploads/${uuidv4()}.png`, buffer, {
       access: "public",
     });
 
     const imageUrl = blob.url;
 
-    // Send to Replicate
-    const replicateRes = await fetch("https://api.replicate.com/v1/predictions", {
+    // Kick off Replicate prediction
+    let predictionRes = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
         Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
@@ -41,21 +41,24 @@ export default async function handler(req, res) {
       }),
     });
 
-    let prediction = await replicateRes.json();
-    
-    // Poll for completion
-    while (!["succeeded", "failed"].includes(prediction.status)) {
-      await new Promise(r => setTimeout(r, 2000));
+    let prediction = await predictionRes.json();
+
+    // Poll until finished
+    while (prediction.status !== "succeeded" && prediction.status !== "failed") {
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // wait 2s
       const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
         headers: {
           Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
-          "Content-Type": "application/json",
         },
       });
       prediction = await pollRes.json();
     }
 
-    res.status(200).json(prediction);
+    res.status(200).json({
+      original: imageUrl,
+      enhanced: prediction.output ? prediction.output[prediction.output.length - 1] : null,
+      status: prediction.status,
+    });
   } catch (err) {
     console.error("Enhance error:", err);
     res.status(500).json({ error: err.message });
