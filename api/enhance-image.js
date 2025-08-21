@@ -10,7 +10,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Step 1: Create prediction
+    const versionId = "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa";
+
     const createRes = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
@@ -18,10 +19,16 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "928d65b2de4210da5c58e058f5f20830ad8e10e773b0a4f3e18b0569e3a0db58", // Real-ESRGAN 4x
+        version: versionId,
         input: { image: req.body.image },
       }),
     });
+
+    if (createRes.status === 422) {
+      const errorText = await createRes.text();
+      console.error("Invalid version error:", errorText);
+      return res.status(422).json({ error: "Invalid model version – please use a valid version ID", details: errorText });
+    }
 
     if (!createRes.ok) {
       const errorText = await createRes.text();
@@ -31,8 +38,8 @@ export default async function handler(req, res) {
 
     let prediction = await createRes.json();
 
-    // Step 2: Poll until finished
-    while (prediction.status !== "succeeded" && prediction.status !== "failed") {
+    // Poll for completion
+    while (!["succeeded", "failed"].includes(prediction.status)) {
       await new Promise(r => setTimeout(r, 2000));
       const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
         headers: {
