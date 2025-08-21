@@ -41,7 +41,7 @@ export default async function handler(req, res) {
   }
 }
 
-// Handle image upload (formerly /api/upload-image)
+// Handle image upload to file.io (formerly /api/upload-image)
 async function handleUpload(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -55,21 +55,42 @@ async function handleUpload(req, res) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
 
-  const timestamp = Date.now();
-  const randomId = Math.random().toString(36).substring(2, 15);
-  const fileExtension = path.extname(file.originalFilename || '.jpg');
-  const filename = `${timestamp}_${randomId}${fileExtension}`;
+  try {
+    // Read file buffer
+    const fileBuffer = await fs.promises.readFile(file.filepath);
 
-  const fileBuffer = fs.readFileSync(file.filepath);
-  const base64Image = fileBuffer.toString('base64');
-  const mimeType = file.mimetype || 'image/jpeg';
-  const dataUrl = `data:${mimeType};base64,${base64Image}`;
+    // Upload file to file.io for public URL
+    const formData = new FormData();
+    formData.append('file', new Blob([fileBuffer], { type: file.mimetype }), file.originalFilename || 'image.jpg');
 
-  return res.status(200).json({
-    success: true,
-    url: dataUrl,
-    filename: filename
-  });
+    const uploadRes = await fetch('https://file.io', {
+      method: 'POST',
+      body: formData
+    });
+
+    const uploadJson = await uploadRes.json();
+    console.log('📤 FILE.IO UPLOAD RESULT:', uploadJson);
+
+    if (!uploadJson.success) {
+      throw new Error(`File.io upload failed: ${uploadJson.message || 'Unknown error'}`);
+    }
+
+    const publicUrl = uploadJson.link;
+    console.log('✅ PUBLIC URL CREATED:', publicUrl);
+
+    return res.status(200).json({
+      success: true,
+      url: publicUrl,
+      filename: file.originalFilename || 'uploaded-image'
+    });
+
+  } catch (error) {
+    console.error('Upload to file.io failed:', error);
+    return res.status(500).json({ 
+      error: 'Failed to upload image to public storage', 
+      details: error.message 
+    });
+  }
 }
 
 // Handle image enhancement (formerly /api/enhance-image)
@@ -91,7 +112,7 @@ async function handleEnhance(req, res) {
   const imageData = req.body.image;
   console.log('📥 BACKEND: Received image URL:', imageData.substring(0, 100) + '...');
 
-  const versionId = "xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56";
+  const versionId = "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa";
 
   const createRes = await fetch("https://api.replicate.com/v1/predictions", {
     method: "POST",
@@ -102,9 +123,8 @@ async function handleEnhance(req, res) {
     body: JSON.stringify({
       version: versionId,
       input: { 
-        img: imageData,
-        scale: 4,
-        model_name: "General - RealESRGANplus"
+        image: imageData,
+        scale: 4
       },
     }),
   });
