@@ -48,6 +48,22 @@ export const ResultsDisplay = ({
   const [isDragging, setIsDragging] = useState(false);
   const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
   const [imagesLoaded, setImagesLoaded] = useState({ original: false, enhanced: false });
+  
+  // Force image loading state to be updated when finalEnhancedImage changes
+  useEffect(() => {
+    if (finalEnhancedImage) {
+      console.log('🔄 NEW ENHANCED IMAGE URL RECEIVED:', finalEnhancedImage);
+      setImagesLoaded(prev => ({ ...prev, enhanced: false })); // Reset loading state
+      
+      // Fallback: hide loading after 10 seconds even if onLoad doesn't fire
+      const timeout = setTimeout(() => {
+        console.log('⏰ LOADING TIMEOUT - forcing enhanced image to show');
+        setImagesLoaded(prev => ({ ...prev, enhanced: true }));
+      }, 10000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [finalEnhancedImage]);
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -178,8 +194,22 @@ export const ResultsDisplay = ({
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6 overflow-x-hidden max-w-full">
       {/* Debug info */}
-      <div className="text-xs text-gray-500 p-2 bg-gray-100 rounded">
-        DEBUG: Enhanced URL = {typeof enhancedImage === 'string' ? enhancedImage.substring(0, 50) + '...' : String(enhancedImage)}
+      <div className="text-xs text-gray-500 p-2 bg-gray-100 rounded mb-4">
+        <div>DEBUG: Enhanced URL = {typeof enhancedImage === 'string' ? enhancedImage.substring(0, 50) + '...' : String(enhancedImage)}</div>
+        <div>Images Loaded: Original={imagesLoaded.original ? '✅' : '⏳'} Enhanced={imagesLoaded.enhanced ? '✅' : '⏳'}</div>
+      </div>
+      
+      {/* Simple fallback image display */}
+      <div className="mb-6 p-4 border rounded">
+        <h3 className="text-sm font-medium mb-2">Direct Image Display (Fallback):</h3>
+        <img 
+          src={finalEnhancedImage} 
+          alt="Enhanced Image Direct" 
+          className="max-w-full h-auto border" 
+          style={{ maxHeight: '300px' }}
+          onLoad={() => console.log('✅ FALLBACK IMAGE LOADED')}
+          onError={() => console.log('❌ FALLBACK IMAGE FAILED')}
+        />
       </div>
       {/* Results Header */}
       <Card className="p-2 sm:p-4 md:p-6 bg-card shadow-card border-border overflow-x-hidden max-w-full">
@@ -245,10 +275,10 @@ export const ResultsDisplay = ({
               width: '100%'
             }}
           >
-            {/* Loading overlay */}
+            {/* Loading overlay - less obstructive */}
             {!imagesLoaded.enhanced && (
-              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                <div className="text-white text-sm">Loading enhanced image...</div>
+              <div className="absolute top-4 left-4 bg-black bg-opacity-70 text-white text-xs px-3 py-2 rounded-full z-20">
+                Loading enhanced...
               </div>
             )}
             
@@ -264,6 +294,10 @@ export const ResultsDisplay = ({
               }}
               onError={(e) => {
                 console.error('❌ ENHANCED IMAGE FAILED TO LOAD:', finalEnhancedImage, e);
+                
+                // Force loading state to be hidden even on error
+                setImagesLoaded(prev => ({ ...prev, enhanced: true }));
+                
                 // Try various fixes for image loading
                 const img = e.target as HTMLImageElement;
                 if (!img.dataset.retryAttempted) {
@@ -278,6 +312,8 @@ export const ResultsDisplay = ({
                   }, 100);
                 } else {
                   console.error('🔴 FINAL IMAGE LOAD FAILED - all retry attempts exhausted');
+                  // Show a broken image placeholder or error message
+                  img.alt = 'Enhanced image failed to load - check console for details';
                 }
               }}
               crossOrigin="anonymous"
