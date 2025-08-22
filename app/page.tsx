@@ -24,38 +24,64 @@ function loadWithSize(url: string): Promise<{ url: string; width: number; height
   });
 }
 
-// Main enhance function
-async function enhanceImage(fileOrUrl: File | string) {
-  let dataUrl = null;
-  if (fileOrUrl instanceof File) {
-    dataUrl = await fileToDataUrl(fileOrUrl);
-  }
+// Main enhance function with progress polling
+async function enhanceImage(file: File, onProgress: (progress: number) => void) {
+  // Convert file to base64
+  const imageBase64 = await fileToDataUrl(file);
 
-  const body = fileOrUrl instanceof File
-    ? { dataUrl, params: {} }
-    : { imageUrl: fileOrUrl, params: {} };
-
+  // Start prediction
   const resp = await fetch("/api/enhance", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ imageBase64 }),
   });
 
-  const json = await resp.json();
-  if (!json.ok) throw new Error(json.error || "Enhance failed");
+  const prediction = await resp.json();
+  if (prediction.error) throw new Error(prediction.error);
 
-  // Cache-bust the enhanced URL
-  const cb = `cb=${json.cacheBust || Date.now()}`;
-  const enhancedUrl = json.enhanced.url.includes("?")
-    ? `${json.enhanced.url}&${cb}`
-    : `${json.enhanced.url}?${cb}`;
+  console.log("✅ Prediction started:", prediction.id);
+  onProgress(10); // Started
 
-  return {
-    originalUrl: json.original.url,
-    enhancedUrl,
-    model: json.model,
-    usedParams: json.usedParams,
-  };
+  // Poll for completion
+  let result = prediction;
+  while (result.status === "starting" || result.status === "processing") {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const statusResp = await fetch(`/api/enhance/status/${result.id}`);
+    result = await statusResp.json();
+    
+    console.log(`⏳ Status: ${result.status}`);
+    
+    // Update progress based on status
+    if (result.status === "starting") {
+      onProgress(20);
+    } else if (result.status === "processing") {
+      onProgress(50);
+    }
+  }
+
+  if (result.status === "failed") {
+    throw new Error(`Enhancement failed: ${result.error}`);
+  }
+
+  if (result.status === "succeeded") {
+    onProgress(100);
+    
+    // Get enhanced URL from output
+    const enhancedUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+    if (!enhancedUrl || typeof enhancedUrl !== "string") {
+      throw new Error("Model returned no URL");
+    }
+
+    return {
+      originalUrl: URL.createObjectURL(file),
+      enhancedUrl,
+      model: "nightmareai/real-esrgan",
+      predictionId: result.id,
+    };
+  }
+
+  throw new Error(`Unexpected status: ${result.status}`);
 }
 
 export default function Home() {
@@ -79,16 +105,22 @@ export default function Home() {
     try {
       setError(null);
       setStatus("uploading");
-      setProgress(10);
+      setProgress(0);
 
-      const result = await enhanceImage(file);
-      setProgress(40);
+      const result = await enhanceImage(file, (progress) => {
+        setProgress(progress);
+        if (progress <= 20) {
+          setStatus("starting");
+        } else if (progress <= 50) {
+          setStatus("processing");
+        } else if (progress < 100) {
+          setStatus("finalizing");
+        }
+      });
 
-      const original = await loadWithSize(URL.createObjectURL(file));
-      setProgress(80);
-
+      setStatus("loading");
+      const original = await loadWithSize(result.originalUrl);
       const enhanced = await loadWithSize(result.enhancedUrl);
-      setProgress(100);
 
       setOriginalPreview(original.url);
       setEnhancedUrl(enhanced.url);
@@ -104,10 +136,12 @@ export default function Home() {
       console.log("📏 ORIGINAL:", original.width, original.height);
       console.log("📏 ENHANCED:", enhanced.width, enhanced.height);
 
+      setProgress(100);
       setStatus("completed");
     } catch (e: any) {
       setError(e.message || "Enhancement failed");
       setStatus("error");
+      setProgress(0);
     }
   }
 
@@ -146,7 +180,11 @@ export default function Home() {
             className="px-6 py-2 rounded bg-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
           >
             {status === "idle" && "Enhance Image"}
-            {status === "uploading" && "Processing..."}
+            {status === "uploading" && "Uploading..."}
+            {status === "starting" && "Starting..."}
+            {status === "processing" && "Processing..."}
+            {status === "finalizing" && "Finalizing..."}
+            {status === "loading" && "Loading..."}
             {status === "completed" && "Enhance Another"}
             {status === "error" && "Try Again"}
           </button>
