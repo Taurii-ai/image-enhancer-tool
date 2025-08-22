@@ -157,16 +157,16 @@ async function handleEnhance(req, res) {
       throw new Error('Failed to get file URL from upload response');
     }
 
-    // Step 2: Call ESRGAN model with correct version
-    console.log('🧪 Creating prediction...');
-    const versionId = "f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa"; // Latest working version
+    // Step 2: Call ESRGAN model - try higher scale for more visible enhancement
+    console.log('🧪 Creating prediction with higher scale...');
+    const versionId = "f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa"; 
     
     const requestBody = {
       version: versionId,
       input: {
         image: replicateUrl,
-        scale: 2,
-        face_enhance: false  // Changed to false as per latest model defaults
+        scale: 4,  // Increased from 2 to 4 for more dramatic enhancement
+        face_enhance: false
       }
     };
     
@@ -206,8 +206,14 @@ async function handleEnhance(req, res) {
       console.log('✅ Enhancement completed:', prediction.output);
       return res.status(200).json({ 
         output: prediction.output,
-        model: "nightmareai/real-esrgan",
-        input: { image: replicateUrl, scale: 2, face_enhance: true },
+        model: "nightmareai/real-esrgan", 
+        input: { image: replicateUrl, scale: 4, face_enhance: false },
+        predictionLogs: prediction.logs,
+        debug: {
+          originalUrl: replicateUrl,
+          enhancedUrl: prediction.output,
+          scaleUsed: 4
+        },
         id: prediction.id
       });
     } else {
