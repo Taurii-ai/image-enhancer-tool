@@ -45,6 +45,10 @@ export default async function handler(req, res) {
     if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
     const { imageUrl, dataUrl, params } = req.body || {};
+    console.log("📨 REQUEST BODY received:");
+    console.log("- imageUrl:", imageUrl ? `${imageUrl.substring(0, 100)}...` : "null");
+    console.log("- dataUrl:", dataUrl ? `${dataUrl.substring(0, 50)}...` : "null");
+    console.log("- params:", params);
     const model = process.env.ENHANCER_MODEL_SLUG || "nightmareai/real-esrgan";
     const inputKey = process.env.ENHANCER_INPUT_KEY || "image";
 
@@ -81,7 +85,11 @@ export default async function handler(req, res) {
 
     console.log("🧪 ENHANCE start");
     console.log("Model:", model);
-    console.log("Inputs:", inputs);
+    console.log("Input key:", inputKey);
+    console.log("Source URL:", sourceUrl);
+    console.log("Environment extras:", envExtra);
+    console.log("Merged params:", merged);
+    console.log("Final inputs object:", JSON.stringify(inputs, null, 2));
 
     // 3) Run model (pin a version if you have one; leaving unpinned here)
     const output = await replicate.run(`${model}`, { input: inputs });
