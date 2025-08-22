@@ -49,21 +49,20 @@ export const ResultsDisplay = ({
   const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
   const [imagesLoaded, setImagesLoaded] = useState({ original: false, enhanced: false });
   
-  // Force image loading state to be updated when finalEnhancedImage changes
+  // Initialize loading state once when component mounts
   useEffect(() => {
-    if (finalEnhancedImage) {
+    if (finalEnhancedImage && !imagesLoaded.enhanced) {
       console.log('🔄 NEW ENHANCED IMAGE URL RECEIVED:', finalEnhancedImage);
-      setImagesLoaded(prev => ({ ...prev, enhanced: false })); // Reset loading state
       
-      // Fallback: hide loading after 10 seconds even if onLoad doesn't fire
+      // Fallback: hide loading after 5 seconds even if onLoad doesn't fire
       const timeout = setTimeout(() => {
         console.log('⏰ LOADING TIMEOUT - forcing enhanced image to show');
         setImagesLoaded(prev => ({ ...prev, enhanced: true }));
-      }, 10000);
+      }, 5000);
       
       return () => clearTimeout(timeout);
     }
-  }, [finalEnhancedImage]);
+  }, [finalEnhancedImage, imagesLoaded.enhanced]);
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 

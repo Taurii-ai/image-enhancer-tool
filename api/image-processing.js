@@ -109,58 +109,94 @@ async function handleEnhance(req, res) {
     return res.status(400).json({ error: 'No image URL provided in request body' });
   }
 
-  const imageData = req.body.image;
-  console.log('📥 BACKEND: Received image data type:', imageData.startsWith('data:') ? 'data URL' : imageData.startsWith('blob:') ? 'blob URL' : 'other');
-  console.log('📥 BACKEND: First 100 chars:', imageData.substring(0, 100) + '...');
+  try {
+    const imageData = req.body.image;
+    console.log('📥 BACKEND: Received image data type:', imageData.startsWith('data:') ? 'data URL' : imageData.startsWith('blob:') ? 'blob URL' : 'other');
+    console.log('📥 BACKEND: First 100 chars:', imageData.substring(0, 100) + '...');
 
-  // For now, test direct data URL with Replicate to see if it works
-  const versionId = "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa";
+    // Convert data URL to buffer
+    let buffer;
+    if (imageData.startsWith('data:')) {
+      console.log('🔄 Converting data URL to buffer...');
+      const base64Data = imageData.split(',')[1];
+      buffer = Buffer.from(base64Data, 'base64');
+    } else {
+      throw new Error('Only data URLs are supported');
+    }
 
-  const createRes = await fetch("https://api.replicate.com/v1/predictions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      version: versionId,
-      input: { 
-        image: imageData,
-        scale: 4
-      },
-    }),
-  });
-
-  if (createRes.status === 422) {
-    const errorText = await createRes.text();
-    console.error("Invalid version error:", errorText);
-    return res.status(422).json({ error: "Invalid model version – please use a valid version ID", details: errorText });
-  }
-
-  if (!createRes.ok) {
-    const errorText = await createRes.text();
-    console.error("Replicate error:", errorText);
-    return res.status(createRes.status).json({ error: errorText });
-  }
-
-  let prediction = await createRes.json();
-
-  // Poll for completion
-  while (!["succeeded", "failed"].includes(prediction.status)) {
-    await new Promise(r => setTimeout(r, 2000));
-    const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+    // Step 1: Upload to Replicate
+    console.log('🔄 Uploading to Replicate...');
+    const uploadResp = await fetch("https://api.replicate.com/v1/upload", {
+      method: "POST",
       headers: {
-        "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}`,
-        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.REPLICATE_API_TOKEN}`,
+        "Content-Type": "application/octet-stream"
       },
+      body: buffer
     });
-    prediction = await pollRes.json();
-  }
 
-  if (prediction.status === "succeeded") {
-    return res.status(200).json({ output: prediction.output });
-  } else {
-    return res.status(500).json({ error: "Enhancement failed", details: prediction });
+    if (!uploadResp.ok) {
+      throw new Error(`Replicate upload failed: ${uploadResp.status}`);
+    }
+
+    const uploadData = await uploadResp.json();
+    const replicateUrl = uploadData.urls.get;
+    console.log('✅ Uploaded to Replicate:', replicateUrl);
+
+    // Step 2: Call ESRGAN model
+    console.log('🧪 Creating prediction...');
+    const versionId = process.env.ENHANCER_MODEL_VERSION || "9283609c529e4e5ec2d9185cf5f5db8e623da7b91eeb9eb0c7c431e2d0d3af9e";
+    
+    const predictionResp = await fetch("https://api.replicate.com/v1/predictions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.REPLICATE_API_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        version: versionId,
+        input: {
+          image: replicateUrl,
+          scale: 2,
+          face_enhance: true
+        }
+      })
+    });
+
+    if (!predictionResp.ok) {
+      throw new Error(`Prediction failed: ${predictionResp.status}`);
+    }
+
+    let prediction = await predictionResp.json();
+    console.log('✅ Prediction created:', prediction.id);
+
+    // Poll for completion
+    while (!["succeeded", "failed"].includes(prediction.status)) {
+      console.log(`⏳ Status: ${prediction.status}, waiting...`);
+      await new Promise(r => setTimeout(r, 1000));
+      const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+        headers: {
+          "Authorization": `Bearer ${process.env.REPLICATE_API_TOKEN}`,
+        },
+      });
+      prediction = await pollRes.json();
+    }
+
+    if (prediction.status === "succeeded") {
+      console.log('✅ Enhancement completed:', prediction.output);
+      return res.status(200).json({ 
+        output: prediction.output,
+        model: "nightmareai/real-esrgan",
+        input: { image: replicateUrl, scale: 2, face_enhance: true },
+        id: prediction.id
+      });
+    } else {
+      console.error('❌ Enhancement failed:', prediction);
+      return res.status(500).json({ error: "Enhancement failed", details: prediction });
+    }
+  } catch (error) {
+    console.error('❌ ENHANCE error', error);
+    return res.status(500).json({ error: error.message || 'Unknown error' });
   }
 }
 
