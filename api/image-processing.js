@@ -124,19 +124,25 @@ async function handleEnhance(req, res) {
       throw new Error('Only data URLs are supported');
     }
 
-    // Step 1: Upload to Replicate
-    console.log('🔄 Uploading to Replicate...');
-    const uploadResp = await fetch("https://api.replicate.com/v1/upload", {
+    // Step 1: Upload to Replicate using correct API
+    console.log('🔄 Uploading to Replicate files endpoint...');
+    
+    // Create FormData for multipart upload
+    const formData = new FormData();
+    formData.append('content', new Blob([buffer], { type: 'image/jpeg' }), 'image.jpg');
+    
+    const uploadResp = await fetch("https://api.replicate.com/v1/files", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.REPLICATE_API_TOKEN}`,
-        "Content-Type": "application/octet-stream"
+        "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}`
       },
-      body: buffer
+      body: formData
     });
 
     if (!uploadResp.ok) {
-      throw new Error(`Replicate upload failed: ${uploadResp.status}`);
+      const errorText = await uploadResp.text();
+      console.error('🔴 Upload error response:', errorText);
+      throw new Error(`Replicate upload failed: ${uploadResp.status} - ${errorText}`);
     }
 
     const uploadData = await uploadResp.json();
@@ -150,7 +156,7 @@ async function handleEnhance(req, res) {
     const predictionResp = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.REPLICATE_API_TOKEN}`,
+        "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -176,7 +182,7 @@ async function handleEnhance(req, res) {
       await new Promise(r => setTimeout(r, 1000));
       const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
         headers: {
-          "Authorization": `Bearer ${process.env.REPLICATE_API_TOKEN}`,
+          "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}`,
         },
       });
       prediction = await pollRes.json();
