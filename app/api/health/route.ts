@@ -19,5 +19,6 @@ export async function GET() {
     tokenSet,
     extra: parsedExtra,
     inputKey: process.env.ENHANCER_INPUT_KEY || "image",
+    timestamp: new Date().toISOString(),
   });
 }
