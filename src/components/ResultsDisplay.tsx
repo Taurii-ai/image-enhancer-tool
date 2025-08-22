@@ -20,39 +20,32 @@ export const ResultsDisplay = ({
   onStartOver,
   planType = 'trial'
 }: ResultsDisplayProps) => {
-  console.log('🎯 RESULTS DISPLAY: Received enhancedImage:', enhancedImage);
-  console.log('🎯 RESULTS DISPLAY: Received originalImage:', originalImage);
-  console.log('🎯 RESULTS DISPLAY: enhancedImage type:', typeof enhancedImage);
-  console.log('🎯 RESULTS DISPLAY: originalImage type:', typeof originalImage);
   
   // Use proxy for Replicate URLs to handle CORS
   const getProxiedImageUrl = (url: string | unknown) => {
     // Ensure url is a string
     const urlString = typeof url === 'string' ? url : String(url || '');
-    console.log('🔍 URL TYPE CHECK:', typeof url, 'VALUE:', url);
-    
     // For production, try direct URLs first to avoid proxy issues
     if (urlString.startsWith('https://replicate.delivery/')) {
-      console.log('🔄 USING DIRECT REPLICATE URL:', urlString);
       return urlString;
     }
-    console.log('🔄 USING DIRECT URL:', urlString);
     return urlString;
   };
   
   const finalEnhancedImage = getProxiedImageUrl(enhancedImage);
-  console.log('🎯 FINAL ENHANCED IMAGE URL:', finalEnhancedImage);
-  console.log('🎯 ORIGINAL IMAGE URL:', originalImage);
   const [comparison, setComparison] = useState(10); // Show more enhanced image by default
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
   const [imagesLoaded, setImagesLoaded] = useState({ original: false, enhanced: false });
   
-  // Initialize loading state once when component mounts
+  // Initialize loading state once when enhanced image URL changes
   useEffect(() => {
-    if (finalEnhancedImage && !imagesLoaded.enhanced) {
+    if (finalEnhancedImage) {
       console.log('🔄 NEW ENHANCED IMAGE URL RECEIVED:', finalEnhancedImage);
+      
+      // Reset loading state for new image
+      setImagesLoaded(prev => ({ ...prev, enhanced: false }));
       
       // Fallback: hide loading after 5 seconds even if onLoad doesn't fire
       const timeout = setTimeout(() => {
@@ -62,7 +55,7 @@ export const ResultsDisplay = ({
       
       return () => clearTimeout(timeout);
     }
-  }, [finalEnhancedImage, imagesLoaded.enhanced]);
+  }, [finalEnhancedImage]);
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -177,7 +170,6 @@ export const ResultsDisplay = ({
 
   // Show loading state if no enhanced image URL is provided
   if (!enhancedImage || enhancedImage === '') {
-    console.log('🚫 NO ENHANCED IMAGE PROVIDED:', enhancedImage);
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
@@ -188,7 +180,6 @@ export const ResultsDisplay = ({
     );
   }
   
-  console.log('✅ RENDERING RESULTS DISPLAY WITH ENHANCED IMAGE:', enhancedImage);
 
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6 overflow-x-hidden max-w-full">
