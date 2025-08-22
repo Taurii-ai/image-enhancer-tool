@@ -146,12 +146,31 @@ async function handleEnhance(req, res) {
     }
 
     const uploadData = await uploadResp.json();
-    const replicateUrl = uploadData.urls.get;
+    console.log('📦 Upload response:', uploadData);
+    
+    // Get the correct file URL - check multiple possible formats
+    const replicateUrl = uploadData.urls?.get || uploadData.url || uploadData.urls?.download;
     console.log('✅ Uploaded to Replicate:', replicateUrl);
+    
+    if (!replicateUrl) {
+      console.error('❌ No file URL in upload response:', uploadData);
+      throw new Error('Failed to get file URL from upload response');
+    }
 
-    // Step 2: Call ESRGAN model
+    // Step 2: Call ESRGAN model with correct version
     console.log('🧪 Creating prediction...');
-    const versionId = process.env.ENHANCER_MODEL_VERSION || "9283609c529e4e5ec2d9185cf5f5db8e623da7b91eeb9eb0c7c431e2d0d3af9e";
+    const versionId = "f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa"; // Latest working version
+    
+    const requestBody = {
+      version: versionId,
+      input: {
+        image: replicateUrl,
+        scale: 2,
+        face_enhance: false  // Changed to false as per latest model defaults
+      }
+    };
+    
+    console.log('📤 Prediction request:', JSON.stringify(requestBody, null, 2));
     
     const predictionResp = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
@@ -159,18 +178,13 @@ async function handleEnhance(req, res) {
         "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        version: versionId,
-        input: {
-          image: replicateUrl,
-          scale: 2,
-          face_enhance: true
-        }
-      })
+      body: JSON.stringify(requestBody)
     });
 
     if (!predictionResp.ok) {
-      throw new Error(`Prediction failed: ${predictionResp.status}`);
+      const errorText = await predictionResp.text();
+      console.error('🔴 Prediction error response:', errorText);
+      throw new Error(`Prediction failed: ${predictionResp.status} - ${errorText}`);
     }
 
     let prediction = await predictionResp.json();
