@@ -157,16 +157,15 @@ async function handleEnhance(req, res) {
       throw new Error('Failed to get file URL from upload response');
     }
 
-    // Step 2: Use xinntao Real-ESRGAN with correct API structure
-    console.log('🧪 Using xinntao/realesrgan with correct parameters...');
+    // Step 2: Use nightmareai Real-ESRGAN (71.8M runs - most popular and reliable)
+    console.log('🧪 Using nightmareai/real-esrgan (most popular model)...');
     
     const requestBody = {
-      version: "1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56",
+      version: "f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
       input: {
-        img: replicateUrl,  // xinntao uses "img" not "image"
-        scale: 4,
-        face_enhance: false,
-        version: "General - RealESRGANplus"  // Use the best general model
+        image: replicateUrl,  // nightmareai uses "image"
+        scale: 4,  // 4x for dramatic enhancement
+        face_enhance: true  // Enable face enhancement for better results
       }
     };
     
@@ -217,10 +216,10 @@ async function handleEnhance(req, res) {
       
       return res.status(200).json({ 
         output: enhancedUrl,
-        model: "xinntao/realesrgan",
-        modelVariant: "RealESRGAN_x4plus",
-        cost: prediction.metrics?.predict_time ? (prediction.metrics.predict_time * 0.000575).toFixed(4) : "0.0025",
-        input: { img: replicateUrl, scale: 4, version: "General - RealESRGANplus" },
+        model: "nightmareai/real-esrgan",
+        modelVariant: "Real-ESRGAN with face enhancement",
+        cost: prediction.metrics?.predict_time ? (prediction.metrics.predict_time * 0.000225).toFixed(4) : "0.0025",
+        input: { image: replicateUrl, scale: 4, face_enhance: true },
         metrics: prediction.metrics,
         logs: prediction.logs,
         success: true,
