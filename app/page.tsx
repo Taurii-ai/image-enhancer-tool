@@ -1,110 +1,133 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import { useState } from "react";
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// Helper to convert File to dataURL
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.readAsDataURL(file);
+  });
+}
+
+// Helper to load image with dimensions
+function loadWithSize(url: string): Promise<{ url: string; width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve({ url, width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = reject;
+    const cacheBustUrl = url.includes("?") ? `${url}&_=${Date.now()}` : `${url}?_=${Date.now()}`;
+    img.src = cacheBustUrl;
+    img.decoding = "async";
+  });
+}
+
+// Main enhance function
+async function enhanceImage(fileOrUrl: File | string) {
+  let dataUrl = null;
+  if (fileOrUrl instanceof File) {
+    dataUrl = await fileToDataUrl(fileOrUrl);
+  }
+
+  const body = fileOrUrl instanceof File
+    ? { dataUrl, params: {} }
+    : { imageUrl: fileOrUrl, params: {} };
+
+  const resp = await fetch("/api/enhance", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  const json = await resp.json();
+  if (!json.ok) throw new Error(json.error || "Enhance failed");
+
+  // Cache-bust the enhanced URL
+  const cb = `cb=${json.cacheBust || Date.now()}`;
+  const enhancedUrl = json.enhanced.url.includes("?")
+    ? `${json.enhanced.url}&${cb}`
+    : `${json.enhanced.url}?${cb}`;
+
+  return {
+    originalUrl: json.original.url,
+    enhancedUrl,
+    model: json.model,
+    usedParams: json.usedParams,
+  };
+}
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [originalPreview, setOriginalPreview] = useState<string | null>(null);
-  const [predictionId, setPredictionId] = useState<string | null>(null);
   const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("idle");
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [slider, setSlider] = useState<number>(50);
-  const pollingRef = useRef<any>(null);
+  const [originalSize, setOriginalSize] = useState<{ width: number; height: number } | null>(null);
+  const [enhancedSize, setEnhancedSize] = useState<{ width: number; height: number } | null>(null);
+  const [ratio, setRatio] = useState<string | null>(null);
+
+  async function handleEnhance() {
+    if (!file) {
+      setError("Please choose an image.");
+      return;
+    }
+
+    try {
+      setError(null);
+      setStatus("uploading");
+      setProgress(10);
+
+      const result = await enhanceImage(file);
+      setProgress(40);
+
+      const original = await loadWithSize(URL.createObjectURL(file));
+      setProgress(80);
+
+      const enhanced = await loadWithSize(result.enhancedUrl);
+      setProgress(100);
+
+      setOriginalPreview(original.url);
+      setEnhancedUrl(enhanced.url);
+      setOriginalSize({ width: original.width, height: original.height });
+      setEnhancedSize({ width: enhanced.width, height: enhanced.height });
+
+      // Calculate ratio
+      const ratioW = enhanced.width / original.width;
+      const ratioH = enhanced.height / original.height;
+      const avgRatio = (ratioW + ratioH) / 2;
+      setRatio(`${avgRatio.toFixed(1)}×`);
+
+      console.log("📏 ORIGINAL:", original.width, original.height);
+      console.log("📏 ENHANCED:", enhanced.width, enhanced.height);
+
+      setStatus("completed");
+    } catch (e: any) {
+      setError(e.message || "Enhancement failed");
+      setStatus("error");
+    }
+  }
 
   function reset() {
-    setPredictionId(null);
+    setFile(null);
+    setOriginalPreview(null);
     setEnhancedUrl(null);
     setStatus("idle");
     setProgress(0);
     setError(null);
+    setOriginalSize(null);
+    setEnhancedSize(null);
+    setRatio(null);
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
-      <h1 className="text-2xl font-bold mb-4">Image Enhancer</h1>
+    <div className="mx-auto max-w-4xl p-6">
+      <h1 className="text-3xl font-bold mb-6">Image Enhancer (Real-ESRGAN)</h1>
 
-      <form
-        onSubmit={async (e) => {
-          e.preventDefault();
-          setError(null);
-          setEnhancedUrl(null);
-          setStatus("uploading");
-          setProgress(5);
-
-          if (!file) {
-            setError("Please choose an image.");
-            return;
-          }
-
-          // Local preview for the "before" side (safe, does not leave browser)
-          const preview = URL.createObjectURL(file);
-          setOriginalPreview(preview);
-
-          // Send file to our API (multipart/form-data)
-          const fd = new FormData();
-          fd.append("image", file);
-
-          const res = await fetch("/api/predictions", {
-            method: "POST",
-            body: fd,
-          });
-
-          const json = await res.json();
-          if (!res.ok) {
-            setError(json?.error || "Failed to start prediction.");
-            setStatus("error");
-            return;
-          }
-
-          setPredictionId(json.id);
-          setStatus("queued");
-          setProgress(10);
-
-          // Start polling
-          async function poll() {
-            try {
-              if (!json.id) return;
-              const r = await fetch(`/api/predictions/${json.id}`);
-              const p = await r.json();
-              if (!r.ok) {
-                setError(p?.error || "Polling failed.");
-                setStatus("error");
-                return;
-              }
-
-              setStatus(p.status);
-              setProgress(p.progress ?? 0);
-
-              if (p.status === "succeeded") {
-                // Some models return array; take the last item
-                const out =
-                  Array.isArray(p.output)
-                    ? p.output[p.output.length - 1]
-                    : p.output;
-                setEnhancedUrl(out || null);
-                setProgress(100);
-                clearInterval(pollingRef.current);
-              } else if (p.status === "failed" || p.status === "canceled") {
-                setError("Enhancement failed.");
-                clearInterval(pollingRef.current);
-              }
-            } catch (e: any) {
-              setError(e?.message || String(e));
-              clearInterval(pollingRef.current);
-            }
-          }
-
-          await sleep(800);
-          pollingRef.current = setInterval(poll, 1200);
-          poll();
-        }}
-        className="space-y-3"
-      >
+      <div className="space-y-4">
         <input
           type="file"
           accept="image/*"
@@ -112,88 +135,136 @@ export default function Home() {
             reset();
             const f = e.target.files?.[0] || null;
             setFile(f);
-            setOriginalPreview(f ? URL.createObjectURL(f) : null);
           }}
+          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
         />
-        <button
-          type="submit"
-          className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
-          disabled={!file || status === "uploading" || status === "processing" || status === "queued"}
-        >
-          {status === "idle" && "Enhance"}
-          {status === "uploading" && "Uploading…"}
-          {(status === "queued" || status === "starting") && "Queued…"}
-          {status === "processing" && "Enhancing…"}
-        </button>
-      </form>
+
+        <div className="flex gap-2">
+          <button
+            onClick={handleEnhance}
+            disabled={!file || (status !== "idle" && status !== "error" && status !== "completed")}
+            className="px-6 py-2 rounded bg-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+          >
+            {status === "idle" && "Enhance Image"}
+            {status === "uploading" && "Processing..."}
+            {status === "completed" && "Enhance Another"}
+            {status === "error" && "Try Again"}
+          </button>
+
+          {(originalPreview || enhancedUrl) && (
+            <button
+              onClick={reset}
+              className="px-4 py-2 rounded border border-gray-300 hover:bg-gray-50"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Progress bar */}
-      {status !== "idle" && (
+      {status !== "idle" && status !== "completed" && status !== "error" && (
         <div className="mt-4">
           <div className="h-2 bg-gray-200 rounded">
             <div
-              className="h-2 bg-black rounded"
-              style={{ width: `${progress}%`, transition: "width 300ms ease" }}
+              className="h-2 bg-blue-600 rounded transition-all duration-300"
+              style={{ width: `${progress}%` }}
             />
           </div>
-          <div className="text-sm mt-1 opacity-70">
+          <div className="text-sm mt-1 text-gray-600">
             {status} • {progress}%
           </div>
         </div>
       )}
 
       {error && (
-        <div className="mt-4 text-red-600">
-          {error}
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600">{error}</p>
         </div>
       )}
 
-      {/* Before / After slider */}
+      {/* Enhancement results */}
       {originalPreview && enhancedUrl && (
-        <div className="mt-6">
-          <div className="relative w-full aspect-square overflow-hidden rounded-lg">
-            {/* AFTER (enhanced) sits at the back */}
-            <Image
-              src={`${enhancedUrl}?id=${predictionId}`} // cache-bust
+        <div className="mt-8 space-y-4">
+          {/* Dimension info and ratio badge */}
+          <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="space-y-1">
+              <p className="text-sm text-gray-600">
+                Original: {originalSize?.width} × {originalSize?.height}
+              </p>
+              <p className="text-sm text-gray-600">
+                Enhanced: {enhancedSize?.width} × {enhancedSize?.height}
+              </p>
+            </div>
+            {ratio && (
+              <div className="px-3 py-1 bg-green-600 text-white rounded-full font-semibold">
+                {ratio}
+              </div>
+            )}
+          </div>
+
+          {/* Before/After slider */}
+          <div className="relative w-full aspect-video overflow-hidden rounded-lg border">
+            {/* Enhanced image (background) */}
+            <img
+              key={enhancedUrl}
+              src={enhancedUrl}
               alt="Enhanced"
-              fill
-              sizes="100vw"
-              style={{ objectFit: "contain" }}
-              unoptimized
+              className="absolute inset-0 w-full h-full object-contain"
+              style={{ imageRendering: "pixelated" }}
             />
-            {/* BEFORE on top, masked by slider */}
+            
+            {/* Original image (clipped overlay) */}
             <div
-              className="absolute top-0 left-0 h-full overflow-hidden pointer-events-none"
+              className="absolute top-0 left-0 h-full overflow-hidden"
               style={{ width: `${slider}%` }}
             >
-              <Image
+              <img
                 src={originalPreview}
                 alt="Original"
-                fill
-                sizes="100vw"
-                style={{ objectFit: "contain" }}
-                unoptimized
+                className="w-full h-full object-contain"
+                style={{ imageRendering: "pixelated" }}
               />
             </div>
 
             {/* Divider line */}
             <div
-              className="absolute top-0 h-full border-l border-white"
+              className="absolute top-0 h-full border-l-2 border-white shadow-lg"
               style={{ left: `${slider}%` }}
             />
           </div>
 
+          {/* Slider control */}
           <input
-            className="w-full mt-3"
+            className="w-full"
             type="range"
             min={0}
             max={100}
             value={slider}
             onChange={(e) => setSlider(Number(e.target.value))}
           />
-          <div className="flex justify-between text-sm opacity-70">
-            <span>Before</span>
-            <span>After</span>
+          
+          <div className="flex justify-between text-sm text-gray-600">
+            <span>← Original</span>
+            <span>Enhanced →</span>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-4 pt-4">
+            <a
+              href={enhancedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+            >
+              Open Enhanced (Full Size)
+            </a>
+            <button
+              onClick={() => setSlider(50)}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+            >
+              Reset Slider (50%)
+            </button>
           </div>
         </div>
       )}
