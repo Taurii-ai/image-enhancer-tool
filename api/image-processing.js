@@ -99,9 +99,22 @@ async function handleEnhance(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  if (!process.env.REPLICATE_API_TOKEN) {
-    console.error('Missing REPLICATE_API_TOKEN');
-    return res.status(500).json({ error: 'Server misconfiguration: missing token' });
+  console.log('🔍 Environment check:');
+  console.log('- REPLICATE_API_TOKEN exists:', !!process.env.REPLICATE_API_TOKEN);
+  console.log('- ENHANCER_MODEL_SLUG:', process.env.ENHANCER_MODEL_SLUG);
+  console.log('- ENHANCER_INPUT_KEY:', process.env.ENHANCER_INPUT_KEY);
+  console.log('- ENHANCER_EXTRA:', process.env.ENHANCER_EXTRA);
+  console.log('- ENHANCER_MODEL_VERSION:', process.env.ENHANCER_MODEL_VERSION);
+
+  if (!process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_TOKEN === 'YOUR_TOKEN') {
+    console.error('❌ REPLICATE_API_TOKEN missing or placeholder');
+    return res.status(500).json({ 
+      error: 'Server misconfiguration: REPLICATE_API_TOKEN not set',
+      debug: {
+        tokenExists: !!process.env.REPLICATE_API_TOKEN,
+        isPlaceholder: process.env.REPLICATE_API_TOKEN === 'YOUR_TOKEN'
+      }
+    });
   }
 
   // Parse JSON body
@@ -202,16 +215,37 @@ async function handleEnhance(req, res) {
     }
 
     if (prediction.status === "succeeded") {
+      console.log('✅ Enhancement completed!');
+      console.log('📊 Raw prediction output:', JSON.stringify(prediction.output, null, 2));
+      console.log('📊 Full prediction object:', JSON.stringify(prediction, null, 2));
+      
       const enhancedUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
       
-      console.log('✅ Enhancement completed!');
-      console.log('📊 Output URL:', enhancedUrl);
-      console.log('📊 Prediction metrics:', prediction.metrics);
+      console.log('📊 Processed enhanced URL:', enhancedUrl);
+      console.log('📊 Original input URL:', replicateUrl);
+      console.log('📊 URLs are different:', enhancedUrl !== replicateUrl);
       
       // Check if we got a valid output
       if (!enhancedUrl || enhancedUrl === replicateUrl) {
         console.error('⚠️ Model returned same image or empty result!');
-        console.log('⚠️ This might indicate the model didn\'t actually enhance the image');
+        console.error('⚠️ Output:', prediction.output);
+        console.error('⚠️ Status:', prediction.status);
+        return res.status(500).json({ 
+          error: "Model didn't enhance image", 
+          debug: { 
+            output: prediction.output, 
+            status: prediction.status,
+            originalUrl: replicateUrl
+          }
+        });
+      }
+      
+      // Test if enhanced URL is accessible
+      try {
+        const testResp = await fetch(enhancedUrl, { method: 'HEAD' });
+        console.log('📊 Enhanced URL accessibility test:', testResp.ok, testResp.status);
+      } catch (e) {
+        console.error('❌ Enhanced URL not accessible:', e.message);
       }
       
       return res.status(200).json({ 
