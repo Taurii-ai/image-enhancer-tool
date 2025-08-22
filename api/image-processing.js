@@ -157,16 +157,16 @@ async function handleEnhance(req, res) {
       throw new Error('Failed to get file URL from upload response');
     }
 
-    // Step 2: Call ESRGAN model - try higher scale for more visible enhancement
-    console.log('🧪 Creating prediction with higher scale...');
-    const versionId = "f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa"; 
+    // Step 2: Try the original xinntao Real-ESRGAN model (more reliable)
+    console.log('🧪 Using proven xinntao/realesrgan model...');
     
     const requestBody = {
-      version: versionId,
+      // Use model name instead of version for xinntao (more reliable)
+      model: "xinntao/realesrgan",
       input: {
         image: replicateUrl,
-        scale: 4,  // Increased from 2 to 4 for more dramatic enhancement
-        face_enhance: false
+        scale: 4,  // 4x upscaling for dramatic results
+        model_name: "RealESRGAN_x4plus"  // Specify exact model variant
       }
     };
     
@@ -217,13 +217,15 @@ async function handleEnhance(req, res) {
       
       return res.status(200).json({ 
         output: enhancedUrl,
-        model: "nightmareai/real-esrgan",
-        cost: prediction.metrics?.predict_time ? (prediction.metrics.predict_time * 0.000575).toFixed(4) : "0.0025", // Estimate based on time
-        input: { image: replicateUrl, scale: 4, face_enhance: false },
+        model: "xinntao/realesrgan",
+        modelVariant: "RealESRGAN_x4plus",
+        cost: prediction.metrics?.predict_time ? (prediction.metrics.predict_time * 0.000575).toFixed(4) : "0.0025",
+        input: { image: replicateUrl, scale: 4, model_name: "RealESRGAN_x4plus" },
         metrics: prediction.metrics,
         logs: prediction.logs,
         success: true,
-        id: prediction.id
+        id: prediction.id,
+        enhanced: enhancedUrl !== replicateUrl  // Flag to show if actually enhanced
       });
     } else {
       console.error('❌ Enhancement failed:', prediction);
