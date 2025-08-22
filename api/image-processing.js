@@ -203,17 +203,26 @@ async function handleEnhance(req, res) {
     }
 
     if (prediction.status === "succeeded") {
-      console.log('✅ Enhancement completed:', prediction.output);
+      const enhancedUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+      
+      console.log('✅ Enhancement completed!');
+      console.log('📊 Output URL:', enhancedUrl);
+      console.log('📊 Prediction metrics:', prediction.metrics);
+      
+      // Check if we got a valid output
+      if (!enhancedUrl || enhancedUrl === replicateUrl) {
+        console.error('⚠️ Model returned same image or empty result!');
+        console.log('⚠️ This might indicate the model didn\'t actually enhance the image');
+      }
+      
       return res.status(200).json({ 
-        output: prediction.output,
-        model: "nightmareai/real-esrgan", 
+        output: enhancedUrl,
+        model: "nightmareai/real-esrgan",
+        cost: prediction.metrics?.predict_time ? (prediction.metrics.predict_time * 0.000575).toFixed(4) : "0.0025", // Estimate based on time
         input: { image: replicateUrl, scale: 4, face_enhance: false },
-        predictionLogs: prediction.logs,
-        debug: {
-          originalUrl: replicateUrl,
-          enhancedUrl: prediction.output,
-          scaleUsed: 4
-        },
+        metrics: prediction.metrics,
+        logs: prediction.logs,
+        success: true,
         id: prediction.id
       });
     } else {
