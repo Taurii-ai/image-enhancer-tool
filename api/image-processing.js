@@ -114,6 +114,8 @@ async function handleEnhance(req, res) {
     const extra = process.env.ENHANCER_EXTRA ? JSON.parse(process.env.ENHANCER_EXTRA) : { scale: 2, face_enhance: true };
 
     console.log("🚀 Running Replicate model:", modelSlug, "on image:", imageUrl);
+    console.log("🔑 API Token (first 10 chars):", process.env.REPLICATE_API_TOKEN?.substring(0, 10) + "...");
+    console.log("🎛️ Input config:", { [inputKey]: "imageUrl", ...extra });
 
     // Handle data URL conversion to actual URL if needed
     let processedImageUrl = imageUrl;
@@ -157,7 +159,11 @@ async function handleEnhance(req, res) {
       auth: process.env.REPLICATE_API_TOKEN,
     });
 
-    // Run Replicate model
+    // Run Replicate model with detailed logging
+    console.log("🔄 Calling replicate.run with:");
+    console.log("  - Model:", modelSlug);
+    console.log("  - Input:", { [inputKey]: processedImageUrl, ...extra });
+    
     const prediction = await replicate.run(modelSlug, {
       input: {
         [inputKey]: processedImageUrl,
@@ -165,11 +171,18 @@ async function handleEnhance(req, res) {
       },
     });
 
+    console.log("🔍 Raw Replicate response type:", typeof prediction);
     console.log("🔍 Raw Replicate response:", prediction);
+    console.log("🔍 Raw Replicate response JSON:", JSON.stringify(prediction, null, 2));
 
-    // TEMP: send raw response for debugging
+    // TEMP: send raw response for debugging with additional info
     return res.status(200).json({ 
       rawPrediction: prediction,
+      predictionType: typeof prediction,
+      isArray: Array.isArray(prediction),
+      keys: prediction ? Object.keys(prediction) : null,
+      modelUsed: modelSlug,
+      inputUsed: { [inputKey]: processedImageUrl, ...extra },
       success: true 
     });
   } catch (error) {
