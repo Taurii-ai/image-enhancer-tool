@@ -183,24 +183,7 @@ export const ResultsDisplay = ({
 
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6 overflow-x-hidden max-w-full">
-      {/* Debug info */}
-      <div className="text-xs text-gray-500 p-2 bg-gray-100 rounded mb-4">
-        <div>DEBUG: Enhanced URL = {typeof enhancedImage === 'string' ? enhancedImage.substring(0, 50) + '...' : String(enhancedImage)}</div>
-        <div>Images Loaded: Original={imagesLoaded.original ? '✅' : '⏳'} Enhanced={imagesLoaded.enhanced ? '✅' : '⏳'}</div>
-      </div>
       
-      {/* Simple fallback image display */}
-      <div className="mb-6 p-4 border rounded">
-        <h3 className="text-sm font-medium mb-2">Direct Image Display (Fallback):</h3>
-        <img 
-          src={finalEnhancedImage} 
-          alt="Enhanced Image Direct" 
-          className="max-w-full h-auto border" 
-          style={{ maxHeight: '300px' }}
-          onLoad={() => console.log('✅ FALLBACK IMAGE LOADED')}
-          onError={() => console.log('❌ FALLBACK IMAGE FAILED')}
-        />
-      </div>
       {/* Results Header */}
       <Card className="p-2 sm:p-4 md:p-6 bg-card shadow-card border-border overflow-x-hidden max-w-full">
         <div className="flex flex-col gap-4">
