@@ -94,7 +94,7 @@ async function handleUpload(req, res) {
   }
 }
 
-// ULTRA SIMPLE Real-ESRGAN - REPLICATE SDK APPROACH
+// Real-ESRGAN with Vercel Blob + Replicate
 async function handleEnhance(req, res) {
   try {
     if (req.method !== "POST") {
@@ -102,62 +102,95 @@ async function handleEnhance(req, res) {
     }
 
     const { image } = req.body;
-
     if (!image) {
       return res.status(400).json({ error: "Missing image data" });
     }
 
-    console.log("🚀 STARTING REPLICATE SDK APPROACH");
-    
+    console.log("🚀 STEP 1: Starting Real-ESRGAN Enhancement");
+    console.log("🔑 Replicate token:", !!process.env.REPLICATE_API_TOKEN);
+    console.log("🔑 Blob token:", !!process.env.BLOB_READ_WRITE_TOKEN);
+    console.log("📷 Image size:", image.length);
+
+    // Convert data URL to buffer
+    const base64Data = image.split(',')[1];
+    const buffer = Buffer.from(base64Data, 'base64');
+    console.log("✅ STEP 1: Buffer created, size:", buffer.length);
+
+    let imageUrl = image; // Default to data URL
+
+    // Try Vercel Blob upload first for better compatibility
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      try {
+        console.log("🚀 STEP 2: Uploading to Vercel Blob");
+        const { put } = await import('@vercel/blob');
+        
+        const filename = `enhancement-input-${Date.now()}.jpg`;
+        const blob = await put(filename, buffer, {
+          access: 'public',
+          token: process.env.BLOB_READ_WRITE_TOKEN,
+        });
+        
+        imageUrl = blob.url;
+        console.log("✅ STEP 2: Blob uploaded:", imageUrl);
+      } catch (blobError) {
+        console.warn("⚠️ STEP 2: Blob upload failed, using data URL:", blobError.message);
+      }
+    } else {
+      console.log("⚠️ STEP 2: No blob token, using data URL");
+    }
+
+    console.log("🚀 STEP 3: Calling Real-ESRGAN");
     const replicate = new Replicate({
       auth: process.env.REPLICATE_API_TOKEN,
     });
 
-    console.log("📷 Image data length:", image.length);
-    console.log("🤖 Using Real-ESRGAN model");
-
+    // Using the working xinntao/real-esrgan model
     const output = await replicate.run(
-      "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
+      "xinntao/real-esrgan:42fed1c4974146d4d2414e2be2c5277c7fcf05fcc3a73abf41610695738c1d7b",
       {
         input: {
-          image: image,
-          scale: 4,
-          face_enhance: true
+          image: imageUrl,
+          scale: 4
         }
       }
     );
 
-    console.log("✅ REPLICATE SDK SUCCESS");
-    console.log("📊 Raw output:", output);
-    console.log("📊 Output type:", typeof output);
-    console.log("📊 Is array:", Array.isArray(output));
+    console.log("✅ STEP 3: Real-ESRGAN completed");
+    console.log("📊 Raw output:", typeof output, Array.isArray(output) ? `array[${output.length}]` : 'single');
+    console.log("📊 First 200 chars:", JSON.stringify(output).substring(0, 200));
 
+    // Extract the enhanced image URL
     let enhancedUrl;
-    if (Array.isArray(output)) {
+    if (Array.isArray(output) && output.length > 0) {
       enhancedUrl = output[0];
-      console.log("📊 Using first array item:", enhancedUrl);
-    } else {
+    } else if (typeof output === 'string') {
       enhancedUrl = output;
-      console.log("📊 Using direct output:", enhancedUrl);
+    } else if (output && typeof output === 'object' && output.url) {
+      enhancedUrl = output.url;
+    } else {
+      throw new Error(`Invalid output format: ${typeof output} - ${JSON.stringify(output)}`);
     }
 
     if (!enhancedUrl || typeof enhancedUrl !== 'string') {
-      console.error("❌ Invalid enhanced URL:", enhancedUrl);
-      throw new Error('Invalid enhanced URL from Replicate');
+      throw new Error(`No valid URL in output: ${enhancedUrl}`);
     }
 
-    console.log("🎉 FINAL ENHANCED URL:", enhancedUrl);
+    if (!enhancedUrl.startsWith('http')) {
+      throw new Error(`Invalid URL format: ${enhancedUrl}`);
+    }
 
-    return res.status(200).json({ 
+    console.log("🎉 SUCCESS: Enhanced image URL:", enhancedUrl);
+
+    return res.status(200).json({
       output: enhancedUrl,
-      success: true 
+      success: true
     });
 
   } catch (error) {
-    console.error("❌ Enhancement error:", error);
-    return res.status(500).json({ 
+    console.error("❌ Enhancement failed:", error);
+    return res.status(500).json({
       error: error.message,
-      stack: error.stack 
+      details: error.message
     });
   }
 }
