@@ -241,21 +241,52 @@ export const enhanceImage = async (
             console.log('✅ DEBUG: Method 3 - direct output:', possibleUrl);
           }
         }
-        // Method 4: Look for any property that looks like a URL
+        // Method 4: Check if it's a wrapped String object
         else if (response && typeof response === 'object') {
-          console.log('🔍 DEBUG: Searching object properties for URLs...');
-          for (const [key, value] of Object.entries(response)) {
-            console.log(`🔍 DEBUG: Checking ${key}:`, value);
-            if (typeof value === 'string' && value.startsWith('http')) {
-              possibleUrl = value;
-              console.log(`✅ DEBUG: Method 4 - Found URL in ${key}:`, possibleUrl);
-              break;
-            } else if (Array.isArray(value)) {
-              const urlInArray = value.find(item => typeof item === 'string' && item.startsWith('http'));
-              if (urlInArray) {
-                possibleUrl = urlInArray;
-                console.log(`✅ DEBUG: Method 4 - Found URL in ${key} array:`, possibleUrl);
+          console.log('🔍 DEBUG: Checking for wrapped string object...');
+          
+          // Try converting to string (handles String objects)
+          const stringValue = String(response);
+          console.log('🔍 DEBUG: String conversion result:', stringValue);
+          
+          if (stringValue && stringValue.startsWith('http')) {
+            possibleUrl = stringValue;
+            console.log('✅ DEBUG: Method 4a - String conversion:', possibleUrl);
+          }
+          // Try valueOf method (for String objects)
+          else if (response.valueOf && typeof response.valueOf === 'function') {
+            const valueOfResult = response.valueOf();
+            console.log('🔍 DEBUG: valueOf result:', valueOfResult);
+            if (typeof valueOfResult === 'string' && valueOfResult.startsWith('http')) {
+              possibleUrl = valueOfResult;
+              console.log('✅ DEBUG: Method 4b - valueOf method:', possibleUrl);
+            }
+          }
+          // Try toString method
+          else if (response.toString && typeof response.toString === 'function') {
+            const toStringResult = response.toString();
+            console.log('🔍 DEBUG: toString result:', toStringResult);
+            if (typeof toStringResult === 'string' && toStringResult.startsWith('http')) {
+              possibleUrl = toStringResult;
+              console.log('✅ DEBUG: Method 4c - toString method:', possibleUrl);
+            }
+          }
+          // Original property search as fallback
+          else {
+            console.log('🔍 DEBUG: Searching object properties for URLs...');
+            for (const [key, value] of Object.entries(response)) {
+              console.log(`🔍 DEBUG: Checking ${key}:`, value);
+              if (typeof value === 'string' && value.startsWith('http')) {
+                possibleUrl = value;
+                console.log(`✅ DEBUG: Method 4d - Found URL in ${key}:`, possibleUrl);
                 break;
+              } else if (Array.isArray(value)) {
+                const urlInArray = value.find(item => typeof item === 'string' && item.startsWith('http'));
+                if (urlInArray) {
+                  possibleUrl = urlInArray;
+                  console.log(`✅ DEBUG: Method 4e - Found URL in ${key} array:`, possibleUrl);
+                  break;
+                }
               }
             }
           }
