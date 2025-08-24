@@ -160,23 +160,42 @@ async function handleEnhance(req, res) {
     console.log("📊 Raw output:", typeof output, Array.isArray(output) ? `array[${output.length}]` : 'single');
     console.log("📊 First 200 chars:", JSON.stringify(output).substring(0, 200));
 
-    // Extract the enhanced image URL
+    // Extract the enhanced image URL - handle Real-ESRGAN response format
     let enhancedUrl;
+    
+    console.log("🔍 Analyzing output structure:", JSON.stringify(output, null, 2));
+    
     if (Array.isArray(output) && output.length > 0) {
       enhancedUrl = output[0];
+      console.log("📊 Array format, extracted:", enhancedUrl);
     } else if (typeof output === 'string') {
       enhancedUrl = output;
-    } else if (output && typeof output === 'object' && output.url) {
-      enhancedUrl = output.url;
+      console.log("📊 String format:", enhancedUrl);
+    } else if (output && typeof output === 'object') {
+      // Handle various possible response formats
+      enhancedUrl = output.url || output.output || output[0] || output.image;
+      console.log("📊 Object format, extracted:", enhancedUrl);
+      
+      // If still not found, try getting first value from object
+      if (!enhancedUrl) {
+        const values = Object.values(output);
+        enhancedUrl = values.find(v => typeof v === 'string' && v.startsWith('http'));
+        console.log("📊 Fallback search found:", enhancedUrl);
+      }
     } else {
+      console.error("❌ Unexpected output type:", typeof output);
       throw new Error(`Invalid output format: ${typeof output} - ${JSON.stringify(output)}`);
     }
 
     if (!enhancedUrl || typeof enhancedUrl !== 'string') {
+      console.error("❌ No valid URL found in output:", output);
       throw new Error(`No valid URL in output: ${enhancedUrl}`);
     }
 
-    if (!enhancedUrl.startsWith('http')) {
+    // Handle special cases like "url()" or malformed URLs
+    if (enhancedUrl === 'url()' || !enhancedUrl.startsWith('http')) {
+      console.error("❌ Invalid URL format:", enhancedUrl);
+      console.error("📊 Full output for debugging:", JSON.stringify(output, null, 2));
       throw new Error(`Invalid URL format: ${enhancedUrl}`);
     }
 
