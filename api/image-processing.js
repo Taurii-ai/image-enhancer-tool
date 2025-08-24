@@ -94,100 +94,82 @@ async function handleUpload(req, res) {
   }
 }
 
-// Handle image enhancement (formerly /api/enhance-image)
+// Handle image enhancement with production-ready Replicate integration
 async function handleEnhance(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  console.log('🔍 Environment check:');
-  console.log('- REPLICATE_API_TOKEN exists:', !!process.env.REPLICATE_API_TOKEN);
-  console.log('- ENHANCER_MODEL_SLUG:', process.env.ENHANCER_MODEL_SLUG);
-  console.log('- ENHANCER_INPUT_KEY:', process.env.ENHANCER_INPUT_KEY);
-  console.log('- ENHANCER_EXTRA:', process.env.ENHANCER_EXTRA);
-
-  if (!process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_TOKEN === 'YOUR_TOKEN') {
-    console.error('❌ REPLICATE_API_TOKEN missing or placeholder');
-    return res.status(500).json({ 
-      error: 'Server misconfiguration: REPLICATE_API_TOKEN not set',
-      debug: {
-        tokenExists: !!process.env.REPLICATE_API_TOKEN,
-        isPlaceholder: process.env.REPLICATE_API_TOKEN === 'YOUR_TOKEN'
-      }
-    });
-  }
-
-  // Parse JSON body
-  if (!req.body || !req.body.image) {
-    return res.status(400).json({ error: 'No image URL provided in request body' });
-  }
-
   try {
-    const imageData = req.body.image;
-    console.log('📥 BACKEND: Received image data type:', imageData.startsWith('data:') ? 'data URL' : imageData.startsWith('blob:') ? 'blob URL' : 'other');
-    console.log('📥 BACKEND: First 100 chars:', imageData.substring(0, 100) + '...');
-
-    // Convert data URL to buffer
-    let buffer;
-    if (imageData.startsWith('data:')) {
-      console.log('🔄 Converting data URL to buffer...');
-      const base64Data = imageData.split(',')[1];
-      buffer = Buffer.from(base64Data, 'base64');
-    } else {
-      throw new Error('Only data URLs are supported');
+    // Validate request method
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed, use POST" });
     }
 
-    // Step 1: Upload to Replicate using correct API
-    console.log('🔄 Uploading to Replicate files endpoint...');
-    
-    // Create FormData for multipart upload
-    const formData = new FormData();
-    formData.append('content', new Blob([buffer], { type: 'image/jpeg' }), 'image.jpg');
-    
-    const uploadResp = await fetch("https://api.replicate.com/v1/files", {
-      method: "POST",
-      headers: {
-        "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}`
-      },
-      body: formData
-    });
-
-    if (!uploadResp.ok) {
-      const errorText = await uploadResp.text();
-      console.error('🔴 Upload error response:', errorText);
-      throw new Error(`Replicate upload failed: ${uploadResp.status} - ${errorText}`);
+    // Validate imageUrl parameter
+    const { image: imageUrl } = req.body;
+    if (!imageUrl) {
+      return res.status(400).json({ error: "No imageUrl provided" });
     }
 
-    const uploadData = await uploadResp.json();
-    console.log('📦 Upload response:', uploadData);
+    // Read environment variables with defaults
+    const modelSlug = process.env.ENHANCER_MODEL_SLUG || "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa";
+    const inputKey = process.env.ENHANCER_INPUT_KEY || "image";
+    const extra = process.env.ENHANCER_EXTRA ? JSON.parse(process.env.ENHANCER_EXTRA) : { scale: 2, face_enhance: true };
+
+    console.log("🚀 Running Replicate model:", modelSlug, "on image:", imageUrl);
+
+    // Handle data URL conversion to actual URL if needed
+    let processedImageUrl = imageUrl;
     
-    // Get the correct file URL - check multiple possible formats
-    const replicateUrl = uploadData.urls?.get || uploadData.url || uploadData.urls?.download;
-    console.log('✅ Uploaded to Replicate:', replicateUrl);
-    
-    if (!replicateUrl) {
-      console.error('❌ No file URL in upload response:', uploadData);
-      throw new Error('Failed to get file URL from upload response');
+    if (imageUrl.startsWith('data:')) {
+      console.log('🔄 Converting data URL to Replicate file...');
+      
+      // Convert data URL to buffer
+      const base64Data = imageUrl.split(',')[1];
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      // Upload to Replicate files endpoint
+      const formData = new FormData();
+      formData.append('content', new Blob([buffer], { type: 'image/jpeg' }), 'image.jpg');
+      
+      const uploadResp = await fetch("https://api.replicate.com/v1/files", {
+        method: "POST",
+        headers: {
+          "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}`
+        },
+        body: formData
+      });
+
+      if (!uploadResp.ok) {
+        const errorText = await uploadResp.text();
+        throw new Error(`Replicate upload failed: ${uploadResp.status} - ${errorText}`);
+      }
+
+      const uploadData = await uploadResp.json();
+      processedImageUrl = uploadData.urls?.get || uploadData.url || uploadData.urls?.download;
+      
+      if (!processedImageUrl) {
+        throw new Error('Failed to get file URL from upload response');
+      }
+      
+      console.log('✅ Uploaded to Replicate:', processedImageUrl);
     }
 
-    // Step 2: Use Replicate SDK with robust URL extraction
-    const model = process.env.ENHANCER_MODEL_SLUG;
-    const extra = process.env.ENHANCER_EXTRA ? JSON.parse(process.env.ENHANCER_EXTRA) : {};
-    
+    // Initialize Replicate client
     const replicate = new Replicate({
       auth: process.env.REPLICATE_API_TOKEN,
     });
 
-    const prediction = await replicate.run(model, {
+    // Run Replicate model
+    const prediction = await replicate.run(modelSlug, {
       input: {
-        image: replicateUrl, // ESRGAN expects key "image"
+        [inputKey]: processedImageUrl,
         ...extra,
       },
     });
 
-    // Extract enhanced URL safely
+    console.log("🔍 Raw Replicate response:", prediction);
+
+    // Extract enhanced image URL safely
     let enhancedUrl = null;
-    if (Array.isArray(prediction) && prediction.length > 0) {
+    if (Array.isArray(prediction) && prediction.length > 0 && typeof prediction[0] === "string") {
       enhancedUrl = prediction[0];
     } else if (typeof prediction === "string" && prediction.startsWith("http")) {
       enhancedUrl = prediction;
@@ -196,17 +178,18 @@ async function handleEnhance(req, res) {
     }
 
     if (!enhancedUrl) {
-      throw new Error("Failed to extract valid enhanced image URL");
+      throw new Error("Failed to extract valid enhanced image URL from Replicate response");
     }
 
-    return res.status(200).json({
+    // Return only the enhanced image URL
+    return res.status(200).json({ 
       output: enhancedUrl,
       enhancedUrl: enhancedUrl,
-      success: true
+      success: true 
     });
   } catch (error) {
-    console.error('❌ ENHANCE error', error);
-    return res.status(500).json({ error: error.message || 'Unknown error' });
+    console.error("❌ Enhancement failed:", error);
+    return res.status(500).json({ error: error.message });
   }
 }
 
