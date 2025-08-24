@@ -144,13 +144,13 @@ async function handleEnhance(req, res) {
       auth: process.env.REPLICATE_API_TOKEN,
     });
 
-    // Using THE EXACT SAME Real-ESRGAN that produces Reddit-quality results
+    // Using nightmareai/real-esrgan with PROVEN WORKING SETTINGS
     const output = await replicate.run(
       "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
       {
         input: {
           image: imageUrl,
-          scale: 4,
+          scale: 10,
           face_enhance: true
         }
       }
