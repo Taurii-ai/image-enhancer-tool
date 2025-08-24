@@ -200,7 +200,7 @@ export const enhanceImage = async (
         },
         body: JSON.stringify({ 
           imageUrl: blobUrl,
-          scale: 2,
+          scale: 4,  // Use 4x scale for more dramatic enhancement
           face_enhance: true 
         })
       });
