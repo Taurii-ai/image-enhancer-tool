@@ -101,10 +101,9 @@ async function handleEnhance(req, res) {
 
   console.log('🔍 Environment check:');
   console.log('- REPLICATE_API_TOKEN exists:', !!process.env.REPLICATE_API_TOKEN);
-  console.log('- ENHANCER_MODEL_SLUG:', process.env.ENHANCER_MODEL_SLUG);
-  console.log('- ENHANCER_INPUT_KEY:', process.env.ENHANCER_INPUT_KEY);
-  console.log('- ENHANCER_EXTRA:', process.env.ENHANCER_EXTRA);
-  console.log('- ENHANCER_MODEL_VERSION:', process.env.ENHANCER_MODEL_VERSION);
+  console.log('- Using hardcoded nightmareai/real-esrgan model');
+  console.log('- Version: fb8af17149e938f0b73994a9d13d3d9a2099f5dc98cfe5cf4a0b1a0b56d0f28c');
+  console.log('- Scale: 2x, Face enhance: true');
 
   if (!process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_TOKEN === 'YOUR_TOKEN') {
     console.error('❌ REPLICATE_API_TOKEN missing or placeholder');
@@ -170,15 +169,15 @@ async function handleEnhance(req, res) {
       throw new Error('Failed to get file URL from upload response');
     }
 
-    // Step 2: Use nightmareai Real-ESRGAN (71.8M runs - most popular and reliable)
-    console.log('🧪 Using nightmareai/real-esrgan (most popular model)...');
+    // Step 2: Use nightmareai Real-ESRGAN with CORRECT version hash
+    console.log('🧪 Using nightmareai/real-esrgan with correct version hash...');
     
     const requestBody = {
-      version: "f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
+      version: "fb8af17149e938f0b73994a9d13d3d9a2099f5dc98cfe5cf4a0b1a0b56d0f28c",
       input: {
-        image: replicateUrl,  // nightmareai uses "image"
-        scale: 4,  // 4x for dramatic enhancement
-        face_enhance: true  // Enable face enhancement for better results
+        image: replicateUrl,
+        scale: 2,  // Use 2x scale as specified
+        face_enhance: true
       }
     };
     
@@ -251,9 +250,9 @@ async function handleEnhance(req, res) {
       return res.status(200).json({ 
         output: enhancedUrl,
         model: "nightmareai/real-esrgan",
-        modelVariant: "Real-ESRGAN with face enhancement",
+        modelVariant: "Real-ESRGAN 2x with face enhancement",
         cost: prediction.metrics?.predict_time ? (prediction.metrics.predict_time * 0.000225).toFixed(4) : "0.0025",
-        input: { image: replicateUrl, scale: 4, face_enhance: true },
+        input: { image: replicateUrl, scale: 2, face_enhance: true },
         metrics: prediction.metrics,
         logs: prediction.logs,
         success: true,
