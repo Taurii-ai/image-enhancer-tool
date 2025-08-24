@@ -2,6 +2,7 @@
 import formidable from 'formidable';
 import fs from 'fs';
 import path from 'path';
+import Replicate from 'replicate';
 
 export const config = {
   api: {
@@ -101,9 +102,9 @@ async function handleEnhance(req, res) {
 
   console.log('🔍 Environment check:');
   console.log('- REPLICATE_API_TOKEN exists:', !!process.env.REPLICATE_API_TOKEN);
-  console.log('- Using hardcoded nightmareai/real-esrgan model');
-  console.log('- Version: fb8af17149e938f0b73994a9d13d3d9a2099f5dc98cfe5cf4a0b1a0b56d0f28c');
-  console.log('- Scale: 2x, Face enhance: true');
+  console.log('- ENHANCER_MODEL_SLUG:', process.env.ENHANCER_MODEL_SLUG);
+  console.log('- ENHANCER_INPUT_KEY:', process.env.ENHANCER_INPUT_KEY);
+  console.log('- ENHANCER_EXTRA:', process.env.ENHANCER_EXTRA);
 
   if (!process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_TOKEN === 'YOUR_TOKEN') {
     console.error('❌ REPLICATE_API_TOKEN missing or placeholder');
@@ -169,100 +170,66 @@ async function handleEnhance(req, res) {
       throw new Error('Failed to get file URL from upload response');
     }
 
-    // Step 2: Use nightmareai Real-ESRGAN with CORRECT version hash
-    console.log('🧪 Using nightmareai/real-esrgan with correct version hash...');
+    // Step 2: Use Replicate SDK with environment variables
+    console.log('🧪 Using Replicate SDK with model:', process.env.ENHANCER_MODEL_SLUG);
     
-    const requestBody = {
-      version: "fb8af17149e938f0b73994a9d13d3d9a2099f5dc98cfe5cf4a0b1a0b56d0f28c",
-      input: {
-        image: replicateUrl,
-        scale: 2,  // Use 2x scale as specified
-        face_enhance: true
-      }
+    const replicate = new Replicate({
+      auth: process.env.REPLICATE_API_TOKEN,
+    });
+    
+    const inputConfig = {
+      [process.env.ENHANCER_INPUT_KEY || "image"]: replicateUrl,
+      ...JSON.parse(process.env.ENHANCER_EXTRA || "{}"),
     };
     
-    console.log('📤 Prediction request:', JSON.stringify(requestBody, null, 2));
+    console.log('📤 Replicate input:', JSON.stringify(inputConfig, null, 2));
     
-    const predictionResp = await fetch("https://api.replicate.com/v1/predictions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(requestBody)
+    const prediction = await replicate.run(
+      process.env.ENHANCER_MODEL_SLUG,
+      {
+        input: inputConfig,
+      }
+    );
+    
+    console.log('✅ Replicate output:', prediction);
+
+    // Handle Replicate SDK response (direct output)
+    const enhancedUrl = Array.isArray(prediction) ? prediction[prediction.length - 1] : prediction;
+    
+    console.log('📊 Processed enhanced URL:', enhancedUrl);
+    console.log('📊 Original input URL:', replicateUrl);
+    console.log('📊 URLs are different:', enhancedUrl !== replicateUrl);
+    
+    // Check if we got a valid output
+    if (!enhancedUrl || enhancedUrl === replicateUrl) {
+      console.error('⚠️ Model returned same image or empty result!');
+      console.error('⚠️ Output:', prediction);
+      return res.status(500).json({ 
+        error: "Model didn't enhance image", 
+        debug: { 
+          output: prediction,
+          originalUrl: replicateUrl
+        }
+      });
+    }
+    
+    // Test if enhanced URL is accessible
+    try {
+      const testResp = await fetch(enhancedUrl, { method: 'HEAD' });
+      console.log('📊 Enhanced URL accessibility test:', testResp.ok, testResp.status);
+    } catch (e) {
+      console.error('❌ Enhanced URL not accessible:', e.message);
+    }
+    
+    return res.status(200).json({ 
+      output: enhancedUrl,
+      model: process.env.ENHANCER_MODEL_SLUG || "nightmareai/real-esrgan",
+      modelVariant: "Real-ESRGAN with environment config",
+      cost: "0.0025",
+      input: inputConfig,
+      success: true,
+      enhanced: enhancedUrl !== replicateUrl  // Flag to show if actually enhanced
     });
-
-    if (!predictionResp.ok) {
-      const errorText = await predictionResp.text();
-      console.error('🔴 Prediction error response:', errorText);
-      throw new Error(`Prediction failed: ${predictionResp.status} - ${errorText}`);
-    }
-
-    let prediction = await predictionResp.json();
-    console.log('✅ Prediction created:', prediction.id);
-
-    // Poll for completion
-    while (!["succeeded", "failed"].includes(prediction.status)) {
-      console.log(`⏳ Status: ${prediction.status}, waiting...`);
-      await new Promise(r => setTimeout(r, 1000));
-      const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-        headers: {
-          "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}`,
-        },
-      });
-      prediction = await pollRes.json();
-    }
-
-    if (prediction.status === "succeeded") {
-      console.log('✅ Enhancement completed!');
-      console.log('📊 Raw prediction output:', JSON.stringify(prediction.output, null, 2));
-      console.log('📊 Full prediction object:', JSON.stringify(prediction, null, 2));
-      
-      const enhancedUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
-      
-      console.log('📊 Processed enhanced URL:', enhancedUrl);
-      console.log('📊 Original input URL:', replicateUrl);
-      console.log('📊 URLs are different:', enhancedUrl !== replicateUrl);
-      
-      // Check if we got a valid output
-      if (!enhancedUrl || enhancedUrl === replicateUrl) {
-        console.error('⚠️ Model returned same image or empty result!');
-        console.error('⚠️ Output:', prediction.output);
-        console.error('⚠️ Status:', prediction.status);
-        return res.status(500).json({ 
-          error: "Model didn't enhance image", 
-          debug: { 
-            output: prediction.output, 
-            status: prediction.status,
-            originalUrl: replicateUrl
-          }
-        });
-      }
-      
-      // Test if enhanced URL is accessible
-      try {
-        const testResp = await fetch(enhancedUrl, { method: 'HEAD' });
-        console.log('📊 Enhanced URL accessibility test:', testResp.ok, testResp.status);
-      } catch (e) {
-        console.error('❌ Enhanced URL not accessible:', e.message);
-      }
-      
-      return res.status(200).json({ 
-        output: enhancedUrl,
-        model: "nightmareai/real-esrgan",
-        modelVariant: "Real-ESRGAN 2x with face enhancement",
-        cost: prediction.metrics?.predict_time ? (prediction.metrics.predict_time * 0.000225).toFixed(4) : "0.0025",
-        input: { image: replicateUrl, scale: 2, face_enhance: true },
-        metrics: prediction.metrics,
-        logs: prediction.logs,
-        success: true,
-        id: prediction.id,
-        enhanced: enhancedUrl !== replicateUrl  // Flag to show if actually enhanced
-      });
-    } else {
-      console.error('❌ Enhancement failed:', prediction);
-      return res.status(500).json({ error: "Enhancement failed", details: prediction });
-    }
   } catch (error) {
     console.error('❌ ENHANCE error', error);
     return res.status(500).json({ error: error.message || 'Unknown error' });
