@@ -171,38 +171,21 @@ export const enhanceImage = async (
     let enhancedUrl: string;
     
     try {
-      onProgress({ status: 'processing', progress: 10, message: 'Uploading to Vercel Blob...' });
+      onProgress({ status: 'processing', progress: 10, message: 'Converting image...' });
       
-      // Step 1: Upload file to Vercel Blob
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const uploadRes = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!uploadRes.ok) {
-        const errorData = await uploadRes.json().catch(() => ({}));
-        throw new Error(errorData.error || `Upload failed: ${uploadRes.status}`);
-      }
-
-      const { url: blobUrl } = await uploadRes.json();
-      console.log('📦 Uploaded to Vercel Blob:', blobUrl);
+      // Convert file to data URL - SIMPLE APPROACH
+      const imageDataUrl = await fileToDataURL(file);
+      console.log('📷 Image converted to data URL, size:', imageDataUrl.length);
 
       onProgress({ status: 'processing', progress: 30, message: 'Sending to Real-ESRGAN...' });
       
-      // Step 2: Send blob URL to enhancement API
+      // Send directly to enhancement API - NO COMPLICATIONS
       const response = await fetch('/api/image-processing?action=enhance', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          imageUrl: blobUrl,
-          scale: 4,  // Use 4x scale for more dramatic enhancement
-          face_enhance: true 
-        })
+        body: JSON.stringify({ image: imageDataUrl })
       });
 
       if (!response.ok) {
