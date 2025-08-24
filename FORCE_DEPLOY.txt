@@ -1,0 +1,12 @@
+DEPLOYMENT FORCE TRIGGER - Thu Aug 22 17:40:00 EEST 2025
+
+CRITICAL BUG FIX: Fixed infinite rendering loop in ResultsDisplay component.
+Enhanced images should now display properly without browser hang.
+
+Changes:
+- Fixed useEffect dependency array causing infinite re-renders
+- Removed debug UI components 
+- Cleaned up excessive console logging
+- Real-ESRGAN API is working correctly
+
+This file exists solely to trigger Vercel deployment.
