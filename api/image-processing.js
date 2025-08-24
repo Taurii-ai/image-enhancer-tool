@@ -193,21 +193,27 @@ async function handleEnhance(req, res) {
     
     console.log('✅ Replicate output:', prediction);
 
-    // Handle Replicate SDK response (direct output)
-    const enhancedUrl = Array.isArray(prediction) ? prediction[prediction.length - 1] : prediction;
+    // Fix: Extract actual URL from Replicate response
+    console.log('🔍 Raw prediction type:', typeof prediction);
+    console.log('🔍 Raw prediction value:', prediction);
     
-    console.log('📊 Processed enhanced URL:', enhancedUrl);
+    // Replicate SDK returns either array of URLs or single URL/object
+    const enhancedUrl = Array.isArray(prediction) ? prediction[0] : prediction;
+    
+    console.log('📊 Extracted enhanced URL:', enhancedUrl);
     console.log('📊 Original input URL:', replicateUrl);
     console.log('📊 URLs are different:', enhancedUrl !== replicateUrl);
     
-    // Check if we got a valid output
-    if (!enhancedUrl || enhancedUrl === replicateUrl) {
-      console.error('⚠️ Model returned same image or empty result!');
-      console.error('⚠️ Output:', prediction);
+    // Validate we got a proper URL string
+    if (!enhancedUrl || typeof enhancedUrl !== 'string' || enhancedUrl === replicateUrl) {
+      console.error('⚠️ Invalid enhanced URL result!');
+      console.error('⚠️ Prediction:', prediction);
+      console.error('⚠️ Extracted URL:', enhancedUrl);
       return res.status(500).json({ 
-        error: "Model didn't enhance image", 
+        error: "Failed to extract valid enhanced image URL", 
         debug: { 
-          output: prediction,
+          rawPrediction: prediction,
+          extractedUrl: enhancedUrl,
           originalUrl: replicateUrl
         }
       });
@@ -223,12 +229,14 @@ async function handleEnhance(req, res) {
     
     return res.status(200).json({ 
       output: enhancedUrl,
+      originalUrl: replicateUrl,
+      enhancedUrl: enhancedUrl,  // Also provide in expected format
       model: process.env.ENHANCER_MODEL_SLUG || "nightmareai/real-esrgan",
       modelVariant: "Real-ESRGAN with environment config",
       cost: "0.0025",
       input: inputConfig,
       success: true,
-      enhanced: enhancedUrl !== replicateUrl  // Flag to show if actually enhanced
+      enhanced: enhancedUrl !== replicateUrl
     });
   } catch (error) {
     console.error('❌ ENHANCE error', error);
