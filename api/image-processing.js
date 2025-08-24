@@ -144,16 +144,14 @@ async function handleEnhance(req, res) {
       auth: process.env.REPLICATE_API_TOKEN,
     });
 
-    // Using sczhou/codeformer - PROVEN WORKING FACE RESTORATION + UPSCALE
+    // Using THE EXACT SAME Real-ESRGAN that produces Reddit-quality results
     const output = await replicate.run(
-      "sczhou/codeformer:7de2ea26c616d5bf2245ad0d5e24f0ff9a6204578a5c876db53142edd9d2cd56",
+      "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
       {
         input: {
           image: imageUrl,
-          upscale: 4,
-          face_upsample: true,
-          background_enhance: true,
-          codeformer_fidelity: 0.9
+          scale: 4,
+          face_enhance: true
         }
       }
     );
