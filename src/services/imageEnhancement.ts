@@ -205,7 +205,20 @@ export const enhanceImage = async (
         throw new Error(result.error || 'Enhancement failed');
       }
 
-      if (!result.output) {
+      // Handle debug response with rawPrediction
+      if (result.rawPrediction) {
+        console.log('🔍 RAW PREDICTION DEBUG:', result.rawPrediction);
+        console.log('🔍 RAW PREDICTION JSON:', JSON.stringify(result.rawPrediction, null, 2));
+        
+        // For debugging - use a placeholder URL so frontend doesn't crash
+        enhancedUrl = "https://replicate.delivery/debug/placeholder.png";
+        
+        // Log detailed structure analysis
+        console.log('🔍 PREDICTION TYPE:', typeof result.rawPrediction);
+        console.log('🔍 IS ARRAY:', Array.isArray(result.rawPrediction));
+        console.log('🔍 OBJECT KEYS:', result.rawPrediction ? Object.keys(result.rawPrediction) : null);
+        console.log('🔍 OBJECT VALUES:', result.rawPrediction ? Object.values(result.rawPrediction) : null);
+      } else if (!result.output) {
         throw new Error('No enhanced image URL in response');
       } else {
         // Handle normal output (when not in debug mode)

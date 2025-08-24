@@ -167,24 +167,9 @@ async function handleEnhance(req, res) {
 
     console.log("🔍 Raw Replicate response:", prediction);
 
-    // Extract enhanced image URL safely
-    let enhancedUrl = null;
-    if (Array.isArray(prediction) && prediction.length > 0 && typeof prediction[0] === "string") {
-      enhancedUrl = prediction[0];
-    } else if (typeof prediction === "string" && prediction.startsWith("http")) {
-      enhancedUrl = prediction;
-    } else if (prediction?.output && Array.isArray(prediction.output) && prediction.output.length > 0) {
-      enhancedUrl = prediction.output[0];
-    }
-
-    if (!enhancedUrl) {
-      throw new Error("Failed to extract valid enhanced image URL from Replicate response");
-    }
-
-    // Return only the enhanced image URL
+    // TEMP: send raw response for debugging
     return res.status(200).json({ 
-      output: enhancedUrl,
-      enhancedUrl: enhancedUrl,
+      rawPrediction: prediction,
       success: true 
     });
   } catch (error) {
