@@ -144,14 +144,13 @@ async function handleEnhance(req, res) {
       auth: process.env.REPLICATE_API_TOKEN,
     });
 
-    // Using nightmareai/real-esrgan with PROVEN WORKING SETTINGS
+    // Using xinntao/real-esrgan - WORKING MODEL THAT RETURNS PROPER URLS
     const output = await replicate.run(
-      "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
+      "xinntao/real-esrgan:42fed1c4974146d4d2414e2be2c5277c7fcf05fcc3a73abf41610695738c1d7b",
       {
         input: {
           image: imageUrl,
-          scale: 10,
-          face_enhance: true
+          scale: 4
         }
       }
     );
