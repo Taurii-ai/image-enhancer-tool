@@ -174,120 +174,35 @@ async function handleEnhance(req, res) {
     const model = process.env.ENHANCER_MODEL_SLUG;
     const extra = process.env.ENHANCER_EXTRA ? JSON.parse(process.env.ENHANCER_EXTRA) : {};
     
-    console.log("🚀 Running Replicate with model:", model, "on image:", replicateUrl);
-    console.log("🚀 Input config:", { image: replicateUrl, ...extra });
-    console.log("🚀 API Token exists:", !!process.env.REPLICATE_API_TOKEN);
-    console.log("🚀 API Token length:", process.env.REPLICATE_API_TOKEN?.length || 0);
-    
     const replicate = new Replicate({
       auth: process.env.REPLICATE_API_TOKEN,
     });
-    
-    console.log("🚀 Replicate instance created successfully");
-    
-    let prediction;
-    try {
-      prediction = await replicate.run(model, {
-        input: {
-          image: replicateUrl,  // ESRGAN expects key `image`
-          ...extra,
-        },
-      });
-      
-      console.log("🔍 Replicate call completed successfully");
-      console.log("🔍 Prediction type:", typeof prediction);
-      console.log("🔍 Prediction keys:", prediction ? Object.keys(prediction) : 'null/undefined');
-      console.log("🔍 Replicate raw response:", prediction);
-      
-    } catch (replicateError) {
-      console.error("❌ Replicate API Error:", replicateError);
-      console.error("❌ Error message:", replicateError.message);
-      console.error("❌ Error stack:", replicateError.stack);
-      console.error("❌ Model used:", model);
-      console.error("❌ Input used:", { image: replicateUrl, ...extra });
-      
-      return res.status(500).json({
-        error: `Replicate API failed: ${replicateError.message}`,
-        details: {
-          model,
-          input: { image: replicateUrl, ...extra },
-          errorType: replicateError.name,
-          errorMessage: replicateError.message
-        }
-      });
+
+    const prediction = await replicate.run(model, {
+      input: {
+        image: replicateUrl, // ESRGAN expects key "image"
+        ...extra,
+      },
+    });
+
+    // Extract enhanced URL safely
+    let enhancedUrl = null;
+    if (Array.isArray(prediction) && prediction.length > 0) {
+      enhancedUrl = prediction[0];
+    } else if (typeof prediction === "string" && prediction.startsWith("http")) {
+      enhancedUrl = prediction;
+    } else if (prediction?.output && Array.isArray(prediction.output) && prediction.output.length > 0) {
+      enhancedUrl = prediction.output[0];
     }
 
-    // BACKEND URL EXTRACTION - STOP DEBUGGING, JUST FIX IT
-    console.log("🔧 BACKEND: Starting URL extraction...");
-    let enhancedUrl = null;
-    
-    // Method 1: Direct string conversion with regex
-    const predictionString = String(prediction);
-    const urlMatch = predictionString.match(/https:\/\/replicate\.delivery\/[^\s\]"}]+/);
-    if (urlMatch) {
-      enhancedUrl = urlMatch[0];
-      console.log("✅ BACKEND: Regex extracted URL:", enhancedUrl);
-    }
-    
-    // Method 2: Try standard extraction methods
     if (!enhancedUrl) {
-      if (Array.isArray(prediction) && prediction.length > 0) {
-        enhancedUrl = prediction[0];
-        console.log("✅ BACKEND: Array extraction:", enhancedUrl);
-      } else if (typeof prediction === "string" && prediction.includes("replicate.delivery")) {
-        enhancedUrl = prediction;
-        console.log("✅ BACKEND: Direct string:", enhancedUrl);
-      } else if (prediction && prediction.output) {
-        enhancedUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
-        console.log("✅ BACKEND: Output property:", enhancedUrl);
-      }
+      throw new Error("Failed to extract valid enhanced image URL");
     }
-    
-    // Method 3: Try valueOf/toString methods
-    if (!enhancedUrl && prediction && typeof prediction === 'object') {
-      try {
-        if (prediction.valueOf) {
-          const valueResult = prediction.valueOf();
-          if (typeof valueResult === 'string' && valueResult.includes('replicate.delivery')) {
-            enhancedUrl = valueResult;
-            console.log("✅ BACKEND: valueOf method:", enhancedUrl);
-          }
-        }
-        if (!enhancedUrl && prediction.toString) {
-          const stringResult = prediction.toString();
-          if (typeof stringResult === 'string' && stringResult.includes('replicate.delivery')) {
-            enhancedUrl = stringResult;
-            console.log("✅ BACKEND: toString method:", enhancedUrl);
-          }
-        }
-      } catch (e) {
-        console.log("Method 3 failed:", e.message);
-      }
-    }
-    
-    if (!enhancedUrl) {
-      console.error("❌ BACKEND: Could not extract URL from prediction:", prediction);
-      return res.status(500).json({
-        error: "Could not extract enhanced image URL",
-        debug: {
-          predictionType: typeof prediction,
-          predictionString: String(prediction),
-          predictionKeys: prediction ? Object.keys(prediction) : null,
-          rawPrediction: prediction
-        }
-      });
-    }
-    
-    console.log("🎉 BACKEND: Successfully extracted URL:", enhancedUrl);
-    
-    // Return normal response format that frontend expects
+
     return res.status(200).json({
       output: enhancedUrl,
-      originalUrl: replicateUrl,
       enhancedUrl: enhancedUrl,
-      success: true,
-      model: model,
-      cost: "0.0025"
+      success: true
     });
   } catch (error) {
     console.error('❌ ENHANCE error', error);
