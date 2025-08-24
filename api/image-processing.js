@@ -163,7 +163,7 @@ async function handleEnhance(req, res) {
       default:
         modelSlug = process.env.ENHANCER_MODEL_SLUG_GENERAL;
         modelParams = JSON.parse(process.env.ENHANCER_EXTRA_GENERAL || '{}');
-        console.log("📸 Using Swin2SR for general photo enhancement");
+        console.log("📸 Using SwinIR for general photo enhancement");
         break;
     }
 
