@@ -94,99 +94,97 @@ async function handleUpload(req, res) {
   }
 }
 
-// Handle image enhancement with production-ready Replicate integration
+// Handle image enhancement with Vercel Blob + Replicate fetch API
 async function handleEnhance(req, res) {
   try {
-    // Validate request method
     if (req.method !== "POST") {
       return res.status(405).json({ error: "Method not allowed, use POST" });
     }
 
-    // Validate imageUrl parameter
-    const { image: imageUrl } = req.body;
+    const { imageUrl, scale = 2, face_enhance = true } = req.body;
+
     if (!imageUrl) {
-      return res.status(400).json({ error: "No imageUrl provided" });
+      return res.status(400).json({ error: "Missing imageUrl" });
     }
 
-    // Read environment variables with defaults
-    const modelSlug = process.env.ENHANCER_MODEL_SLUG || "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa";
-    const inputKey = process.env.ENHANCER_INPUT_KEY || "image";
-    const extra = process.env.ENHANCER_EXTRA ? JSON.parse(process.env.ENHANCER_EXTRA) : { scale: 2, face_enhance: true };
+    console.log("🚀 Processing image:", imageUrl);
+    console.log("🔑 API Token available:", !!process.env.REPLICATE_API_TOKEN);
 
-    console.log("🚀 Running Replicate model:", modelSlug, "on image:", imageUrl);
-    console.log("🔑 API Token (first 10 chars):", process.env.REPLICATE_API_TOKEN?.substring(0, 10) + "...");
-    console.log("🎛️ Input config:", { [inputKey]: "imageUrl", ...extra });
-
-    // Handle data URL conversion to actual URL if needed
-    let processedImageUrl = imageUrl;
-    
-    if (imageUrl.startsWith('data:')) {
-      console.log('🔄 Converting data URL to Replicate file...');
-      
-      // Convert data URL to buffer
-      const base64Data = imageUrl.split(',')[1];
-      const buffer = Buffer.from(base64Data, 'base64');
-      
-      // Upload to Replicate files endpoint
-      const formData = new FormData();
-      formData.append('content', new Blob([buffer], { type: 'image/jpeg' }), 'image.jpg');
-      
-      const uploadResp = await fetch("https://api.replicate.com/v1/files", {
-        method: "POST",
-        headers: {
-          "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}`
-        },
-        body: formData
-      });
-
-      if (!uploadResp.ok) {
-        const errorText = await uploadResp.text();
-        throw new Error(`Replicate upload failed: ${uploadResp.status} - ${errorText}`);
-      }
-
-      const uploadData = await uploadResp.json();
-      processedImageUrl = uploadData.urls?.get || uploadData.url || uploadData.urls?.download;
-      
-      if (!processedImageUrl) {
-        throw new Error('Failed to get file URL from upload response');
-      }
-      
-      console.log('✅ Uploaded to Replicate:', processedImageUrl);
-    }
-
-    // Initialize Replicate client
-    const replicate = new Replicate({
-      auth: process.env.REPLICATE_API_TOKEN,
-    });
-
-    // Run Replicate model with detailed logging
-    console.log("🔄 Calling replicate.run with:");
-    console.log("  - Model:", modelSlug);
-    console.log("  - Input:", { [inputKey]: processedImageUrl, ...extra });
-    
-    const prediction = await replicate.run(modelSlug, {
-      input: {
-        [inputKey]: processedImageUrl,
-        ...extra,
+    // Call Replicate API with fetch (not SDK)
+    const replicateRes = await fetch("https://api.replicate.com/v1/predictions", {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        version: "f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
+        input: {
+          image: imageUrl, // public URL from Vercel Blob
+          scale,
+          face_enhance,
+        },
+      }),
     });
 
-    console.log("🔍 Raw Replicate response type:", typeof prediction);
-    console.log("🔍 Raw Replicate response:", prediction);
-    console.log("🔍 Raw Replicate response JSON:", JSON.stringify(prediction, null, 2));
+    if (!replicateRes.ok) {
+      const errorText = await replicateRes.text();
+      console.error("❌ Replicate API error:", errorText);
+      throw new Error(`Replicate API failed: ${replicateRes.status} - ${errorText}`);
+    }
 
-    // TEMP: send raw response for debugging with additional info
-    return res.status(200).json({ 
-      rawPrediction: prediction,
-      predictionType: typeof prediction,
-      isArray: Array.isArray(prediction),
-      keys: prediction ? Object.keys(prediction) : null,
-      modelUsed: modelSlug,
-      inputUsed: { [inputKey]: processedImageUrl, ...extra },
-      success: true 
-    });
+    const prediction = await replicateRes.json();
+    console.log("🔄 Initial prediction:", prediction);
+
+    // Poll until finished
+    let finalPrediction = prediction;
+    let attempts = 0;
+    const maxAttempts = 30; // 1 minute max
+
+    while (
+      finalPrediction.status !== "succeeded" &&
+      finalPrediction.status !== "failed" &&
+      attempts < maxAttempts
+    ) {
+      await new Promise((r) => setTimeout(r, 2000)); // Wait 2 seconds
+      
+      const pollRes = await fetch(
+        `https://api.replicate.com/v1/predictions/${prediction.id}`,
+        {
+          headers: {
+            Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
+          },
+        }
+      );
+      
+      finalPrediction = await pollRes.json();
+      console.log(`🔄 Poll attempt ${attempts + 1}:`, finalPrediction.status);
+      attempts++;
+    }
+
+    console.log("🔍 Final prediction:", JSON.stringify(finalPrediction, null, 2));
+
+    if (finalPrediction.status === "succeeded") {
+      const enhancedUrl = Array.isArray(finalPrediction.output) 
+        ? finalPrediction.output[0] 
+        : finalPrediction.output;
+      
+      console.log("✅ Enhanced image URL:", enhancedUrl);
+      
+      return res.status(200).json({ 
+        output: enhancedUrl,
+        enhancedUrl: enhancedUrl,
+        success: true 
+      });
+    } else {
+      console.error("❌ Enhancement failed:", finalPrediction);
+      return res.status(500).json({ 
+        error: "Enhancement failed", 
+        details: finalPrediction 
+      });
+    }
   } catch (error) {
-    console.error("❌ Enhancement failed:", error);
+    console.error("❌ Enhancement error:", error);
     return res.status(500).json({ error: error.message });
   }
 }

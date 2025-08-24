@@ -171,20 +171,38 @@ export const enhanceImage = async (
     let enhancedUrl: string;
     
     try {
-      onProgress({ status: 'processing', progress: 10, message: 'Converting image to base64...' });
+      onProgress({ status: 'processing', progress: 10, message: 'Uploading to Vercel Blob...' });
       
-      // Convert file to data URL for API
-      const imageDataUrl = await fileToDataURL(file);
+      // Step 1: Upload file to Vercel Blob
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        const errorData = await uploadRes.json().catch(() => ({}));
+        throw new Error(errorData.error || `Upload failed: ${uploadRes.status}`);
+      }
+
+      const { url: blobUrl } = await uploadRes.json();
+      console.log('📦 Uploaded to Vercel Blob:', blobUrl);
+
+      onProgress({ status: 'processing', progress: 30, message: 'Sending to Real-ESRGAN...' });
       
-      onProgress({ status: 'processing', progress: 20, message: 'Sending to Real-ESRGAN...' });
-      
-      // Send image URL to backend (exactly as specified)
+      // Step 2: Send blob URL to enhancement API
       const response = await fetch('/api/image-processing?action=enhance', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ image: imageDataUrl })
+        body: JSON.stringify({ 
+          imageUrl: blobUrl,
+          scale: 2,
+          face_enhance: true 
+        })
       });
 
       if (!response.ok) {
@@ -205,25 +223,14 @@ export const enhanceImage = async (
         throw new Error(result.error || 'Enhancement failed');
       }
 
-      // Handle debug response with rawPrediction
-      if (result.rawPrediction) {
-        console.log('🔍 RAW PREDICTION DEBUG:', result.rawPrediction);
-        console.log('🔍 RAW PREDICTION JSON:', JSON.stringify(result.rawPrediction, null, 2));
-        
-        // For debugging - use a placeholder URL so frontend doesn't crash
-        enhancedUrl = "https://replicate.delivery/debug/placeholder.png";
-        
-        // Log detailed structure analysis
-        console.log('🔍 PREDICTION TYPE:', typeof result.rawPrediction);
-        console.log('🔍 IS ARRAY:', Array.isArray(result.rawPrediction));
-        console.log('🔍 OBJECT KEYS:', result.rawPrediction ? Object.keys(result.rawPrediction) : null);
-        console.log('🔍 OBJECT VALUES:', result.rawPrediction ? Object.values(result.rawPrediction) : null);
-      } else if (!result.output) {
+      if (!result.output) {
         throw new Error('No enhanced image URL in response');
-      } else {
-        // Handle normal output (when not in debug mode)
-        enhancedUrl = Array.isArray(result.output) ? result.output[0] : result.output;
       }
+
+      // Handle array output (Replicate returns array)
+      enhancedUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+      
+      console.log('✅ Enhanced image URL received:', enhancedUrl);
       
       onProgress({ status: 'processing', progress: 90, message: 'Finalizing...' });
       
