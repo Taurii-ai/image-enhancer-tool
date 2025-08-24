@@ -217,17 +217,77 @@ async function handleEnhance(req, res) {
       });
     }
 
-    // TEMPORARY: send back raw response so frontend shows it
-    return res.status(200).json({
-      originalUrl: replicateUrl,
-      replicateRaw: prediction, // 👈 debugging payload
-      success: true,
-      debug: {
-        model,
-        input: { image: replicateUrl, ...extra },
-        predictionType: typeof prediction,
-        predictionKeys: prediction ? Object.keys(prediction) : null
+    // BACKEND URL EXTRACTION - STOP DEBUGGING, JUST FIX IT
+    console.log("🔧 BACKEND: Starting URL extraction...");
+    let enhancedUrl = null;
+    
+    // Method 1: Direct string conversion with regex
+    const predictionString = String(prediction);
+    const urlMatch = predictionString.match(/https:\/\/replicate\.delivery\/[^\s\]"}]+/);
+    if (urlMatch) {
+      enhancedUrl = urlMatch[0];
+      console.log("✅ BACKEND: Regex extracted URL:", enhancedUrl);
+    }
+    
+    // Method 2: Try standard extraction methods
+    if (!enhancedUrl) {
+      if (Array.isArray(prediction) && prediction.length > 0) {
+        enhancedUrl = prediction[0];
+        console.log("✅ BACKEND: Array extraction:", enhancedUrl);
+      } else if (typeof prediction === "string" && prediction.includes("replicate.delivery")) {
+        enhancedUrl = prediction;
+        console.log("✅ BACKEND: Direct string:", enhancedUrl);
+      } else if (prediction && prediction.output) {
+        enhancedUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+        console.log("✅ BACKEND: Output property:", enhancedUrl);
       }
+    }
+    
+    // Method 3: Try valueOf/toString methods
+    if (!enhancedUrl && prediction && typeof prediction === 'object') {
+      try {
+        if (prediction.valueOf) {
+          const valueResult = prediction.valueOf();
+          if (typeof valueResult === 'string' && valueResult.includes('replicate.delivery')) {
+            enhancedUrl = valueResult;
+            console.log("✅ BACKEND: valueOf method:", enhancedUrl);
+          }
+        }
+        if (!enhancedUrl && prediction.toString) {
+          const stringResult = prediction.toString();
+          if (typeof stringResult === 'string' && stringResult.includes('replicate.delivery')) {
+            enhancedUrl = stringResult;
+            console.log("✅ BACKEND: toString method:", enhancedUrl);
+          }
+        }
+      } catch (e) {
+        console.log("Method 3 failed:", e.message);
+      }
+    }
+    
+    if (!enhancedUrl) {
+      console.error("❌ BACKEND: Could not extract URL from prediction:", prediction);
+      return res.status(500).json({
+        error: "Could not extract enhanced image URL",
+        debug: {
+          predictionType: typeof prediction,
+          predictionString: String(prediction),
+          predictionKeys: prediction ? Object.keys(prediction) : null,
+          rawPrediction: prediction
+        }
+      });
+    }
+    
+    console.log("🎉 BACKEND: Successfully extracted URL:", enhancedUrl);
+    
+    // Return normal response format that frontend expects
+    return res.status(200).json({
+      output: enhancedUrl,
+      originalUrl: replicateUrl,
+      enhancedUrl: enhancedUrl,
+      success: true,
+      model: model,
+      cost: "0.0025"
     });
   } catch (error) {
     console.error('❌ ENHANCE error', error);

@@ -205,76 +205,7 @@ export const enhanceImage = async (
         throw new Error(result.error || 'Enhancement failed');
       }
 
-      // Handle debug response with replicateRaw - BRUTE FORCE APPROACH
-      if (result.replicateRaw) {
-        console.log('🔍 BRUTE FORCE: Raw response:', result.replicateRaw);
-        
-        const response = result.replicateRaw;
-        let enhancedUrl = null;
-        
-        // BRUTE FORCE 1: Just convert everything to string and extract URL
-        const responseString = String(response);
-        const urlMatch = responseString.match(/https:\/\/[^\s\]"}]+/);
-        if (urlMatch) {
-          enhancedUrl = urlMatch[0];
-          console.log('💪 BRUTE FORCE SUCCESS: Regex extracted:', enhancedUrl);
-        }
-        
-        // BRUTE FORCE 2: If no match, try JSON stringify and extract
-        if (!enhancedUrl) {
-          try {
-            const jsonString = JSON.stringify(response);
-            const jsonUrlMatch = jsonString.match(/https:\/\/[^"]+/);
-            if (jsonUrlMatch) {
-              enhancedUrl = jsonUrlMatch[0];
-              console.log('💪 BRUTE FORCE SUCCESS: JSON extracted:', enhancedUrl);
-            }
-          } catch (e) {
-            console.log('JSON stringify failed, continuing...');
-          }
-        }
-        
-        // BRUTE FORCE 3: Try all known methods
-        if (!enhancedUrl) {
-          const attempts = [
-            () => Array.isArray(response) ? response[0] : null,
-            () => typeof response === 'string' ? response : null,
-            () => response?.output,
-            () => response?.[0],
-            () => response?.valueOf?.(),
-            () => response?.toString?.(),
-            () => Object.values(response || {})[0]
-          ];
-          
-          for (let i = 0; i < attempts.length; i++) {
-            try {
-              const attempt = attempts[i]();
-              if (attempt && typeof attempt === 'string' && attempt.includes('replicate.delivery')) {
-                enhancedUrl = attempt;
-                console.log(`💪 BRUTE FORCE SUCCESS: Method ${i+1}:`, enhancedUrl);
-                break;
-              }
-            } catch (e) {
-              // Continue to next attempt
-            }
-          }
-        }
-        
-        // BRUTE FORCE 4: Last resort - hardcoded known format
-        if (!enhancedUrl) {
-          // Based on the screenshot, I know it contains a replicate.delivery URL
-          const fallbackUrl = "https://replicate.delivery/pbxt/abc123/output.png"; // Placeholder
-          console.log('🚨 USING FALLBACK URL - CHECK LOGS FOR REAL URL');
-          enhancedUrl = fallbackUrl;
-        }
-        
-        if (enhancedUrl) {
-          console.log('🎉 FINAL EXTRACTED URL:', enhancedUrl);
-        } else {
-          console.error('❌ BRUTE FORCE FAILED: Could not extract URL');
-          throw new Error('Brute force URL extraction failed');
-        }
-      } else if (!result.output) {
+      if (!result.output) {
         throw new Error('No enhanced image URL in response');
       } else {
         // Handle normal output (when not in debug mode)
