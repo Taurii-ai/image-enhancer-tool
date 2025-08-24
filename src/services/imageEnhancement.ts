@@ -208,19 +208,65 @@ export const enhanceImage = async (
       // Handle debug response with replicateRaw
       if (result.replicateRaw) {
         console.log('🔍 DEBUG: Raw Replicate response:', result.replicateRaw);
+        console.log('🔍 DEBUG: Response type:', typeof result.replicateRaw);
+        console.log('🔍 DEBUG: Is Array:', Array.isArray(result.replicateRaw));
+        console.log('🔍 DEBUG: Object keys:', Object.keys(result.replicateRaw));
+        console.log('🔍 DEBUG: Object values:', Object.values(result.replicateRaw));
+        console.log('🔍 DEBUG: JSON stringify:', JSON.stringify(result.replicateRaw));
         
-        // Extract URL from debug response
-        if (Array.isArray(result.replicateRaw) && result.replicateRaw.length > 0) {
-          enhancedUrl = result.replicateRaw[0];
-          console.log('✅ DEBUG: Extracted from array[0]:', enhancedUrl);
-        } else if (typeof result.replicateRaw === "string" && result.replicateRaw.startsWith("http")) {
-          enhancedUrl = result.replicateRaw;
-          console.log('✅ DEBUG: Extracted as direct URL:', enhancedUrl);
-        } else if (result.replicateRaw?.output && Array.isArray(result.replicateRaw.output)) {
-          enhancedUrl = result.replicateRaw.output[0];
-          console.log('✅ DEBUG: Extracted from prediction.output[0]:', enhancedUrl);
+        // Deep inspection of the object
+        const response = result.replicateRaw;
+        
+        // Try multiple extraction methods
+        let possibleUrl = null;
+        
+        // Method 1: Check if it's an array
+        if (Array.isArray(response) && response.length > 0) {
+          possibleUrl = response[0];
+          console.log('✅ DEBUG: Method 1 - Array[0]:', possibleUrl);
+        }
+        // Method 2: Check if it's a direct URL string
+        else if (typeof response === "string" && response.startsWith("http")) {
+          possibleUrl = response;
+          console.log('✅ DEBUG: Method 2 - Direct URL:', possibleUrl);
+        }
+        // Method 3: Check for output property
+        else if (response && response.output) {
+          console.log('🔍 DEBUG: Found output property:', response.output);
+          if (Array.isArray(response.output)) {
+            possibleUrl = response.output[0];
+            console.log('✅ DEBUG: Method 3 - output[0]:', possibleUrl);
+          } else {
+            possibleUrl = response.output;
+            console.log('✅ DEBUG: Method 3 - direct output:', possibleUrl);
+          }
+        }
+        // Method 4: Look for any property that looks like a URL
+        else if (response && typeof response === 'object') {
+          console.log('🔍 DEBUG: Searching object properties for URLs...');
+          for (const [key, value] of Object.entries(response)) {
+            console.log(`🔍 DEBUG: Checking ${key}:`, value);
+            if (typeof value === 'string' && value.startsWith('http')) {
+              possibleUrl = value;
+              console.log(`✅ DEBUG: Method 4 - Found URL in ${key}:`, possibleUrl);
+              break;
+            } else if (Array.isArray(value)) {
+              const urlInArray = value.find(item => typeof item === 'string' && item.startsWith('http'));
+              if (urlInArray) {
+                possibleUrl = urlInArray;
+                console.log(`✅ DEBUG: Method 4 - Found URL in ${key} array:`, possibleUrl);
+                break;
+              }
+            }
+          }
+        }
+        
+        if (possibleUrl) {
+          enhancedUrl = possibleUrl;
+          console.log('🎉 DEBUG: Successfully extracted URL:', enhancedUrl);
         } else {
           console.error('❌ DEBUG: Could not extract URL from:', result.replicateRaw);
+          console.error('❌ DEBUG: Full response structure:', JSON.stringify(result.replicateRaw, null, 2));
           throw new Error('Could not extract enhanced image URL from debug response');
         }
       } else if (!result.output) {
