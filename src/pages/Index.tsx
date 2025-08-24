@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Sparkles, Wand2, Zap, Menu, X } from 'lucide-react';
 import { EnhpixLogo } from '@/components/ui/enhpix-logo';
 import { ImageUploader } from '@/components/ImageUploader';
+import { CategorySelector, type EnhancementCategory } from '@/components/CategorySelector';
 import { ProcessingStatus } from '@/components/ProcessingStatus';
 import { ResultsDisplay } from '@/components/ResultsDisplay';
 import { ImageEnhancerSlider } from '@/components/ImageEnhancerSlider';
@@ -38,6 +39,7 @@ const Index = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
   const [enhancementProgress, setEnhancementProgress] = useState<EnhancementProgress | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<EnhancementCategory>('general');
   
   const handleNavigation = (path: string) => {
     try {
@@ -66,7 +68,7 @@ const Index = () => {
 
       const result = await enhanceImage(file, (progress) => {
         setEnhancementProgress(progress);
-      }, testUserEmail);
+      }, testUserEmail, selectedCategory);
 
       console.log('🎯 INDEX: Got result from enhanceImage:', result);
       console.log('🎯 INDEX: Setting enhancedUrl to:', result.enhancedUrl);
@@ -269,7 +271,13 @@ const Index = () => {
       <div className="px-2 sm:px-3 md:px-6 py-4 sm:py-6 md:py-12 mt-20 sm:mt-24 md:mt-28">
         <div className={`mx-auto ${appState === 'results' ? 'max-w-7xl' : 'max-w-4xl'}`}>
           {appState === 'upload' && (
-            <ImageUploader onImageUpload={handleImageUpload} />
+            <div className="space-y-6">
+              <CategorySelector 
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+              />
+              <ImageUploader onImageUpload={handleImageUpload} />
+            </div>
           )}
 
           {appState === 'processing' && (

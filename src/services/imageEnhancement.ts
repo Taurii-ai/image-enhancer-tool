@@ -161,7 +161,8 @@ const simulateEnhancement = async (
 export const enhanceImage = async (
   file: File,
   onProgress: (progress: EnhancementProgress) => void,
-  userEmail?: string
+  userEmail?: string,
+  category: string = 'general'
 ): Promise<EnhancementResult> => {
   const startTime = Date.now();
   
@@ -185,7 +186,7 @@ export const enhanceImage = async (
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ image: imageDataUrl })
+        body: JSON.stringify({ image: imageDataUrl, category })
       });
 
       if (!response.ok) {

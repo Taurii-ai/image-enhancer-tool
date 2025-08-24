@@ -101,12 +101,13 @@ async function handleEnhance(req, res) {
       return res.status(405).json({ error: "Method not allowed, use POST" });
     }
 
-    const { image } = req.body;
+    const { image, category = 'general' } = req.body;
     if (!image) {
       return res.status(400).json({ error: "Missing image data" });
     }
 
-    console.log("🚀 STEP 1: Starting Real-ESRGAN Enhancement");
+    console.log("🚀 STEP 1: Starting Category-Based Enhancement");
+    console.log("🎯 Category:", category);
     console.log("🔑 Replicate token:", !!process.env.REPLICATE_API_TOKEN);
     console.log("🔑 Blob token:", !!process.env.BLOB_READ_WRITE_TOKEN);
     console.log("📷 Image size:", image.length);
@@ -139,24 +140,46 @@ async function handleEnhance(req, res) {
       console.log("⚠️ STEP 2: No blob token, using data URL");
     }
 
-    console.log("🚀 STEP 3: Calling Real-ESRGAN");
+    console.log("🚀 STEP 3: Calling Category-Based Enhancement Model");
     const replicate = new Replicate({
       auth: process.env.REPLICATE_API_TOKEN,
     });
 
-    // BACK TO nightmareai/real-esrgan - IT WAS WORKING BEFORE
-    const output = await replicate.run(
-      "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
-      {
-        input: {
-          image: imageUrl,
-          scale: 4,
-          face_enhance: true
-        }
-      }
-    );
+    // Get model and parameters based on category
+    let modelSlug, modelParams;
+    
+    switch (category.toLowerCase()) {
+      case 'faces':
+        modelSlug = process.env.ENHANCER_MODEL_SLUG_FACES;
+        modelParams = JSON.parse(process.env.ENHANCER_EXTRA_FACES || '{}');
+        console.log("👤 Using CodeFormer for face enhancement");
+        break;
+      case 'anime':
+        modelSlug = process.env.ENHANCER_MODEL_SLUG_ANIME;
+        modelParams = JSON.parse(process.env.ENHANCER_EXTRA_ANIME || '{}');
+        console.log("🎨 Using Real-ESRGAN for anime enhancement");
+        break;
+      case 'general':
+      default:
+        modelSlug = process.env.ENHANCER_MODEL_SLUG_GENERAL;
+        modelParams = JSON.parse(process.env.ENHANCER_EXTRA_GENERAL || '{}');
+        console.log("📸 Using Swin2SR for general photo enhancement");
+        break;
+    }
 
-    console.log("✅ STEP 3: Real-ESRGAN completed");
+    if (!modelSlug) {
+      throw new Error(`No model configured for category: ${category}`);
+    }
+
+    console.log("🤖 Model:", modelSlug);
+    console.log("⚙️ Parameters:", modelParams);
+
+    // Add the image to the parameters
+    const input = { image: imageUrl, ...modelParams };
+    
+    const output = await replicate.run(modelSlug, { input });
+
+    console.log(`✅ STEP 3: ${category.toUpperCase()} enhancement completed`);
     console.log("📊 Raw output:", typeof output, Array.isArray(output) ? `array[${output.length}]` : 'single');
     console.log("📊 First 200 chars:", JSON.stringify(output).substring(0, 200));
 
