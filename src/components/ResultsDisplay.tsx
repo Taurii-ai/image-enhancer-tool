@@ -25,10 +25,13 @@ export const ResultsDisplay = ({
   const getProxiedImageUrl = (url: string | unknown) => {
     // Ensure url is a string
     const urlString = typeof url === 'string' ? url : String(url || '');
-    // For production, try direct URLs first to avoid proxy issues
+    
+    // Use proxy for Replicate URLs to avoid CORS issues
     if (urlString.startsWith('https://replicate.delivery/')) {
-      return urlString;
+      console.log('🔄 Using proxy for Replicate URL:', urlString);
+      return `/api/image-processing?action=proxy&url=${encodeURIComponent(urlString)}`;
     }
+    
     return urlString;
   };
   
@@ -47,11 +50,11 @@ export const ResultsDisplay = ({
       // Reset loading state for new image
       setImagesLoaded(prev => ({ ...prev, enhanced: false }));
       
-      // Fallback: hide loading after 5 seconds even if onLoad doesn't fire
+      // Fallback: hide loading after 3 seconds even if onLoad doesn't fire
       const timeout = setTimeout(() => {
         console.log('⏰ LOADING TIMEOUT - forcing enhanced image to show');
         setImagesLoaded(prev => ({ ...prev, enhanced: true }));
-      }, 5000);
+      }, 3000);
       
       return () => clearTimeout(timeout);
     }
