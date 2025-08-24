@@ -170,50 +170,49 @@ async function handleEnhance(req, res) {
       throw new Error('Failed to get file URL from upload response');
     }
 
-    // Step 2: Use Replicate SDK with environment variables
-    console.log('🧪 Using Replicate SDK with model:', process.env.ENHANCER_MODEL_SLUG);
+    // Step 2: Use Replicate SDK with robust URL extraction
+    const model = process.env.ENHANCER_MODEL_SLUG;
+    const extra = process.env.ENHANCER_EXTRA ? JSON.parse(process.env.ENHANCER_EXTRA) : {};
+    
+    console.log("🚀 Running Replicate with model:", model, "on image:", replicateUrl);
     
     const replicate = new Replicate({
       auth: process.env.REPLICATE_API_TOKEN,
     });
     
-    const inputConfig = {
-      [process.env.ENHANCER_INPUT_KEY || "image"]: replicateUrl,
-      ...JSON.parse(process.env.ENHANCER_EXTRA || "{}"),
-    };
+    const prediction = await replicate.run(model, {
+      input: {
+        image: replicateUrl,   // Hardcode to "image" since Real-ESRGAN requires this
+        ...extra,
+      },
+    });
     
-    console.log('📤 Replicate input:', JSON.stringify(inputConfig, null, 2));
-    
-    const prediction = await replicate.run(
-      process.env.ENHANCER_MODEL_SLUG,
-      {
-        input: inputConfig,
-      }
-    );
-    
-    console.log('✅ Replicate output:', prediction);
+    console.log("🔍 Replicate raw response:", prediction);
 
-    // Fix: Extract actual URL from Replicate response
-    console.log('🔍 Raw prediction type:', typeof prediction);
-    console.log('🔍 Raw prediction value:', prediction);
+    // Extract URL safely with multiple methods
+    let enhancedUrl = null;
     
-    // Replicate SDK returns either array of URLs or single URL/object
-    const enhancedUrl = Array.isArray(prediction) ? prediction[0] : prediction;
+    if (Array.isArray(prediction) && prediction.length > 0) {
+      enhancedUrl = prediction[0];
+      console.log("✅ Extracted from array[0]:", enhancedUrl);
+    } else if (typeof prediction === "string" && prediction.startsWith("http")) {
+      enhancedUrl = prediction;
+      console.log("✅ Extracted as direct URL:", enhancedUrl);
+    } else if (prediction?.output && Array.isArray(prediction.output)) {
+      enhancedUrl = prediction.output[0];
+      console.log("✅ Extracted from prediction.output[0]:", enhancedUrl);
+    }
     
-    console.log('📊 Extracted enhanced URL:', enhancedUrl);
-    console.log('📊 Original input URL:', replicateUrl);
-    console.log('📊 URLs are different:', enhancedUrl !== replicateUrl);
-    
-    // Validate we got a proper URL string
-    if (!enhancedUrl || typeof enhancedUrl !== 'string' || enhancedUrl === replicateUrl) {
-      console.error('⚠️ Invalid enhanced URL result!');
-      console.error('⚠️ Prediction:', prediction);
-      console.error('⚠️ Extracted URL:', enhancedUrl);
+    if (!enhancedUrl) {
+      console.error('❌ Failed to extract valid enhanced image URL');
+      console.error('❌ Raw prediction:', prediction);
+      console.error('❌ Prediction type:', typeof prediction);
       return res.status(500).json({ 
         error: "Failed to extract valid enhanced image URL", 
         debug: { 
           rawPrediction: prediction,
-          extractedUrl: enhancedUrl,
+          predictionType: typeof prediction,
+          isArray: Array.isArray(prediction),
           originalUrl: replicateUrl
         }
       });
@@ -227,16 +226,14 @@ async function handleEnhance(req, res) {
       console.error('❌ Enhanced URL not accessible:', e.message);
     }
     
+    console.log('📊 Final enhanced URL:', enhancedUrl);
+    console.log('📊 Original input URL:', replicateUrl);
+    
     return res.status(200).json({ 
-      output: enhancedUrl,
       originalUrl: replicateUrl,
-      enhancedUrl: enhancedUrl,  // Also provide in expected format
-      model: process.env.ENHANCER_MODEL_SLUG || "nightmareai/real-esrgan",
-      modelVariant: "Real-ESRGAN with environment config",
-      cost: "0.0025",
-      input: inputConfig,
-      success: true,
-      enhanced: enhancedUrl !== replicateUrl
+      enhancedUrl: enhancedUrl,
+      output: enhancedUrl,  // Keep for backward compatibility
+      success: true
     });
   } catch (error) {
     console.error('❌ ENHANCE error', error);
