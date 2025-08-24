@@ -205,12 +205,30 @@ export const enhanceImage = async (
         throw new Error(result.error || 'Enhancement failed');
       }
 
-      if (!result.output) {
+      // Handle debug response with replicateRaw
+      if (result.replicateRaw) {
+        console.log('🔍 DEBUG: Raw Replicate response:', result.replicateRaw);
+        
+        // Extract URL from debug response
+        if (Array.isArray(result.replicateRaw) && result.replicateRaw.length > 0) {
+          enhancedUrl = result.replicateRaw[0];
+          console.log('✅ DEBUG: Extracted from array[0]:', enhancedUrl);
+        } else if (typeof result.replicateRaw === "string" && result.replicateRaw.startsWith("http")) {
+          enhancedUrl = result.replicateRaw;
+          console.log('✅ DEBUG: Extracted as direct URL:', enhancedUrl);
+        } else if (result.replicateRaw?.output && Array.isArray(result.replicateRaw.output)) {
+          enhancedUrl = result.replicateRaw.output[0];
+          console.log('✅ DEBUG: Extracted from prediction.output[0]:', enhancedUrl);
+        } else {
+          console.error('❌ DEBUG: Could not extract URL from:', result.replicateRaw);
+          throw new Error('Could not extract enhanced image URL from debug response');
+        }
+      } else if (!result.output) {
         throw new Error('No enhanced image URL in response');
+      } else {
+        // Handle normal output (when not in debug mode)
+        enhancedUrl = Array.isArray(result.output) ? result.output[0] : result.output;
       }
-
-      // Handle array output (Replicate returns array)
-      enhancedUrl = Array.isArray(result.output) ? result.output[0] : result.output;
       
       onProgress({ status: 'processing', progress: 90, message: 'Finalizing...' });
       
