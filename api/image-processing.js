@@ -175,25 +175,59 @@ async function handleEnhance(req, res) {
     const extra = process.env.ENHANCER_EXTRA ? JSON.parse(process.env.ENHANCER_EXTRA) : {};
     
     console.log("🚀 Running Replicate with model:", model, "on image:", replicateUrl);
+    console.log("🚀 Input config:", { image: replicateUrl, ...extra });
+    console.log("🚀 API Token exists:", !!process.env.REPLICATE_API_TOKEN);
+    console.log("🚀 API Token length:", process.env.REPLICATE_API_TOKEN?.length || 0);
     
     const replicate = new Replicate({
       auth: process.env.REPLICATE_API_TOKEN,
     });
     
-    const prediction = await replicate.run(model, {
-      input: {
-        image: replicateUrl,  // ESRGAN expects key `image`
-        ...extra,
-      },
-    });
-
-    console.log("🔍 Replicate raw response:", prediction);
+    console.log("🚀 Replicate instance created successfully");
+    
+    let prediction;
+    try {
+      prediction = await replicate.run(model, {
+        input: {
+          image: replicateUrl,  // ESRGAN expects key `image`
+          ...extra,
+        },
+      });
+      
+      console.log("🔍 Replicate call completed successfully");
+      console.log("🔍 Prediction type:", typeof prediction);
+      console.log("🔍 Prediction keys:", prediction ? Object.keys(prediction) : 'null/undefined');
+      console.log("🔍 Replicate raw response:", prediction);
+      
+    } catch (replicateError) {
+      console.error("❌ Replicate API Error:", replicateError);
+      console.error("❌ Error message:", replicateError.message);
+      console.error("❌ Error stack:", replicateError.stack);
+      console.error("❌ Model used:", model);
+      console.error("❌ Input used:", { image: replicateUrl, ...extra });
+      
+      return res.status(500).json({
+        error: `Replicate API failed: ${replicateError.message}`,
+        details: {
+          model,
+          input: { image: replicateUrl, ...extra },
+          errorType: replicateError.name,
+          errorMessage: replicateError.message
+        }
+      });
+    }
 
     // TEMPORARY: send back raw response so frontend shows it
     return res.status(200).json({
       originalUrl: replicateUrl,
       replicateRaw: prediction, // 👈 debugging payload
-      success: true
+      success: true,
+      debug: {
+        model,
+        input: { image: replicateUrl, ...extra },
+        predictionType: typeof prediction,
+        predictionKeys: prediction ? Object.keys(prediction) : null
+      }
     });
   } catch (error) {
     console.error('❌ ENHANCE error', error);
