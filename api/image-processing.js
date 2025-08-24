@@ -182,57 +182,17 @@ async function handleEnhance(req, res) {
     
     const prediction = await replicate.run(model, {
       input: {
-        image: replicateUrl,   // Hardcode to "image" since Real-ESRGAN requires this
+        image: replicateUrl,  // ESRGAN expects key `image`
         ...extra,
       },
     });
-    
+
     console.log("🔍 Replicate raw response:", prediction);
 
-    // Extract URL safely with multiple methods
-    let enhancedUrl = null;
-    
-    if (Array.isArray(prediction) && prediction.length > 0) {
-      enhancedUrl = prediction[0];
-      console.log("✅ Extracted from array[0]:", enhancedUrl);
-    } else if (typeof prediction === "string" && prediction.startsWith("http")) {
-      enhancedUrl = prediction;
-      console.log("✅ Extracted as direct URL:", enhancedUrl);
-    } else if (prediction?.output && Array.isArray(prediction.output)) {
-      enhancedUrl = prediction.output[0];
-      console.log("✅ Extracted from prediction.output[0]:", enhancedUrl);
-    }
-    
-    if (!enhancedUrl) {
-      console.error('❌ Failed to extract valid enhanced image URL');
-      console.error('❌ Raw prediction:', prediction);
-      console.error('❌ Prediction type:', typeof prediction);
-      return res.status(500).json({ 
-        error: "Failed to extract valid enhanced image URL", 
-        debug: { 
-          rawPrediction: prediction,
-          predictionType: typeof prediction,
-          isArray: Array.isArray(prediction),
-          originalUrl: replicateUrl
-        }
-      });
-    }
-    
-    // Test if enhanced URL is accessible
-    try {
-      const testResp = await fetch(enhancedUrl, { method: 'HEAD' });
-      console.log('📊 Enhanced URL accessibility test:', testResp.ok, testResp.status);
-    } catch (e) {
-      console.error('❌ Enhanced URL not accessible:', e.message);
-    }
-    
-    console.log('📊 Final enhanced URL:', enhancedUrl);
-    console.log('📊 Original input URL:', replicateUrl);
-    
-    return res.status(200).json({ 
+    // TEMPORARY: send back raw response so frontend shows it
+    return res.status(200).json({
       originalUrl: replicateUrl,
-      enhancedUrl: enhancedUrl,
-      output: enhancedUrl,  // Keep for backward compatibility
+      replicateRaw: prediction, // 👈 debugging payload
       success: true
     });
   } catch (error) {
