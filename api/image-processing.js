@@ -14,23 +14,31 @@ function buildInput(model, imageUrl) {
   const m = model.toLowerCase();
 
   if (m.includes("swinir")) {
-    // SwinIR expects { image }
-    return { image: imageUrl };
+    // SwinIR expects { image, task_type }
+    return { 
+      image: imageUrl,
+      task_type: "Real-World Image Super-Resolution-Large"
+    };
   }
 
   if (m.includes("codeformer")) {
-    // CodeFormer commonly uses { img, background_enhance, face_upsample, scale }
+    // CodeFormer uses { image, background_enhance, face_upsample, fidelity }
     return {
-      img: imageUrl,
+      image: imageUrl,
       background_enhance: true,
       face_upsample: true,
-      scale: 2,
+      fidelity: 0.5
     };
   }
 
   if (m.includes("realesrgan")) {
-    // Real-ESRGAN uses { image, scale }
-    return { image: imageUrl, scale: 2 };
+    // Real-ESRGAN uses { img, scale, face_enhance, version }
+    return { 
+      img: imageUrl,
+      scale: 4,
+      face_enhance: false,
+      version: "General - v3"
+    };
   }
 
   // Fallback
@@ -41,22 +49,38 @@ function extractFirstUrl(payload) {
   // Robustly find the first https URL anywhere in the Replicate response
   if (!payload) return null;
 
+  // Direct string URL
   if (typeof payload === "string") {
     return payload.startsWith("http") ? payload : null;
   }
 
+  // Array format - check each item
   if (Array.isArray(payload)) {
     for (const item of payload) {
-      const u = extractFirstUrl(item);
-      if (u) return u;
+      if (typeof item === "string" && item.startsWith("http")) {
+        return item;
+      }
+      // Recursive check for nested objects
+      const nested = extractFirstUrl(item);
+      if (nested) return nested;
     }
     return null;
   }
 
-  if (typeof payload === "object") {
+  // Object format - check common keys first, then all values
+  if (typeof payload === "object" && payload !== null) {
+    // Check common output keys
+    const commonKeys = ['output', 'url', 'image', 'result', 'data'];
+    for (const key of commonKeys) {
+      if (payload[key] && typeof payload[key] === "string" && payload[key].startsWith("http")) {
+        return payload[key];
+      }
+    }
+    
+    // Check all values recursively
     for (const val of Object.values(payload)) {
-      const u = extractFirstUrl(val);
-      if (u) return u;
+      const nested = extractFirstUrl(val);
+      if (nested) return nested;
     }
   }
 
