@@ -198,19 +198,19 @@ export const enhanceImage = async (
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          imageBase64: imageDataUrl.split(',')[1], // Remove data URL prefix, send only base64
+          imageBase64: imageDataUrl, // Send full data URL
           model: modelSlug 
         }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(`Backend API failed: ${res.status} - ${err.error || "Unknown error"}`);
+        throw new Error(`Backend API failed: ${res.status} - ${data.error}`);
       }
 
       onProgress({ status: 'processing', progress: 60, message: 'Real-ESRGAN processing...' });
 
-      const data = await res.json();
       console.log("✅ Enhanced image result:", data);
 
       // Always returns a string URL now

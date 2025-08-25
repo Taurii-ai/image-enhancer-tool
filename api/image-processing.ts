@@ -1,61 +1,55 @@
-import { NextResponse } from "next/server";
+import type { NextApiRequest, NextApiResponse } from "next";
 import Replicate from "replicate";
-import { put } from "@vercel/blob";
 
-// Init Replicate client
+// Always check env vars at startup
+if (!process.env.REPLICATE_API_TOKEN) {
+  throw new Error("❌ Missing REPLICATE_API_TOKEN in environment variables.");
+}
+
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
 });
 
-// Match input schema depending on model
-function buildInput(model: string, imageUrl: string) {
-  if (model.includes("swinir")) {
-    return { image: imageUrl };
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
-  if (model.includes("codeformer")) {
-    return {
-      img: imageUrl,
-      background_enhance: true,
-      face_upsample: true,
-      scale: 2,
-    };
-  }
-  if (model.includes("realesrgan")) {
-    return { image: imageUrl, scale: 2 };
-  }
-  return { image: imageUrl };
-}
 
-export async function POST(req: Request) {
   try {
-    const { imageBase64, model } = await req.json();
+    const { imageBase64, model } = req.body;
 
     if (!imageBase64 || !model) {
-      return NextResponse.json({ error: "Missing imageBase64 or model" }, { status: 400 });
+      return res.status(400).json({ error: "Missing imageBase64 or model" });
     }
 
-    // 1. Upload base64 → Blob
-    const buffer = Buffer.from(
-      imageBase64.replace(/^data:image\/\w+;base64,/, ""),
-      "base64"
-    );
-    const blob = await put(`uploads/${Date.now()}.png`, buffer, { access: "public" });
+    // ✅ Convert base64 → Blob URL
+    const buffer = Buffer.from(imageBase64.split(",")[1], "base64");
+    const blobRes = await fetch("https://api.vercel.com/v2/blobs", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+        "Content-Type": "application/octet-stream",
+      },
+      body: buffer,
+    });
 
-    // 2. Prepare input
-    const input = buildInput(model, blob.url);
+    if (!blobRes.ok) {
+      const text = await blobRes.text();
+      throw new Error(`Blob upload failed: ${text}`);
+    }
 
-    // 3. Run Replicate
-    const output = await replicate.run(model, { input });
+    const { url: blobUrl } = await blobRes.json();
 
-    // Replicate sometimes returns array → normalize
-    const result = Array.isArray(output) ? output[0] : output;
+    // ✅ Run Replicate model
+    const output = await replicate.run(model, {
+      input: { image: blobUrl, scale: 2, face_enhance: true },
+    });
 
-    return NextResponse.json({ url: result });
-  } catch (err: any) {
-    console.error("❌ Backend API Error:", err);
-    return NextResponse.json(
-      { error: err?.message || "Unknown server error" },
-      { status: 500 }
-    );
+    const imageUrl = Array.isArray(output) ? output[0] : output;
+
+    return res.status(200).json({ url: imageUrl });
+  } catch (error: any) {
+    console.error("🔥 Backend error:", error);
+    return res.status(500).json({ error: error.message || "Unknown error" });
   }
 }
