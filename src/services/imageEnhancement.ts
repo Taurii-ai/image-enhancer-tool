@@ -189,44 +189,32 @@ export const enhanceImage = async (
       
       // Get the model slug for the selected category
       const modelSlug = MODEL_MAP[category as keyof typeof MODEL_MAP] || MODEL_MAP.general;
-      console.log('🤖 Using model:', modelSlug);
       
-      // Send directly to enhancement API with model parameter
-      const response = await fetch('/api/image-processing', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      console.log("🔍 TESTING: Processing image for user:", "test@enhpix.com");
+      console.log("📷 Image converted to data URL, size:", imageDataUrl.length);
+      console.log("🤖 Using model:", modelSlug);
+
+      const res = await fetch("/api/image-processing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           imageBase64: imageDataUrl.split(',')[1], // Remove data URL prefix, send only base64
           model: modelSlug 
-        })
+        }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Backend API Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorData: errorData
-        });
-        throw new Error(errorData.details || errorData.error || `Backend API failed: ${response.status} ${response.statusText}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(`Backend API failed: ${res.status} - ${err.error || "Unknown error"}`);
       }
 
       onProgress({ status: 'processing', progress: 60, message: 'Real-ESRGAN processing...' });
 
-      const result = await response.json();
-      
-      if (result.error) {
-        throw new Error(result.error || 'Enhancement failed');
-      }
+      const data = await res.json();
+      console.log("✅ Enhanced image result:", data);
 
-      if (!result.url) {
-        throw new Error('No enhanced image URL in response');
-      }
-
-      // Use the url from backend
-      enhancedUrl = result.url;
+      // Always returns a string URL now
+      enhancedUrl = data.url;
       
       console.log('✅ Enhanced image URL received:', enhancedUrl);
       
