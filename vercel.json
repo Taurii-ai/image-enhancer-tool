@@ -2,12 +2,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist", 
   "installCommand": "npm install",
-  "functions": {
-    "app/api/image-processing/route.ts": {
-      "maxDuration": 60,
-      "memory": 1024
-    }
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
