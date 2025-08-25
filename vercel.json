@@ -4,10 +4,12 @@
   "installCommand": "npm install",
   "functions": {
     "api/image-processing.ts": {
-      "maxDuration": 300
+      "maxDuration": 60,
+      "memory": 1024
     },
     "api/image-processing1.ts": {
-      "maxDuration": 300
+      "maxDuration": 60,
+      "memory": 1024
     }
   },
   "rewrites": [

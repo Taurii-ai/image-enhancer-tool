@@ -11,6 +11,21 @@ const replicate = new Replicate({
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Double-check environment variables at runtime
+  if (!process.env.REPLICATE_API_TOKEN) {
+    return res.status(500).json({ 
+      error: "Missing REPLICATE_API_TOKEN in environment variables",
+      type: "config_error" 
+    });
+  }
+  
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return res.status(500).json({ 
+      error: "Missing BLOB_READ_WRITE_TOKEN in environment variables",
+      type: "config_error" 
+    });
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -41,9 +56,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { url: blobUrl } = await blobRes.json();
 
     // ✅ Run Replicate model
-    const output = await replicate.run(model, {
-      input: { image: blobUrl, scale: 2, face_enhance: true },
-    });
+    let output;
+    try {
+      output = await replicate.run(model, {
+        input: { image: blobUrl, scale: 2, face_enhance: true },
+      });
+    } catch (replicateErr: any) {
+      console.error("🔥 Replicate API error:", replicateErr);
+      return res.status(500).json({ 
+        error: `Replicate API failed: ${String(replicateErr)}`,
+        type: "replicate_error"
+      });
+    }
 
     const imageUrl = Array.isArray(output) ? output[0] : output;
 
