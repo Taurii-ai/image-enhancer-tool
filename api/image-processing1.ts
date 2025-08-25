@@ -7,31 +7,29 @@ const replicate = new Replicate({
 });
 
 function buildInput(model: string, imageUrl: string) {
-  // SwinIR model - uses 'image' parameter
   if (model.includes("swinir")) {
     return { image: imageUrl };
   }
-  
-  // CodeFormer model - uses 'image' parameter (not 'img')
   if (model.includes("codeformer")) {
     return {
-      image: imageUrl,
+      img: imageUrl,
       background_enhance: true,
       face_upsample: true,
-      upscale: 2
+      scale: 2,
     };
   }
-  
-  // Real-ESRGAN model - uses 'image' parameter
   if (model.includes("realesrgan")) {
-    return { 
-      image: imageUrl, 
-      scale: 4 
-    };
+    return { image: imageUrl, scale: 2 };
   }
-  
-  // Default fallback
   return { image: imageUrl };
+}
+
+function parseOutput(output: any): string {
+  if (typeof output === "string") return output;
+  if (Array.isArray(output)) return output[0];
+  if (output?.url) return output.url;
+  if (output?.image) return output.image;
+  return output;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -73,7 +71,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const output = await replicate.run(model, { input });
     console.log('✅ Replicate output:', output);
 
-    return res.status(200).json({ url: output });
+    // 4. Parse output universally
+    const finalUrl = parseOutput(output);
+
+    return res.status(200).json({ url: finalUrl });
   } catch (err: any) {
     console.error("❌ Backend API Error:", err);
     console.error("❌ Stack trace:", err.stack);
