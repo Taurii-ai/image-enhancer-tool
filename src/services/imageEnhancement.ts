@@ -158,11 +158,11 @@ const simulateEnhancement = async (
 };
 
 
-// Model mapping based on your environment variables
+// Model mapping with CORRECT slugs
 const MODEL_MAP = {
-  'general': 'jingyunliang/swinir:660d922d33153019e8c594a5c9635e5aa6b95450be32f7762c6936fae37d693b',
+  'general': 'jingyunliang/swinir:660d922d33153019e8c263a3bba265de882e7f4f70396546b6c9c8f9d47a021a',
   'faces': 'sczhou/codeformer:cc4956dd26fa5a7185d5660cc9100fab1b8070a1d1654a8bb5eb6d443b020bb2', 
-  'anime': 'xinntao/realesrgan:1b976a40456ed9e4d1a846597b7614e79eadad3032e9124fa6385db0fd59b56'
+  'anime': 'xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56'
 };
 
 export const enhanceImage = async (
