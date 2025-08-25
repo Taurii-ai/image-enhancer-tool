@@ -158,6 +158,13 @@ const simulateEnhancement = async (
 };
 
 
+// Model mapping based on your environment variables
+const MODEL_MAP = {
+  'general': 'jingyunliang/swinir:660d922d33153019e8c594a5c9635e5aa6b95450be32f7762c6936fae37d693b',
+  'faces': 'sczhou/codeformer:cc4956dd26fa5a7185d5660cc9100fab1b8070a1d1654a8bb5eb6d443b020bb2', 
+  'anime': 'xinntao/realesrgan:1b976a40456ed9e4d1a846597b7614e79eadad3032e9124fa6385db0fd59b56'
+};
+
 export const enhanceImage = async (
   file: File,
   onProgress: (progress: EnhancementProgress) => void,
@@ -178,15 +185,22 @@ export const enhanceImage = async (
       const imageDataUrl = await fileToDataURL(file);
       console.log('📷 Image converted to data URL, size:', imageDataUrl.length);
 
-      onProgress({ status: 'processing', progress: 30, message: 'Sending to Real-ESRGAN...' });
+      onProgress({ status: 'processing', progress: 30, message: 'Sending to enhancement model...' });
       
-      // Send directly to enhancement API - NO COMPLICATIONS
-      const response = await fetch('/api/image-processing?action=enhance', {
+      // Get the model slug for the selected category
+      const modelSlug = MODEL_MAP[category as keyof typeof MODEL_MAP] || MODEL_MAP.general;
+      console.log('🤖 Using model:', modelSlug);
+      
+      // Send directly to enhancement API with model parameter
+      const response = await fetch('/api/image-processing', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ image: imageDataUrl, category })
+        body: JSON.stringify({ 
+          image: imageDataUrl, 
+          model: modelSlug 
+        })
       });
 
       if (!response.ok) {

@@ -94,129 +94,63 @@ async function handleUpload(req, res) {
   }
 }
 
-// Real-ESRGAN with Vercel Blob + Replicate
+// Clean Universal Enhancement API
 async function handleEnhance(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   try {
-    if (req.method !== "POST") {
-      return res.status(405).json({ error: "Method not allowed, use POST" });
+    const { image, model } = req.body;
+
+    if (!image || !model) {
+      return res.status(400).json({ error: "Missing required parameters" });
     }
 
-    const { image, category = 'general' } = req.body;
-    if (!image) {
-      return res.status(400).json({ error: "Missing image data" });
-    }
+    console.log("🚀 Starting enhancement with model:", model);
 
-    console.log("🚀 STEP 1: Starting Category-Based Enhancement");
-    console.log("🎯 Category:", category);
-    console.log("🔑 Replicate token:", !!process.env.REPLICATE_API_TOKEN);
-    console.log("🔑 Blob token:", !!process.env.BLOB_READ_WRITE_TOKEN);
-    console.log("📷 Image size:", image.length);
-
-    // Convert data URL to buffer
-    const base64Data = image.split(',')[1];
-    const buffer = Buffer.from(base64Data, 'base64');
-    console.log("✅ STEP 1: Buffer created, size:", buffer.length);
-
-    let imageUrl = image; // Default to data URL
-
-    // Try Vercel Blob upload first for better compatibility
-    if (process.env.BLOB_READ_WRITE_TOKEN) {
-      try {
-        console.log("🚀 STEP 2: Uploading to Vercel Blob");
-        const { put } = await import('@vercel/blob');
-        
-        const filename = `enhancement-input-${Date.now()}.jpg`;
-        const blob = await put(filename, buffer, {
-          access: 'public',
-          token: process.env.BLOB_READ_WRITE_TOKEN,
-        });
-        
-        imageUrl = blob.url;
-        console.log("✅ STEP 2: Blob uploaded:", imageUrl);
-      } catch (blobError) {
-        console.warn("⚠️ STEP 2: Blob upload failed, using data URL:", blobError.message);
-      }
-    } else {
-      console.log("⚠️ STEP 2: No blob token, using data URL");
-    }
-
-    console.log("🚀 STEP 3: Calling Category-Based Enhancement Model");
     const replicate = new Replicate({
       auth: process.env.REPLICATE_API_TOKEN,
     });
 
-    // Get model and parameters based on category
-    let modelSlug, modelParams;
-    
-    switch (category.toLowerCase()) {
-      case 'faces':
-        modelSlug = process.env.ENHANCER_MODEL_SLUG_FACES;
-        modelParams = JSON.parse(process.env.ENHANCER_EXTRA_FACES || '{}');
-        console.log("👤 Using CodeFormer for face enhancement");
-        break;
-      case 'anime':
-        modelSlug = process.env.ENHANCER_MODEL_SLUG_ANIME;
-        modelParams = JSON.parse(process.env.ENHANCER_EXTRA_ANIME || '{}');
-        console.log("🎨 Using Real-ESRGAN for anime enhancement");
-        break;
-      case 'general':
-      default:
-        modelSlug = process.env.ENHANCER_MODEL_SLUG_GENERAL;
-        modelParams = JSON.parse(process.env.ENHANCER_EXTRA_GENERAL || '{}');
-        console.log("📸 Using SwinIR for general photo enhancement");
-        break;
-    }
+    // Run replicate prediction
+    const prediction = await replicate.run(model, {
+      input: { image },
+    });
 
-    if (!modelSlug) {
-      throw new Error(`No model configured for category: ${category}`);
-    }
+    console.log("✅ Replicate prediction completed");
 
-    console.log("🤖 Model:", modelSlug);
-    console.log("⚙️ Parameters:", modelParams);
-
-    // Add the image to the parameters
-    const input = { image: imageUrl, ...modelParams };
-    
-    const output = await replicate.run(modelSlug, { input });
-
-    console.log(`✅ STEP 3: ${category.toUpperCase()} enhancement completed`);
-    console.log("📊 Raw output:", typeof output, Array.isArray(output) ? `array[${output.length}]` : 'single');
-    console.log("📊 First 200 chars:", JSON.stringify(output).substring(0, 200));
-
-    // Normalize Replicate output - UNIVERSAL PARSER
+    // --- Universal output parser ---
     let outputUrl: string | null = null;
 
-    if (!output) {
+    if (!prediction) {
       outputUrl = null;
-    } else if (typeof output === "string") {
-      outputUrl = output;
-    } else if (Array.isArray(output)) {
-      outputUrl = output.find((item: any) => typeof item === "string") || null;
-    } else if (typeof output === "object") {
-      if (Array.isArray((output as any).output)) {
-        outputUrl = (output as any).output.find((item: any) => typeof item === "string") || null;
-      } else if (typeof (output as any).output === "string") {
-        outputUrl = (output as any).output;
-      } else if ((output as any).output?.url) {
-        outputUrl = (output as any).output.url;
+    } else if (typeof prediction === "string") {
+      outputUrl = prediction;
+    } else if (Array.isArray(prediction)) {
+      outputUrl = prediction.find((item: any) => typeof item === "string") || null;
+    } else if (typeof prediction === "object") {
+      const out = (prediction as any).output;
+      if (Array.isArray(out)) {
+        outputUrl = out.find((item: any) => typeof item === "string") || null;
+      } else if (typeof out === "string") {
+        outputUrl = out;
+      } else if (out?.url) {
+        outputUrl = out.url;
       }
     }
 
     if (!outputUrl) {
       return res.status(500).json({
         error: "Failed to extract enhanced image URL from Replicate response",
-        debug: output,
+        debug: prediction,
       });
     }
 
     return res.status(200).json({ enhancedUrl: outputUrl });
-
   } catch (error) {
-    console.error("❌ Enhancement failed:", error);
-    return res.status(500).json({
-      error: error.message,
-      details: error.message
-    });
+    console.error("Backend API Error:", error);
+    return res.status(500).json({ error: error.message || "Unknown error" });
   }
 }
 
