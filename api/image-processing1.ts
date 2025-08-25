@@ -1,10 +1,6 @@
-import { NextResponse } from "next/server";
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Replicate from "replicate";
 import { put } from "@vercel/blob";
-
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_TOKEN,
-});
 
 function buildInput(model: string, imageUrl: string) {
   if (model.includes("swinir")) {
@@ -24,19 +20,31 @@ function buildInput(model: string, imageUrl: string) {
   return { image: imageUrl };
 }
 
-export async function POST(req: Request) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
+    console.log("🔑 Env vars:", Object.keys(process.env).filter(k => k.includes('REPLIC')));
     console.log("🔑 API Token available:", !!process.env.REPLICATE_API_TOKEN);
-    console.log("🔑 Token available:", !!process.env.REPLICATE_TOKEN);
     
-    const { imageBase64, model } = await req.json();
+    const replicate = new Replicate({
+      auth: process.env.REPLICATE_API_TOKEN!,
+    });
+    
+    const { imageBase64, model } = req.body;
     console.log("📦 Model:", model);
     console.log("📦 Image length:", imageBase64?.length);
     
-    if (!process.env.REPLICATE_API_TOKEN && !process.env.REPLICATE_TOKEN) {
+    if (!process.env.REPLICATE_API_TOKEN) {
       throw new Error("Missing REPLICATE_API_TOKEN environment variable");
     }
     
+    if (!imageBase64 || !model) {
+      return res.status(400).json({ error: 'Missing imageBase64 or model parameter' });
+    }
+
     // 1. Upload to Vercel Blob → get a URL
     const blob = await put(`uploads/${Date.now()}.png`, Buffer.from(imageBase64, "base64"), {
       access: "public",
@@ -52,17 +60,15 @@ export async function POST(req: Request) {
     const output = await replicate.run(model, { input });
     console.log("✅ Output:", output);
     
-    return NextResponse.json({ url: output });
+    return res.status(200).json({ url: output });
   } catch (err: any) {
     console.error("❌ Backend API Error:", err);
     console.error("❌ Stack:", err.stack);
-    return NextResponse.json({ 
+    return res.status(500).json({ 
       error: err.message,
       stack: err.stack,
-      env_check: {
-        has_replicate_api_token: !!process.env.REPLICATE_API_TOKEN,
-        has_replicate_token: !!process.env.REPLICATE_TOKEN
-      }
-    }, { status: 500 });
+      env_available: Object.keys(process.env).filter(k => k.includes('REPLIC')),
+      token_check: !!process.env.REPLICATE_API_TOKEN
+    });
   }
 }
