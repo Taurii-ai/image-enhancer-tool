@@ -1,21 +1,16 @@
-// Force Node.js runtime (we need Buffer, Replicate SDK, etc.)
-export const runtime = "nodejs";
-// Give the lambda enough time
-export const maxDuration = 60;
-
 import Replicate from "replicate";
 import { put } from "@vercel/blob";
 
 // --- helpers ---------------------------------------------------------
 
-function parseBase64DataUrl(dataUrl: string): Buffer {
+function parseBase64DataUrl(dataUrl) {
   // Accept "data:image/png;base64,AAAA" or raw base64 "AAAA"
   const commaIdx = dataUrl.indexOf(",");
   const base64 = commaIdx >= 0 ? dataUrl.slice(commaIdx + 1) : dataUrl;
   return Buffer.from(base64, "base64");
 }
 
-function buildInput(model: string, imageUrl: string) {
+function buildInput(model, imageUrl) {
   const m = model.toLowerCase();
 
   if (m.includes("swinir")) {
@@ -42,7 +37,7 @@ function buildInput(model: string, imageUrl: string) {
   return { image: imageUrl };
 }
 
-function extractFirstUrl(payload: unknown): string | null {
+function extractFirstUrl(payload) {
   // Robustly find the first https URL anywhere in the Replicate response
   if (!payload) return null;
 
@@ -59,7 +54,7 @@ function extractFirstUrl(payload: unknown): string | null {
   }
 
   if (typeof payload === "object") {
-    for (const val of Object.values(payload as Record<string, unknown>)) {
+    for (const val of Object.values(payload)) {
       const u = extractFirstUrl(val);
       if (u) return u;
     }
@@ -70,7 +65,21 @@ function extractFirstUrl(payload: unknown): string | null {
 
 // --- handler ---------------------------------------------------------
 
-export async function POST(request: Request) {
+export default async function handler(req, res) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
     // Never throw at module top-level; handle env inside handler to avoid
     // Vercel FUNCTION_INVOCATION_FAILED before we can JSON-respond.
@@ -78,39 +87,27 @@ export async function POST(request: Request) {
     const BLOB_READ_WRITE_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 
     if (!REPLICATE_API_TOKEN) {
-      return new Response(
-        JSON.stringify({ error: "Missing REPLICATE_API_TOKEN" }),
-        { status: 500, headers: { "content-type": "application/json" } }
-      );
+      return res.status(500).json({ error: "Missing REPLICATE_API_TOKEN" });
     }
     if (!BLOB_READ_WRITE_TOKEN) {
-      // @vercel/blob will throw if missing; fail fast with JSON
-      return new Response(
-        JSON.stringify({ error: "Missing BLOB_READ_WRITE_TOKEN" }),
-        { status: 500, headers: { "content-type": "application/json" } }
-      );
+      return res.status(500).json({ error: "Missing BLOB_READ_WRITE_TOKEN" });
     }
 
-    const body = await request.json().catch(() => null) as
-      | { imageBase64?: string; model?: string }
-      | null;
+    const { imageBase64, model } = req.body || {};
 
-    if (!body?.imageBase64 || !body?.model) {
-      return new Response(
-        JSON.stringify({ error: "Missing imageBase64 or model" }),
-        { status: 400, headers: { "content-type": "application/json" } }
-      );
+    if (!imageBase64 || !model) {
+      return res.status(400).json({ error: "Missing imageBase64 or model" });
     }
 
     const replicate = new Replicate({ auth: REPLICATE_API_TOKEN });
 
     // 1) Upload base64 -> Vercel Blob (public URL)
-    const buffer = parseBase64DataUrl(body.imageBase64);
+    const buffer = parseBase64DataUrl(imageBase64);
     const objectName = `uploads/${Date.now()}-${Math.random()
       .toString(36)
       .slice(2)}.png`;
 
-    let blobUrl: string;
+    let blobUrl;
     try {
       const blob = await put(objectName, buffer, {
         access: "public",
@@ -118,30 +115,24 @@ export async function POST(request: Request) {
         addRandomSuffix: false,
       });
       blobUrl = blob.url;
-    } catch (e: any) {
+    } catch (e) {
       // Return JSON, never HTML
-      return new Response(
-        JSON.stringify({ error: `Blob upload failed: ${e?.message || String(e)}` }),
-        { status: 500, headers: { "content-type": "application/json" } }
-      );
+      return res.status(500).json({ error: `Blob upload failed: ${e?.message || String(e)}` });
     }
 
     // 2) Build the correct input for the chosen model
-    const input = buildInput(body.model, blobUrl);
+    const input = buildInput(model, blobUrl);
 
     // 3) Run Replicate
-    let output: unknown;
+    let output;
     try {
-      output = await replicate.run(body.model, { input });
-    } catch (e: any) {
+      output = await replicate.run(model, { input });
+    } catch (e) {
       // Surface Replicate errors cleanly
-      return new Response(
-        JSON.stringify({
-          error: "Replicate run failed",
-          detail: e?.message || String(e),
-        }),
-        { status: 500, headers: { "content-type": "application/json" } }
-      );
+      return res.status(500).json({
+        error: "Replicate run failed",
+        detail: e?.message || String(e),
+      });
     }
 
     // 4) Normalize the output to a single URL
@@ -151,36 +142,21 @@ export async function POST(request: Request) {
         : extractFirstUrl(output);
 
     if (!enhancedUrl) {
-      return new Response(
-        JSON.stringify({ error: "No valid URL found in Replicate output", raw: output }),
-        { status: 500, headers: { "content-type": "application/json" } }
-      );
+      return res.status(500).json({ 
+        error: "No valid URL found in Replicate output", 
+        raw: output 
+      });
     }
 
     // 5) Success
-    return new Response(
-      JSON.stringify({ url: enhancedUrl, source: "replicate" }),
-      { status: 200, headers: { "content-type": "application/json" } }
-    );
-  } catch (err: any) {
+    return res.status(200).json({ url: enhancedUrl, source: "replicate" });
+  } catch (err) {
     // Absolute last-resort catch to guarantee JSON, preventing
     // "Server returned non-JSON response" in the browser.
-    return new Response(
-      JSON.stringify({
-        error: "Unhandled server error",
-        detail: err?.message || String(err),
-      }),
-      { status: 500, headers: { "content-type": "application/json" } }
-    );
+    console.error("Unhandled server error:", err);
+    return res.status(500).json({
+      error: "Unhandled server error",
+      detail: err?.message || String(err),
+    });
   }
-}
-
-// Optional: allow GET/HEAD to quickly probe liveness
-export async function GET() {
-  return new Response(JSON.stringify({ ok: true }), {
-    headers: { "content-type": "application/json" },
-  });
-}
-export async function HEAD() {
-  return new Response(null, { status: 204 });
 }

@@ -2,6 +2,12 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist", 
   "installCommand": "npm install",
+  "functions": {
+    "api/image-processing.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
