@@ -122,13 +122,17 @@ export default async function handler(req, res) {
 
     // 2) Build the correct input for the chosen model
     const input = buildInput(model, blobUrl);
+    console.log("🔧 Built input for model:", model, JSON.stringify(input, null, 2));
 
     // 3) Run Replicate
     let output;
     try {
+      console.log("🚀 Calling Replicate with model:", model);
       output = await replicate.run(model, { input });
+      console.log("✅ Replicate completed successfully");
     } catch (e) {
       // Surface Replicate errors cleanly
+      console.error("❌ Replicate error:", e);
       return res.status(500).json({
         error: "Replicate run failed",
         detail: e?.message || String(e),
@@ -136,17 +140,34 @@ export default async function handler(req, res) {
     }
 
     // 4) Normalize the output to a single URL
-    const enhancedUrl =
-      (Array.isArray(output) && typeof output[0] === "string" && output[0].startsWith("http"))
-        ? output[0]
-        : extractFirstUrl(output);
+    console.log("🔍 Raw Replicate output:", JSON.stringify(output, null, 2));
+    
+    let enhancedUrl = null;
+    
+    // Try multiple extraction methods
+    if (typeof output === "string" && output.startsWith("http")) {
+      enhancedUrl = output;
+    } else if (Array.isArray(output) && output.length > 0) {
+      if (typeof output[0] === "string" && output[0].startsWith("http")) {
+        enhancedUrl = output[0];
+      } else {
+        enhancedUrl = extractFirstUrl(output[0]);
+      }
+    } else {
+      enhancedUrl = extractFirstUrl(output);
+    }
 
     if (!enhancedUrl) {
+      console.error("❌ No URL found in output:", output);
       return res.status(500).json({ 
         error: "No valid URL found in Replicate output", 
-        raw: output 
+        raw: output,
+        type: typeof output,
+        isArray: Array.isArray(output)
       });
     }
+    
+    console.log("✅ Extracted URL:", enhancedUrl);
 
     // 5) Success
     return res.status(200).json({ url: enhancedUrl, source: "replicate" });
