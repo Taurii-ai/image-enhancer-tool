@@ -50,6 +50,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ url: imageUrl });
   } catch (error: any) {
     console.error("🔥 Backend error:", error);
-    return res.status(500).json({ error: error.message || "Unknown error" });
+
+    // Always JSON, never HTML
+    return res.status(500).json({
+      error: error.message || "Unknown error",
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
   }
 }
