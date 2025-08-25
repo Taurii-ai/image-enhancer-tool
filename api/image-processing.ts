@@ -7,20 +7,30 @@ const replicate = new Replicate({
 });
 
 function buildInput(model: string, imageUrl: string) {
+  // SwinIR model - uses 'image' parameter
   if (model.includes("swinir")) {
     return { image: imageUrl };
   }
+  
+  // CodeFormer model - uses 'image' parameter (not 'img')
   if (model.includes("codeformer")) {
     return {
-      img: imageUrl,
+      image: imageUrl,
       background_enhance: true,
       face_upsample: true,
-      scale: 2,
+      upscale: 2
     };
   }
+  
+  // Real-ESRGAN model - uses 'image' parameter
   if (model.includes("realesrgan")) {
-    return { image: imageUrl, scale: 2 };
+    return { 
+      image: imageUrl, 
+      scale: 4 
+    };
   }
+  
+  // Default fallback
   return { image: imageUrl };
 }
 
