@@ -203,18 +203,20 @@ export const enhanceImage = async (
         }),
       });
 
-      const contentType = res.headers.get("content-type");
-      let data: any;
-
-      if (contentType && contentType.includes("application/json")) {
-        data = await res.json();
-      } else {
-        const text = await res.text();
-        throw new Error(`Server returned non-JSON response: ${text}`);
+      const ct = res.headers.get("content-type") || "";
+      if (!ct.includes("application/json")) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`Server returned non-JSON response: ${text || res.statusText}`);
       }
 
+      const data = await res.json();
+
       if (!res.ok) {
-        throw new Error(`Backend API failed: ${res.status} - ${data.error}`);
+        throw new Error(`Backend API failed: ${res.status} - ${data?.error || "Unknown error"}`);
+      }
+
+      if (!data?.url || typeof data.url !== "string") {
+        throw new Error("No enhanced URL returned from backend");
       }
 
       onProgress({ status: 'processing', progress: 60, message: 'Real-ESRGAN processing...' });

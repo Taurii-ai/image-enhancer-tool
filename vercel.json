@@ -3,11 +3,7 @@
   "outputDirectory": "dist", 
   "installCommand": "npm install",
   "functions": {
-    "api/image-processing.ts": {
-      "maxDuration": 60,
-      "memory": 1024
-    },
-    "api/image-processing1.ts": {
+    "app/api/image-processing/route.ts": {
       "maxDuration": 60,
       "memory": 1024
     }
