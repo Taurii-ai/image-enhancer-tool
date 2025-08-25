@@ -4,7 +4,7 @@
   "installCommand": "npm install",
   "functions": {
     "api/image-processing.js": {
-      "maxDuration": 60,
+      "maxDuration": 50,
       "memory": 1024
     }
   },
