@@ -1,4 +1,4 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { NextResponse } from "next/server";
 import Replicate from "replicate";
 import { put } from "@vercel/blob";
 
@@ -24,64 +24,24 @@ function buildInput(model: string, imageUrl: string) {
   return { image: imageUrl };
 }
 
-function parseOutput(output: any): string {
-  if (typeof output === "string") return output;
-  if (Array.isArray(output)) return output[0];
-  if (output?.url) return output.url;
-  if (output?.image) return output.image;
-  return output;
-}
-
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  console.log('🌟 API CALLED:', req.method, req.url);
-  console.log('🔍 Headers:', JSON.stringify(req.headers, null, 2));
-  console.log('📝 Body type:', typeof req.body);
-  
-  if (req.method !== 'POST') {
-    console.log('❌ Method not allowed:', req.method);
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
+export async function POST(req: Request) {
   try {
-    console.log('📦 Raw body:', req.body);
+    const { imageBase64, model } = await req.json();
     
-    const { imageBase64, model } = req.body;
-
-    if (!imageBase64 || !model) {
-      console.log('❌ Missing parameters:', { hasImageBase64: !!imageBase64, hasModel: !!model });
-      return res.status(400).json({ error: 'Missing imageBase64 or model parameter' });
-    }
-
-    console.log('🚀 Processing with model:', model);
-    console.log('📊 Image base64 length:', imageBase64.length);
-
     // 1. Upload to Vercel Blob → get a URL
     const blob = await put(`uploads/${Date.now()}.png`, Buffer.from(imageBase64, "base64"), {
       access: "public",
     });
-
-    console.log('📁 Uploaded to blob:', blob.url);
-
+    
     // 2. Build correct input for the model
     const input = buildInput(model, blob.url);
-    console.log('🔧 Built input:', JSON.stringify(input, null, 2));
-
+    
     // 3. Run Replicate
-    console.log('🤖 Calling Replicate with model:', model);
     const output = await replicate.run(model, { input });
-    console.log('✅ Replicate output:', output);
-
-    // 4. Parse output universally
-    const finalUrl = parseOutput(output);
-
-    return res.status(200).json({ url: finalUrl });
+    
+    return NextResponse.json({ url: output });
   } catch (err: any) {
-    console.error("❌ Backend API Error:", err);
-    console.error("❌ Stack trace:", err.stack);
-    return res.status(500).json({ 
-      error: err.message,
-      details: err.stack,
-      timestamp: new Date().toISOString()
-    });
+    console.error("Backend API Error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
