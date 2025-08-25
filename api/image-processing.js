@@ -183,72 +183,33 @@ async function handleEnhance(req, res) {
     console.log("📊 Raw output:", typeof output, Array.isArray(output) ? `array[${output.length}]` : 'single');
     console.log("📊 First 200 chars:", JSON.stringify(output).substring(0, 200));
 
-    // Extract the enhanced image URL safely - handle ALL Replicate response formats
-    let outputUrl = null;
-    
-    console.log("🔍 Raw Replicate output:", JSON.stringify(output, null, 2));
-    console.log("🔍 Output type:", typeof output, "Is array:", Array.isArray(output));
-    
-    try {
-      // Handle array responses (most common)
-      if (Array.isArray(output)) {
-        outputUrl = output[0];
-        console.log("📊 Array format - extracted first item:", outputUrl);
-      } 
-      // Handle direct string responses
-      else if (typeof output === "string") {
-        outputUrl = output;
-        console.log("📊 String format - using directly:", outputUrl);
-      } 
-      // Handle object responses
-      else if (output && typeof output === "object") {
-        // Try different object structures
-        if (Array.isArray(output.output)) {
-          outputUrl = output.output[0];
-          console.log("📊 Object.output array - extracted first:", outputUrl);
-        } else if (typeof output.output === "string") {
-          outputUrl = output.output;
-          console.log("📊 Object.output string - using directly:", outputUrl);
-        } else if (output.url) {
-          outputUrl = output.url;
-          console.log("📊 Object.url - using directly:", outputUrl);
-        } else {
-          // Last resort - find any valid URL in the object
-          const values = Object.values(output);
-          outputUrl = values.find(v => typeof v === 'string' && v.startsWith('http'));
-          console.log("📊 Object fallback search found:", outputUrl);
-        }
+    // Normalize Replicate output - UNIVERSAL PARSER
+    let outputUrl: string | null = null;
+
+    if (!output) {
+      outputUrl = null;
+    } else if (typeof output === "string") {
+      outputUrl = output;
+    } else if (Array.isArray(output)) {
+      outputUrl = output.find((item: any) => typeof item === "string") || null;
+    } else if (typeof output === "object") {
+      if (Array.isArray((output as any).output)) {
+        outputUrl = (output as any).output.find((item: any) => typeof item === "string") || null;
+      } else if (typeof (output as any).output === "string") {
+        outputUrl = (output as any).output;
+      } else if ((output as any).output?.url) {
+        outputUrl = (output as any).output.url;
       }
-      
-      // Validate the extracted URL
-      if (!outputUrl) {
-        console.error("❌ No URL found in Replicate response");
-        throw new Error("Failed to extract enhanced image URL from Replicate response");
-      }
-      
-      if (typeof outputUrl !== 'string') {
-        console.error("❌ Extracted output is not a string:", typeof outputUrl, outputUrl);
-        throw new Error("Enhanced image URL is not a valid string");
-      }
-      
-      // Check for malformed URLs
-      if (outputUrl.includes('url()') || !outputUrl.startsWith('http')) {
-        console.error("❌ Invalid URL format detected:", outputUrl);
-        throw new Error("Invalid enhanced image URL format received from Replicate");
-      }
-      
-    } catch (parseError) {
-      console.error("❌ Error parsing Replicate output:", parseError);
-      console.error("📊 Full output for debugging:", JSON.stringify(output, null, 2));
-      throw new Error(`Failed to parse Replicate response: ${parseError.message}`);
     }
 
-    console.log("🎉 SUCCESS: Enhanced image URL:", outputUrl);
+    if (!outputUrl) {
+      return res.status(500).json({
+        error: "Failed to extract enhanced image URL from Replicate response",
+        debug: output,
+      });
+    }
 
-    return res.status(200).json({
-      output: outputUrl,
-      success: true
-    });
+    return res.status(200).json({ enhancedUrl: outputUrl });
 
   } catch (error) {
     console.error("❌ Enhancement failed:", error);

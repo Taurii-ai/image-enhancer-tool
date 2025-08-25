@@ -207,12 +207,12 @@ export const enhanceImage = async (
         throw new Error(result.error || 'Enhancement failed');
       }
 
-      if (!result.output) {
+      if (!result.enhancedUrl) {
         throw new Error('No enhanced image URL in response');
       }
 
-      // Handle array output (Replicate returns array)
-      enhancedUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+      // Use the clean enhancedUrl from backend
+      enhancedUrl = result.enhancedUrl;
       
       console.log('✅ Enhanced image URL received:', enhancedUrl);
       
