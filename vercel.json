@@ -5,6 +5,9 @@
   "functions": {
     "api/image-processing.ts": {
       "maxDuration": 300
+    },
+    "api/image-processing1.ts": {
+      "maxDuration": 300
     }
   },
   "rewrites": [
