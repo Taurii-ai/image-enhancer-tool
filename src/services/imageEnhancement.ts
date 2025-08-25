@@ -198,7 +198,7 @@ export const enhanceImage = async (
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          image: imageDataUrl, 
+          imageBase64: imageDataUrl.split(',')[1], // Remove data URL prefix, send only base64
           model: modelSlug 
         })
       });
@@ -221,12 +221,12 @@ export const enhanceImage = async (
         throw new Error(result.error || 'Enhancement failed');
       }
 
-      if (!result.enhancedUrl) {
+      if (!result.url) {
         throw new Error('No enhanced image URL in response');
       }
 
-      // Use the clean enhancedUrl from backend
-      enhancedUrl = result.enhancedUrl;
+      // Use the url from backend
+      enhancedUrl = result.url;
       
       console.log('✅ Enhanced image URL received:', enhancedUrl);
       
