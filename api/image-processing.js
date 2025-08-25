@@ -167,52 +167,49 @@ export default async function handler(req, res) {
       });
     }
 
-    // 4) Normalize the output to a single URL
-    console.log("🔍 Raw Replicate output:", JSON.stringify(output, null, 2));
+    // 4) Handle Replicate output - it's usually just a string or array of strings
+    console.log("🔍 Raw Replicate output:", output);
     console.log("🔍 Output type:", typeof output);
-    console.log("🔍 Is array:", Array.isArray(output));
     
     let enhancedUrl = null;
     
-    // Convert output to string for analysis
-    const outputStr = JSON.stringify(output);
-    console.log("🔍 Output as string:", outputStr);
-    
-    // Direct string URL
-    if (typeof output === "string" && output.startsWith("http")) {
+    // Most common case: direct string URL
+    if (typeof output === "string") {
       enhancedUrl = output;
-      console.log("✅ Found direct string URL");
-    } 
-    // Array with URL as first element
-    else if (Array.isArray(output) && output.length > 0) {
-      console.log("📋 Processing array output, length:", output.length);
-      if (typeof output[0] === "string" && output[0].startsWith("http")) {
-        enhancedUrl = output[0];
-        console.log("✅ Found URL in array[0]");
-      }
+      console.log("✅ Direct string output:", enhancedUrl);
     }
-    // Try extractFirstUrl as fallback
-    if (!enhancedUrl) {
-      console.log("🔧 Trying extractFirstUrl fallback...");
-      enhancedUrl = extractFirstUrl(output);
-      if (enhancedUrl) {
-        console.log("✅ Found URL via extraction:", enhancedUrl);
-      }
+    // Second most common: array with URL(s)
+    else if (Array.isArray(output) && output.length > 0) {
+      enhancedUrl = output[0];
+      console.log("✅ Array output, using first element:", enhancedUrl);
+    }
+    // Object case - check common properties
+    else if (output && typeof output === "object") {
+      enhancedUrl = output.url || output.image || output.output || output[0];
+      console.log("✅ Object output, extracted:", enhancedUrl);
     }
 
-    if (!enhancedUrl) {
-      console.error("❌ No URL found in output:", output);
-      console.error("❌ Full output string:", outputStr);
+    // Validate the URL
+    if (!enhancedUrl || typeof enhancedUrl !== "string" || !enhancedUrl.startsWith("http")) {
+      console.error("❌ Invalid or missing URL in output:", {
+        output,
+        extractedUrl: enhancedUrl,
+        outputType: typeof output,
+        isArray: Array.isArray(output)
+      });
+      
       return res.status(500).json({ 
-        error: "No valid URL found in Replicate output", 
-        raw: output,
-        type: typeof output,
-        isArray: Array.isArray(output),
-        stringified: outputStr
+        error: "Invalid URL returned from Replicate", 
+        debug: {
+          rawOutput: output,
+          extractedUrl: enhancedUrl,
+          outputType: typeof output,
+          isArray: Array.isArray(output)
+        }
       });
     }
     
-    console.log("✅ Final extracted URL:", enhancedUrl);
+    console.log("✅ Final URL:", enhancedUrl);
 
     // 5) Success
     return res.status(200).json({ url: enhancedUrl, source: "replicate" });
