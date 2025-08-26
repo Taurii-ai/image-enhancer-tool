@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Enhancer Test - Local Testing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+        
+        .left-panel, .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .config-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .config-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        
+        .url-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .url-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .upload-section {
+            text-align: center;
+        }
+        
+        .upload-zone {
+            border: 3px dashed #bdc3c7;
+            border-radius: 15px;
+            padding: 40px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+        
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #3498db;
+            background: #ebf3fd;
+            transform: translateY(-2px);
+        }
+        
+        .upload-zone input {
+            display: none;
+        }
+        
+        .upload-icon {
+            font-size: 3rem;
+            color: #bdc3c7;
+            margin-bottom: 15px;
+        }
+        
+        .categories {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        
+        .category-btn {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .category-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .category-btn.selected {
+            border-color: #3498db;
+            background: #ebf3fd;
+            color: #2980b9;
+        }
+        
+        .category-btn h4 {
+            margin-bottom: 5px;
+            font-size: 1rem;
+        }
+        
+        .category-btn p {
+            font-size: 0.85rem;
+            color: #666;
+            line-height: 1.3;
+        }
+        
+        .enhance-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .enhance-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        }
+        
+        .enhance-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .results-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            min-height: 200px;
+        }
+        
+        .image-preview {
+            width: 100%;
+            max-width: 300px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+            margin: 10px auto;
+            display: block;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .status.processing {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .console-log {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+        
+        .log-error {
+            color: #e74c3c;
+        }
+        
+        .log-success {
+            color: #2ecc71;
+        }
+        
+        .log-info {
+            color: #3498db;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .categories {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Image Enhancer Test</h1>
+            <p>Local testing environment for your image enhancement API</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="left-panel">
+                <!-- Configuration -->
+                <div class="config-section">
+                    <h3>⚙️ API Configuration</h3>
+                    <input 
+                        type="url" 
+                        class="url-input" 
+                        id="apiUrl" 
+                        placeholder="https://your-app-name.vercel.app"
+                        value="https://image-enhancer-tool-4pd2-q20pn6pc1-tauris-projects-0d84fcdd.vercel.app"
+                    >
+                    <small style="color: #666; margin-top: 10px; display: block;">
+                        Enter your Vercel deployment URL above
+                    </small>
+                </div>
+                
+                <!-- Image Upload -->
+                <div class="upload-section">
+                    <h3>📁 Upload Image</h3>
+                    <div class="upload-zone" id="uploadZone">
+                        <div class="upload-icon">📷</div>
+                        <p><strong>Click to select</strong> or drag & drop your image here</p>
+                        <p style="color: #666; font-size: 0.9rem; margin-top: 10px;">
+                            Supports: JPG, PNG, WebP
+                        </p>
+                        <input type="file" id="fileInput" accept="image/*">
+                    </div>
+                    
+                    <!-- Original Image Preview -->
+                    <div id="originalPreview" style="display: none;">
+                        <h4 style="margin: 15px 0 10px 0;">Original Image:</h4>
+                        <img id="originalImage" class="image-preview" alt="Original">
+                    </div>
+                </div>
+                
+                <!-- Categories -->
+                <div class="categories-section">
+                    <h3>🎯 Choose Enhancement Type</h3>
+                    <div class="categories">
+                        <div class="category-btn" data-category="general">
+                            <h4>🌍 General Photos</h4>
+                            <p>Landscapes, products, real-world photography</p>
+                        </div>
+                        
+                        <div class="category-btn" data-category="faces">
+                            <h4>👥 Faces & Portraits</h4>
+                            <p>People, face restoration, portrait photography</p>
+                        </div>
+                        
+                        <div class="category-btn" data-category="anime">
+                            <h4>🎨 Anime & Digital Art</h4>
+                            <p>Cartoons, illustrations, anime-style images</p>
+                        </div>
+                    </div>
+                    
+                    <button class="enhance-btn" id="enhanceBtn" disabled>
+                        ✨ Enhance Image
+                    </button>
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <!-- Results -->
+                <div class="results-section">
+                    <h3>📊 Results</h3>
+                    <div id="statusArea">
+                        <p style="color: #666;">Upload an image and select a category to get started</p>
+                    </div>
+                    
+                    <!-- Enhanced Image Preview -->
+                    <div id="enhancedPreview" style="display: none;">
+                        <h4 style="margin: 15px 0 10px 0;">Enhanced Image:</h4>
+                        <img id="enhancedImage" class="image-preview" alt="Enhanced">
+                        <div style="text-align: center; margin-top: 10px;">
+                            <a id="downloadLink" download="enhanced-image.png" style="display: none;">
+                                <button style="padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                    💾 Download Enhanced Image
+                                </button>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Console Log -->
+                <div class="console-section">
+                    <h3>🖥️ Console Output</h3>
+                    <div class="console-log" id="consoleLog">
+                        <div class="log-entry log-info">🔄 Ready for testing...</div>
+                    </div>
+                    <button onclick="clearLog()" style="margin-top: 10px; padding: 8px 16px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        Clear Log
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Model mapping
+        const MODEL_MAP = {
+            'general': 'jingyunliang/swinir:660d922d33153019e8c263a3bba265de882e7f4f70396546b6c9c8f9d47a021a',
+            'faces': 'sczhou/codeformer:cc4956dd26fa5a7185d5660cc9100fab1b8070a1d1654a8bb5eb6d443b020bb2', 
+            'anime': 'xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56'
+        };
+        
+        let selectedCategory = null;
+        let selectedFile = null;
+        let imageBase64 = null;
+        
+        // DOM Elements
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const originalPreview = document.getElementById('originalPreview');
+        const originalImage = document.getElementById('originalImage');
+        const categoryBtns = document.querySelectorAll('.category-btn');
+        const enhanceBtn = document.getElementById('enhanceBtn');
+        const statusArea = document.getElementById('statusArea');
+        const enhancedPreview = document.getElementById('enhancedPreview');
+        const enhancedImage = document.getElementById('enhancedImage');
+        const downloadLink = document.getElementById('downloadLink');
+        const consoleLog = document.getElementById('consoleLog');
+        const apiUrlInput = document.getElementById('apiUrl');
+        
+        // Logging function
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            consoleLog.appendChild(logEntry);
+            consoleLog.scrollTop = consoleLog.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            consoleLog.innerHTML = '<div class="log-entry log-info">🔄 Console cleared...</div>';
+        }
+        
+        function showStatus(message, type = 'info') {
+            statusArea.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        // File upload handling
+        uploadZone.addEventListener('click', () => fileInput.click());
+        
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+        
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+        
+        function handleFileSelect(file) {
+            selectedFile = file;
+            log(`📁 File selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imageBase64 = e.target.result;
+                originalImage.src = imageBase64;
+                originalPreview.style.display = 'block';
+                log('🖼️ Image preview loaded');
+                checkReadyState();
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // Category selection
+        categoryBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                categoryBtns.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedCategory = btn.dataset.category;
+                log(`🎯 Category selected: ${selectedCategory}`);
+                checkReadyState();
+            });
+        });
+        
+        function checkReadyState() {
+            const ready = selectedFile && selectedCategory && imageBase64;
+            enhanceBtn.disabled = !ready;
+            if (ready) {
+                log('✅ Ready to enhance!', 'success');
+            }
+        }
+        
+        // Enhancement process
+        enhanceBtn.addEventListener('click', async () => {
+            const apiUrl = apiUrlInput.value.trim();
+            if (!apiUrl) {
+                showStatus('❌ Please enter your Vercel API URL', 'error');
+                log('❌ Missing API URL', 'error');
+                return;
+            }
+            
+            const modelSlug = MODEL_MAP[selectedCategory];
+            log(`🚀 Starting enhancement with ${selectedCategory} model`);
+            log(`🔧 Model: ${modelSlug}`);
+            
+            showStatus('🔄 Processing image...', 'processing');
+            enhanceBtn.disabled = true;
+            
+            try {
+                const startTime = Date.now();
+                
+                const response = await fetch(`${apiUrl}/api/image-processing`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        imageBase64: imageBase64,
+                        model: modelSlug
+                    })
+                });
+                
+                const endTime = Date.now();
+                const duration = ((endTime - startTime) / 1000).toFixed(2);
+                
+                log(`⏱️ Request completed in ${duration}s`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    throw new Error(`Non-JSON response: ${text}`);
+                }
+                
+                const result = await response.json();
+                log(`✅ Response received: ${JSON.stringify(result)}`);
+                
+                if (result.url) {
+                    enhancedImage.src = result.url;
+                    enhancedPreview.style.display = 'block';
+                    downloadLink.href = result.url;
+                    downloadLink.style.display = 'inline-block';
+                    
+                    showStatus(`✅ Enhancement completed in ${duration}s!`, 'success');
+                    log(`🎉 Success! Enhanced image URL: ${result.url}`, 'success');
+                } else {
+                    throw new Error('No URL in response: ' + JSON.stringify(result));
+                }
+                
+            } catch (error) {
+                log(`❌ Enhancement failed: ${error.message}`, 'error');
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+            
+            enhanceBtn.disabled = false;
+            checkReadyState();
+        });
+        
+        log('🎯 Image Enhancer Test loaded successfully!', 'success');
+        log('📝 Instructions:', 'info');
+        log('1. Enter your Vercel deployment URL', 'info');
+        log('2. Upload an image', 'info');
+        log('3. Select enhancement category', 'info');
+        log('4. Click "Enhance Image"', 'info');
+    </script>
+</body>
+</html>
