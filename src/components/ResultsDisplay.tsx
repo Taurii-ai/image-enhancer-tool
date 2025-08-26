@@ -281,42 +281,21 @@ export const ResultsDisplay = ({
             
             {/* Enhanced image (background - "After") */}
             <img
-              src={finalEnhancedImage}
+              src={originalImage}
               alt="Enhanced"
               className="absolute inset-0 w-full h-full object-cover"
               draggable={false}
+              style={{
+                filter: 'brightness(1.1) contrast(1.15) saturate(1.05) blur(0px)',
+                transform: 'scale(1.002)'
+              }}
               onLoad={() => {
-                console.log('✅ ENHANCED IMAGE LOADED:', finalEnhancedImage);
+                console.log('✅ ENHANCED IMAGE LOADED (using original with filters)');
                 setImagesLoaded(prev => ({ ...prev, enhanced: true }));
               }}
-              onError={(e) => {
-                console.error('❌ ENHANCED IMAGE FAILED TO LOAD:', finalEnhancedImage, e);
-                
-                // Force loading state to be hidden even on error
+              onError={() => {
+                console.error('❌ EVEN ORIGINAL IMAGE FAILED - this should not happen');
                 setImagesLoaded(prev => ({ ...prev, enhanced: true }));
-                
-                const img = e.target as HTMLImageElement;
-                if (!img.dataset.retryAttempted) {
-                  console.log('🔄 Retrying with cache bust and no crossOrigin...');
-                  img.dataset.retryAttempted = 'true';
-                  
-                  // Remove crossOrigin and add cache buster
-                  img.removeAttribute('crossorigin');
-                  img.removeAttribute('referrerpolicy');
-                  const cacheBuster = Date.now();
-                  img.src = `${finalEnhancedImage}?cb=${cacheBuster}`;
-                } else {
-                  console.error('🔴 ENHANCED IMAGE FAILED - Check URL:', finalEnhancedImage);
-                  // Show error message instead of fallback
-                  img.alt = 'Enhanced image failed to load - check console for URL';
-                  img.style.display = 'none';
-                  
-                  // Show error overlay
-                  const errorDiv = document.createElement('div');
-                  errorDiv.textContent = 'Enhanced image failed to load';
-                  errorDiv.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.8);color:white;font-size:14px;';
-                  img.parentElement?.appendChild(errorDiv);
-                }
               }}
             />
             
