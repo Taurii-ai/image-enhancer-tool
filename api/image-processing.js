@@ -82,50 +82,19 @@ export default async function handler(req, res) {
       throw error;
     }
 
-    // Handle output with detailed debugging
-    console.log('🔍 Raw output type:', typeof output);
-    console.log('🔍 Is array:', Array.isArray(output));
-    console.log('🔍 Raw output:', JSON.stringify(output, null, 2));
+    // Handle Replicate output - most models return string or array
+    let resultUrl = output;
     
-    let resultUrl = null;
-    
-    // Handle different output formats
-    if (typeof output === 'string' && output.startsWith('http')) {
-      resultUrl = output;
-      console.log('✅ Found direct string URL');
-    } else if (Array.isArray(output) && output.length > 0) {
-      // Check first element
-      if (typeof output[0] === 'string' && output[0].startsWith('http')) {
-        resultUrl = output[0];
-        console.log('✅ Found URL in array[0]');
-      } else {
-        console.log('❌ Array[0] is not a valid URL:', output[0]);
-      }
-    } else if (output && typeof output === 'object') {
-      // Check common properties
-      resultUrl = output.url || output.image || output.output;
-      if (resultUrl) {
-        console.log('✅ Found URL in object property');
-      } else {
-        console.log('❌ No URL found in object properties');
-      }
+    // If it's an array, take the first element
+    if (Array.isArray(output)) {
+      resultUrl = output[0];
     }
     
-    // Validate the final URL
-    if (!resultUrl || typeof resultUrl !== 'string' || !resultUrl.startsWith('http')) {
-      console.error('❌ Invalid result URL:', resultUrl);
-      return res.status(500).json({ 
-        error: 'No valid URL returned from Replicate',
-        debug: {
-          outputType: typeof output,
-          isArray: Array.isArray(output),
-          rawOutput: output,
-          extractedUrl: resultUrl
-        }
-      });
+    // If it's still not a string, try to extract URL
+    if (typeof resultUrl !== 'string') {
+      resultUrl = output?.url || output?.image || output?.output || String(output);
     }
 
-    console.log('✅ Final result URL:', resultUrl);
     return res.status(200).json({ url: resultUrl });
 
   } catch (error) {
