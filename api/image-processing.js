@@ -71,15 +71,28 @@ export default async function handler(req, res) {
       
       const rawOutput = await Promise.race([replicatePromise, timeoutPromise]);
       
-      // FORCE PROPER OUTPUT EXTRACTION - Don't trust whatever Replicate returns
-      console.log('🔍 RAW REPLICATE OUTPUT:', typeof rawOutput, rawOutput);
+      // NUCLEAR DEBUG: Check what Replicate ACTUALLY returns
+      console.log('🔍 RAW REPLICATE OUTPUT:');
+      console.log('  Type:', typeof rawOutput);
+      console.log('  Constructor:', rawOutput?.constructor?.name);  
+      console.log('  Is Function:', typeof rawOutput === 'function');
+      console.log('  String:', String(rawOutput).substring(0, 200));
+      console.log('  JSON:', JSON.stringify(rawOutput, null, 2).substring(0, 200));
       
+      // If Replicate returns a FUNCTION - this is the bug
+      if (typeof rawOutput === 'function') {
+        console.error('🔥 REPLICATE RETURNED A FUNCTION OBJECT!');
+        console.error('  Function name:', rawOutput.name);
+        console.error('  Function toString:', rawOutput.toString().substring(0, 200));
+        throw new Error('Replicate model returned a function instead of an image URL');
+      }
+      
+      // Normal processing
       if (typeof rawOutput === 'string' && rawOutput.startsWith('http')) {
         output = rawOutput;
       } else if (Array.isArray(rawOutput) && rawOutput.length > 0) {
         output = String(rawOutput[0]);
       } else if (rawOutput && typeof rawOutput === 'object') {
-        // Try different object properties
         output = rawOutput.url || rawOutput.image || rawOutput.output || String(rawOutput);
       } else {
         output = String(rawOutput);
