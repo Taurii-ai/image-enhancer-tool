@@ -45,9 +45,15 @@ export default async function handler(req, res) {
     });
 
     console.log('Uploaded to blob:', blob.url);
+    console.log('Blob URL type:', typeof blob.url);
+    console.log('Blob URL constructor:', blob.url?.constructor?.name);
+
+    // CRITICAL FIX: Ensure blob.url is always a string
+    const cleanBlobUrl = String(blob.url);
+    console.log('Clean blob URL:', cleanBlobUrl);
 
     // Build input
-    const input = buildInput(model, blob.url);
+    const input = buildInput(model, cleanBlobUrl);
     console.log('Input:', input);
 
     // Call Replicate with timeout handling
