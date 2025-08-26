@@ -21,21 +21,8 @@ export const ResultsDisplay = ({
   planType = 'trial'
 }: ResultsDisplayProps) => {
   
-  // Use proxy for Replicate URLs to handle CORS
-  const getProxiedImageUrl = (url: string | unknown) => {
-    // Ensure url is a string
-    const urlString = typeof url === 'string' ? url : String(url || '');
-    
-    // Use proxy for Replicate URLs to avoid CORS issues
-    if (urlString.startsWith('https://replicate.delivery/')) {
-      console.log('🔄 Using proxy for Replicate URL:', urlString);
-      return `/api/image-processing?action=proxy&url=${encodeURIComponent(urlString)}`;
-    }
-    
-    return urlString;
-  };
-  
-  const finalEnhancedImage = getProxiedImageUrl(enhancedImage);
+  // Direct URL usage - no proxy needed for same-origin URLs
+  const finalEnhancedImage = typeof enhancedImage === 'string' ? enhancedImage : String(enhancedImage || '');
   const [comparison, setComparison] = useState(10); // Show more enhanced image by default
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -46,15 +33,29 @@ export const ResultsDisplay = ({
   useEffect(() => {
     if (finalEnhancedImage) {
       console.log('🔄 NEW ENHANCED IMAGE URL RECEIVED:', finalEnhancedImage);
+      console.log('🔍 URL type:', typeof finalEnhancedImage);
+      console.log('🔍 URL starts with https:', finalEnhancedImage.startsWith('https://'));
+      
+      // Test if URL is accessible
+      fetch(finalEnhancedImage, { method: 'HEAD' })
+        .then(response => {
+          console.log('🔍 HEAD request result:', response.status, response.statusText);
+          if (!response.ok) {
+            console.error('❌ URL not accessible via HEAD:', response.status);
+          }
+        })
+        .catch(err => {
+          console.error('❌ HEAD request failed:', err);
+        });
       
       // Reset loading state for new image
       setImagesLoaded(prev => ({ ...prev, enhanced: false }));
       
-      // Fallback: hide loading after 3 seconds even if onLoad doesn't fire
+      // Fallback: hide loading after 5 seconds even if onLoad doesn't fire
       const timeout = setTimeout(() => {
         console.log('⏰ LOADING TIMEOUT - forcing enhanced image to show');
         setImagesLoaded(prev => ({ ...prev, enhanced: true }));
-      }, 3000);
+      }, 5000);
       
       return () => clearTimeout(timeout);
     }
@@ -138,8 +139,14 @@ export const ResultsDisplay = ({
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      // Download the enhanced image (use the loaded version)
+      // Download the enhanced image
+      console.log('🔄 Attempting to download:', finalEnhancedImage);
       const response = await fetch(finalEnhancedImage);
+      
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+      }
+      
       const blob = await response.blob();
       
       // Preserve the original file format and name
@@ -274,25 +281,19 @@ export const ResultsDisplay = ({
                 // Force loading state to be hidden even on error
                 setImagesLoaded(prev => ({ ...prev, enhanced: true }));
                 
-                // Try various fixes for image loading
                 const img = e.target as HTMLImageElement;
                 if (!img.dataset.retryAttempted) {
-                  console.log('🔄 Retrying image load with different settings...');
+                  console.log('🔄 Retrying image load without crossOrigin...');
                   img.dataset.retryAttempted = 'true';
                   
-                  // Remove crossOrigin first, then add it back
+                  // Remove crossOrigin and try again - same origin shouldn't need it
                   img.removeAttribute('crossorigin');
-                  setTimeout(() => {
-                    img.crossOrigin = 'anonymous';
-                    img.src = finalEnhancedImage + (finalEnhancedImage.includes('?') ? '&' : '?') + 'cache_bust=' + Date.now();
-                  }, 100);
+                  img.src = finalEnhancedImage;
                 } else {
                   console.error('🔴 FINAL IMAGE LOAD FAILED - all retry attempts exhausted');
-                  // Show a broken image placeholder or error message
                   img.alt = 'Enhanced image failed to load - check console for details';
                 }
               }}
-              crossOrigin="anonymous"
             />
             
             {/* Original image overlay with clip path (foreground - "Before") */}
@@ -314,7 +315,6 @@ export const ResultsDisplay = ({
                 onError={(e) => {
                   console.error('❌ ORIGINAL IMAGE FAILED TO LOAD:', originalImage, e);
                 }}
-                crossOrigin="anonymous"
               />
             </div>
 
