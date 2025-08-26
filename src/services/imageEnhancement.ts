@@ -42,8 +42,7 @@ export async function enhanceImageAPI(imageBase64: string, model: string): Promi
 
   // ✅ Force string conversion here
   const finalUrl = normalizeUrl(raw);
-
-  console.log("🟢 Normalized URL string:", finalUrl);
+  console.log("🟢 Final usable URL:", finalUrl);
   return finalUrl;
 }
 

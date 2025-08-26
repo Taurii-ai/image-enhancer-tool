@@ -1,35 +1,40 @@
 export function normalizeUrl(value: unknown): string {
   if (!value) throw new Error("No URL provided");
 
-  // Already a URL instance
+  // Already a URL
   if (value instanceof URL) return value.href;
 
   // Plain string
   if (typeof value === "string") {
+    const trimmed = value.trim();
+
+    // Already usable as src
     if (
-      value.startsWith("http://") ||
-      value.startsWith("https://") ||
-      value.startsWith("blob:") ||
-      value.startsWith("data:")
+      trimmed.startsWith("http://") ||
+      trimmed.startsWith("https://") ||
+      trimmed.startsWith("blob:") ||
+      trimmed.startsWith("data:")
     ) {
-      return value;
+      return trimmed;
     }
-    try {
-      return new URL(value).href;
-    } catch {
-      throw new Error("Invalid URL string");
+
+    // Relative URL from backend → make it absolute
+    if (trimmed.startsWith("/")) {
+      return `${window.location.origin}${trimmed}`;
     }
+
+    // Handle bare keys (like "image-enhancer-tool-4pd2...") by treating them as relative
+    if (/^[a-zA-Z0-9_\-]/.test(trimmed)) {
+      return `${window.location.origin}/${trimmed}`;
+    }
+
+    throw new Error(`Invalid URL string: "${trimmed}"`);
   }
 
-  // Objects often look like { url: "https://..." }
+  // Object style { url: "..." }
   if (typeof value === "object" && value !== null) {
     const maybe = (value as any).url ?? (value as any).href;
     if (maybe) return normalizeUrl(maybe);
-  }
-
-  // Functions sneak in here (your previous bug)
-  if (typeof value === "function") {
-    throw new Error("Got a function instead of a URL string");
   }
 
   throw new Error("Unsupported URL type");
