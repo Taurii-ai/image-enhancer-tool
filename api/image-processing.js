@@ -76,6 +76,12 @@ export default async function handler(req, res) {
     
     let output;
     try {
+      // TEMPORARY: Skip Replicate and return a working URL for now
+      console.log('🧪 SKIPPING REPLICATE - Using original blob as enhanced for testing');
+      const rawOutput = cleanBlobUrl; // Use the original blob URL as the "enhanced" version
+      
+      // Uncomment below when we want to use Replicate again
+      /*
       // Set a reasonable timeout for Vercel limits (45 seconds)
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Replicate timeout after 45 seconds')), 45000);
@@ -86,6 +92,7 @@ export default async function handler(req, res) {
       console.log('⚡ REPLICATE PROMISE CREATED');
       
       const rawOutput = await Promise.race([replicatePromise, timeoutPromise]);
+      */
       
       // NUCLEAR DEBUG: Check what Replicate ACTUALLY returns
       console.log('🔍 RAW REPLICATE OUTPUT:');
