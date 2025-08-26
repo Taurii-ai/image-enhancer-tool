@@ -38,8 +38,12 @@ export default async function handler(req, res) {
     const base64Data = imageBase64.split(',')[1] || imageBase64;
     const buffer = Buffer.from(base64Data, 'base64');
     
-    // Upload to Vercel Blob
-    const blob = await put(`uploads/${Date.now()}.png`, buffer, {
+    // Upload to Vercel Blob - ensure clean filename
+    const timestamp = Date.now();
+    const filename = `uploads/${timestamp}.png`;
+    console.log('🔍 CREATING BLOB WITH FILENAME:', filename);
+    
+    const blob = await put(filename, buffer, {
       access: 'public',
       contentType: 'image/png',
     });

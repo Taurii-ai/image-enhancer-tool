@@ -40,8 +40,12 @@ export async function enhanceImageAPI(imageBase64: string, model: string): Promi
   const raw: unknown = data.url ?? data.enhancedUrl;
   if (!raw) throw new Error("Backend did not return a usable URL");
 
-  // ✅ Force string conversion here
+  // ✅ NUCLEAR DEBUG: Track where function contamination happens
+  console.log("🔍 BEFORE NORMALIZE - Raw value:", typeof raw, raw);
+  
   const finalUrl = normalizeUrl(raw);
+  
+  console.log("🔍 AFTER NORMALIZE - Final URL:", typeof finalUrl, finalUrl);
   console.log("🟢 Final usable URL:", finalUrl);
   return finalUrl;
 }
