@@ -85,8 +85,13 @@ export default async function handler(req, res) {
     // Handle Replicate output and ensure we return a valid URL string
     let resultUrl;
     
-    console.log('Raw Replicate output type:', typeof output);
-    console.log('Raw Replicate output:', JSON.stringify(output, null, 2));
+    console.log('🔍 DEBUGGING REPLICATE OUTPUT:');
+    console.log('  - Type:', typeof output);
+    console.log('  - Constructor:', output?.constructor?.name);
+    console.log('  - Is Array:', Array.isArray(output));
+    console.log('  - JSON:', JSON.stringify(output, null, 2));
+    console.log('  - String conversion:', String(output));
+    console.log('  - Object keys:', output && typeof output === 'object' ? Object.keys(output) : 'Not an object');
     
     if (typeof output === 'string') {
       resultUrl = output;
@@ -118,16 +123,35 @@ export default async function handler(req, res) {
     // Make sure it's a string
     resultUrl = String(resultUrl);
     
-    // Try to extract URL if it's embedded in a string - be more aggressive
-    if (resultUrl.includes('https://')) {
-      // First try: get everything after https:// until we hit function garbage
-      const urlMatch = resultUrl.match(/https:\/\/[^%\s'")\]]+(?=\s|%20|\)|$)/);
-      if (urlMatch) {
-        resultUrl = urlMatch[0];
+    // AGGRESSIVE URL CLEANING: Extract only the actual image URL
+    if (resultUrl && typeof resultUrl === 'string') {
+      console.log('🧹 BEFORE CLEANING:', resultUrl);
+      
+      // If it contains replicate.delivery, extract that
+      const replicateMatch = resultUrl.match(/https:\/\/replicate\.delivery\/[^%\s'")\{]+/);
+      if (replicateMatch) {
+        resultUrl = replicateMatch[0];
+        console.log('🎯 EXTRACTED REPLICATE URL:', resultUrl);
+      } 
+      // If it contains other image domains, extract those  
+      else if (resultUrl.includes('https://')) {
+        // Extract any https URL but stop at function artifacts
+        const cleanUrlMatch = resultUrl.match(/https:\/\/[^%\s'")\{\|]+/);
+        if (cleanUrlMatch) {
+          let cleanUrl = cleanUrlMatch[0];
+          // Remove common function artifacts from the end
+          cleanUrl = cleanUrl.replace(/\/url\([^)]*$/, '')
+                             .replace(/\/function[^\/]*$/, '')
+                             .replace(/\/\{[^}]*$/, '')
+                             .replace(/url\([^)]*$/, '')
+                             .replace(/\([^)]*$/, '')
+                             .replace(/\{.*$/, '');
+          resultUrl = cleanUrl;
+          console.log('🎯 CLEANED GENERIC URL:', resultUrl);
+        }
       }
       
-      // Second cleanup: remove any trailing function artifacts
-      resultUrl = resultUrl.replace(/url\([^)]*$/, '').replace(/\([^)]*$/, '').replace(/\{.*$/, '');
+      console.log('🧹 AFTER CLEANING:', resultUrl);
     }
 
     console.log('Returning URL:', resultUrl);
