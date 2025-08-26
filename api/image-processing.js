@@ -115,13 +115,21 @@ export default async function handler(req, res) {
       resultUrl = String(output);
     }
     
-    // Clean up the URL string - remove any function syntax
-    resultUrl = String(resultUrl).replace(/url\(\)\s*\{\s*return\s+new\s+URL\([^)]+\);\s*\}/g, '');
+    // Clean up the URL string and extract actual URL
+    resultUrl = String(resultUrl);
     
-    // Extract URL from various formats
-    const urlMatch = resultUrl.match(/https?:\/\/[^\s'"]+/);
-    if (urlMatch) {
-      resultUrl = urlMatch[0];
+    // Handle the specific case where it's wrapped as a function or object string
+    if (resultUrl.includes('https://')) {
+      const urlMatch = resultUrl.match(/https:\/\/[^\s'")\]]+/);
+      if (urlMatch) {
+        resultUrl = urlMatch[0];
+      }
+    }
+    
+    // If still no valid URL, throw error
+    if (!resultUrl || !resultUrl.startsWith('https://')) {
+      console.error('Failed to extract valid URL from:', output);
+      throw new Error('No valid enhanced image URL could be extracted from Replicate output');
     }
 
     console.log('Returning URL:', resultUrl);

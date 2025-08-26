@@ -215,8 +215,9 @@ export const enhanceImage = async (
         throw new Error(`Backend API failed: ${res.status} - ${data?.error || "Unknown error"}`);
       }
 
-      if (!data?.url || typeof data.url !== "string") {
-        throw new Error("No enhanced URL returned from backend");
+      if (!data?.url || typeof data.url !== "string" || !data.url.startsWith("https://")) {
+        console.error("Invalid URL from backend:", data);
+        throw new Error(`Invalid enhanced URL returned: ${data?.url || 'undefined'}`);
       }
 
       onProgress({ status: 'processing', progress: 60, message: 'Real-ESRGAN processing...' });
