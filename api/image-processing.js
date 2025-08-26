@@ -66,7 +66,12 @@ export default async function handler(req, res) {
     console.log('Input:', input);
 
     // Call Replicate with timeout handling
-    console.log('Calling Replicate...');
+    console.log('🚀 CALLING REPLICATE...');
+    console.log('  - Model:', model);
+    console.log('  - Input:', JSON.stringify(input));
+    console.log('  - Replicate instance:', typeof replicate);
+    console.log('  - API Token exists:', !!process.env.REPLICATE_API_TOKEN);
+    
     const startTime = Date.now();
     
     let output;
@@ -76,7 +81,9 @@ export default async function handler(req, res) {
         setTimeout(() => reject(new Error('Replicate timeout after 45 seconds')), 45000);
       });
       
+      console.log('⚡ STARTING REPLICATE CALL...');
       const replicatePromise = replicate.run(model, { input });
+      console.log('⚡ REPLICATE PROMISE CREATED');
       
       const rawOutput = await Promise.race([replicatePromise, timeoutPromise]);
       
