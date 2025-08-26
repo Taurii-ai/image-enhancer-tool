@@ -63,7 +63,23 @@ export default async function handler(req, res) {
       
       const replicatePromise = replicate.run(model, { input });
       
-      output = await Promise.race([replicatePromise, timeoutPromise]);
+      const rawOutput = await Promise.race([replicatePromise, timeoutPromise]);
+      
+      // FORCE PROPER OUTPUT EXTRACTION - Don't trust whatever Replicate returns
+      console.log('🔍 RAW REPLICATE OUTPUT:', typeof rawOutput, rawOutput);
+      
+      if (typeof rawOutput === 'string' && rawOutput.startsWith('http')) {
+        output = rawOutput;
+      } else if (Array.isArray(rawOutput) && rawOutput.length > 0) {
+        output = String(rawOutput[0]);
+      } else if (rawOutput && typeof rawOutput === 'object') {
+        // Try different object properties
+        output = rawOutput.url || rawOutput.image || rawOutput.output || String(rawOutput);
+      } else {
+        output = String(rawOutput);
+      }
+      
+      console.log('🔧 PROCESSED OUTPUT:', typeof output, output);
       
       const endTime = Date.now();
       console.log(`Replicate completed in ${(endTime - startTime) / 1000}s`);
@@ -82,46 +98,9 @@ export default async function handler(req, res) {
       throw error;
     }
 
-    // Handle Replicate output and ensure we return a valid URL string
-    let resultUrl;
-    
-    console.log('🔍 DEBUGGING REPLICATE OUTPUT:');
-    console.log('  - Type:', typeof output);
-    console.log('  - Constructor:', output?.constructor?.name);
-    console.log('  - Is Array:', Array.isArray(output));
-    console.log('  - JSON:', JSON.stringify(output, null, 2));
-    console.log('  - String conversion:', String(output));
-    console.log('  - Object keys:', output && typeof output === 'object' ? Object.keys(output) : 'Not an object');
-    
-    if (typeof output === 'string') {
-      resultUrl = output;
-    } else if (Array.isArray(output) && output.length > 0) {
-      resultUrl = output[0];
-    } else if (output && typeof output === 'object') {
-      // Handle different object structures
-      if (output.url) {
-        resultUrl = output.url;
-      } else if (output.image) {
-        resultUrl = output.image;
-      } else if (output.output) {
-        resultUrl = output.output;
-      } else {
-        // Try to get the first property that looks like a URL
-        const values = Object.values(output);
-        resultUrl = values.find(val => 
-          typeof val === 'string' && 
-          (val.startsWith('http://') || val.startsWith('https://'))
-        );
-      }
-    }
-    
-    // Final fallback - convert whatever we have to string and clean it
-    if (!resultUrl) {
-      resultUrl = String(output);
-    }
-    
-    // Make sure it's a string
-    resultUrl = String(resultUrl);
+    // SIMPLIFIED: output is already processed above, just clean it
+    let resultUrl = String(output);
+    console.log('🔄 STARTING WITH:', resultUrl);
     
     // AGGRESSIVE URL CLEANING: Extract only the actual image URL
     if (resultUrl && typeof resultUrl === 'string') {
