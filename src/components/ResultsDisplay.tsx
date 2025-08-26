@@ -24,14 +24,19 @@ export const ResultsDisplay = ({
   // Direct URL usage - clean any encoded function parts from URLs
   let finalEnhancedImage = typeof enhancedImage === 'string' ? enhancedImage : String(enhancedImage || '');
   
-  // Clean up URLs that contain encoded function garbage
-  if (finalEnhancedImage.includes('%20') || finalEnhancedImage.includes('url()')) {
-    const cleanMatch = finalEnhancedImage.match(/https:\/\/[^%\s\)]+/);
-    if (cleanMatch) {
-      finalEnhancedImage = cleanMatch[0];
-      console.log('🧹 Cleaned URL:', finalEnhancedImage);
-    }
-  }
+  // NUCLEAR URL CLEANING - STRIP ALL FUNCTION SHIT
+  finalEnhancedImage = finalEnhancedImage
+    .replace(/\/url\([^)]*\).*$/, '')   // Remove /url() and everything after
+    .replace(/\/url\([^)]*$/, '')       // Remove /url( at end
+    .replace(/\/url\(\).*$/, '')        // Remove /url() and everything after
+    .replace(/url\([^)]*\).*$/, '')     // Remove url() and everything after
+    .replace(/url\([^)]*$/, '')         // Remove url( at end
+    .replace(/url\(\).*$/, '')          // Remove url() and everything after
+    .replace(/%20.*$/, '')              // Remove encoded spaces and after
+    .replace(/%7B.*$/, '')              // Remove encoded { and after
+    .trim();
+    
+  console.log('🧹 Nuclear cleaned URL:', finalEnhancedImage);
   const [comparison, setComparison] = useState(10); // Show more enhanced image by default
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);

@@ -125,35 +125,23 @@ export default async function handler(req, res) {
     let resultUrl = String(output);
     console.log('🔄 STARTING WITH:', resultUrl);
     
-    // AGGRESSIVE URL CLEANING: Extract only the actual image URL
+    // NUCLEAR URL CLEANING - STRIP ALL FUNCTION GARBAGE
     if (resultUrl && typeof resultUrl === 'string') {
-      console.log('🧹 BEFORE CLEANING:', resultUrl);
-      
-      // If it contains replicate.delivery, extract that
-      const replicateMatch = resultUrl.match(/https:\/\/replicate\.delivery\/[^%\s'")\{]+/);
-      if (replicateMatch) {
-        resultUrl = replicateMatch[0];
-        console.log('🎯 EXTRACTED REPLICATE URL:', resultUrl);
-      } 
-      // If it contains other image domains, extract those  
-      else if (resultUrl.includes('https://')) {
-        // Extract any https URL but stop at function artifacts
-        const cleanUrlMatch = resultUrl.match(/https:\/\/[^%\s'")\{\|]+/);
-        if (cleanUrlMatch) {
-          let cleanUrl = cleanUrlMatch[0];
-          // Remove common function artifacts from the end
-          cleanUrl = cleanUrl.replace(/\/url\([^)]*$/, '')
-                             .replace(/\/function[^\/]*$/, '')
-                             .replace(/\/\{[^}]*$/, '')
-                             .replace(/url\([^)]*$/, '')
-                             .replace(/\([^)]*$/, '')
-                             .replace(/\{.*$/, '');
-          resultUrl = cleanUrl;
-          console.log('🎯 CLEANED GENERIC URL:', resultUrl);
-        }
-      }
-      
-      console.log('🧹 AFTER CLEANING:', resultUrl);
+      // Remove all variants of function garbage
+      resultUrl = resultUrl
+        .replace(/\/url\([^)]*\).*$/, '')  // Remove /url() and everything after
+        .replace(/\/url\([^)]*$/, '')      // Remove /url( at end
+        .replace(/\/url\(\).*$/, '')       // Remove /url() and everything after
+        .replace(/url\([^)]*\).*$/, '')    // Remove url() and everything after
+        .replace(/url\([^)]*$/, '')        // Remove url( at end
+        .replace(/url\(\).*$/, '')         // Remove url() and everything after
+        .replace(/\/function.*$/, '')      // Remove /function at end
+        .replace(/\/\{.*$/, '')            // Remove /{ at end
+        .replace(/\([^)]*$/, '')           // Remove ( at end
+        .replace(/\{.*$/, '')              // Remove { at end
+        .replace(/%20.*$/, '')             // Remove encoded spaces and after
+        .replace(/%7B.*$/, '')             // Remove encoded { and after
+        .trim();
     }
 
     console.log('Returning URL:', resultUrl);
