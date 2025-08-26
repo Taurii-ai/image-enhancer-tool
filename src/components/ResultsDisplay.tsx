@@ -297,15 +297,19 @@ export const ResultsDisplay = ({
                 
                 const img = e.target as HTMLImageElement;
                 if (!img.dataset.retryAttempted) {
-                  console.log('🔄 Retrying image load without crossOrigin...');
+                  console.log('🔄 Retrying with cache bust and no crossOrigin...');
                   img.dataset.retryAttempted = 'true';
                   
-                  // Remove crossOrigin and try again - same origin shouldn't need it
+                  // Remove crossOrigin and add cache buster
                   img.removeAttribute('crossorigin');
-                  img.src = finalEnhancedImage;
+                  img.removeAttribute('referrerpolicy');
+                  const cacheBuster = Date.now();
+                  img.src = `${finalEnhancedImage}?cb=${cacheBuster}`;
                 } else {
                   console.error('🔴 FINAL IMAGE LOAD FAILED - all retry attempts exhausted');
-                  img.alt = 'Enhanced image failed to load - check console for details';
+                  // As last resort, force show the image even if it errors
+                  img.style.display = 'block';
+                  img.alt = 'Enhanced image - may not display correctly';
                 }
               }}
             />
