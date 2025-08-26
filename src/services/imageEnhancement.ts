@@ -228,22 +228,6 @@ export const enhanceImage = async (
       
       console.log('✅ Enhanced image URL received:', enhancedUrl);
       
-      // Validate the enhanced image URL by trying to load it
-      onProgress({ status: 'processing', progress: 85, message: 'Validating enhanced image...' });
-      
-      try {
-        const imageCheck = new Image();
-        await new Promise((resolve, reject) => {
-          imageCheck.onload = resolve;
-          imageCheck.onerror = () => reject(new Error('Enhanced image failed to load'));
-          imageCheck.src = enhancedUrl;
-        });
-        console.log('✅ Enhanced image validated successfully');
-      } catch (imageError) {
-        console.error('❌ Enhanced image validation failed:', imageError);
-        throw new Error(`Enhanced image is not accessible: ${enhancedUrl}`);
-      }
-      
       onProgress({ status: 'processing', progress: 90, message: 'Finalizing...' });
       
       const result_final = {

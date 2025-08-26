@@ -101,16 +101,7 @@ export default async function handler(req, res) {
     // Make sure it's a string
     resultUrl = String(resultUrl);
 
-    // Validate the URL before returning
-    console.log('Raw result URL:', resultUrl);
-    
-    // Check if it's a valid HTTP/HTTPS URL
-    if (!resultUrl.startsWith('http://') && !resultUrl.startsWith('https://')) {
-      console.error('Invalid URL format:', resultUrl);
-      throw new Error(`Invalid URL format returned: ${resultUrl}`);
-    }
-    
-    console.log('Returning validated URL:', resultUrl);
+    console.log('Returning URL:', resultUrl);
     return res.status(200).json({ url: resultUrl });
 
   } catch (error) {
