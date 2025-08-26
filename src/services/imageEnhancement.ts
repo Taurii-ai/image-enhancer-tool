@@ -2,6 +2,7 @@ import { getCurrentPlanLimits, getUserSubscription } from './subscriptionManager
 import { recordApiUsage, MODEL_COSTS } from './costTracker';
 import { trackImageEnhancement, trackApiCost } from './analytics';
 import { UserService } from './userService';
+import { normalizeUrl } from '@/utils/normalizeUrl';
 
 // These functions were used for the old API-based approach, now using direct client
 
@@ -203,29 +204,41 @@ export const enhanceImage = async (
         }),
       });
 
+      // Always parse as JSON or throw a readable error
       const ct = res.headers.get("content-type") || "";
+      const text = await res.text();
       if (!ct.includes("application/json")) {
-        const text = await res.text().catch(() => "");
         throw new Error(`Server returned non-JSON response: ${text || res.statusText}`);
       }
 
-      const data = await res.json();
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(`Invalid JSON from server: ${text.slice(0, 140)}`);
+      }
+
+      console.log("🧪 Enhanced image result ::", data);
+      console.log("🧪 Typeof data.url:", typeof (data as any).url);
+      console.log("🧪 Typeof enhancedUrl:", typeof (data as any).enhancedUrl);
 
       if (!res.ok) {
         throw new Error(`Backend API failed: ${res.status} - ${data?.error || "Unknown error"}`);
       }
 
-      if (!data?.url || typeof data.url !== "string") {
-        console.error("Invalid URL from backend:", data);
-        throw new Error("No enhanced URL returned from backend");
-      }
+      // Accept either { url } or { enhancedUrl }
+      const raw = (data as any).url ?? (data as any).enhancedUrl ?? null;
+      if (!raw) throw new Error("Backend did not return a URL");
 
       onProgress({ status: 'processing', progress: 60, message: 'Real-ESRGAN processing...' });
 
       console.log("✅ Enhanced image result:", data);
 
-      // Always returns a string URL now
-      enhancedUrl = data.url;
+      // 🔒 Critical: coerce to a plain string BEFORE setting state/using in <img>
+      const finalUrl = normalizeUrl(raw);
+      console.log("🟢 Normalized URL string:", finalUrl);
+      
+      enhancedUrl = finalUrl;
       
       console.log('✅ Enhanced image URL received:', enhancedUrl);
       

@@ -21,16 +21,16 @@ export const CostMonitor = () => {
     try {
       const data = exportUsageData();
       const blob = new Blob([data], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
+      const downloadUrl = URL.createObjectURL(blob);
       
       const link = document.createElement('a');
-      link.href = url;
+      link.href = downloadUrl;
       link.download = `api-usage-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(downloadUrl);
     } catch (error) {
       console.error('Export failed:', error);
     } finally {

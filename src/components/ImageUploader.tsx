@@ -67,8 +67,8 @@ export const ImageUploader = ({ onImageUpload, isProcessing }: ImageUploaderProp
     if (!validateFile(file)) return;
 
     setSelectedFile(file);
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
     onImageUpload(file);
   };
 

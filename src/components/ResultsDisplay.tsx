@@ -147,14 +147,14 @@ export const ResultsDisplay = ({
       const baseName = originalFile.name.replace(/\.[^/.]+$/, '');
       const enhancedFileName = `${baseName}_enhanced.${fileExtension}`;
       
-      const url = window.URL.createObjectURL(blob);
+      const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = url;
+      link.href = downloadUrl;
       link.download = enhancedFileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(downloadUrl);
 
       toast({
         title: "Download complete!",
