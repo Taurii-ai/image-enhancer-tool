@@ -124,17 +124,16 @@ export default async function handler(req, res) {
       console.log(`Replicate completed in ${(endTime - startTime) / 1000}s`);
       console.log('Replicate output:', output);
       
-    } catch (error) {
+    } catch (replicateError) {
       const endTime = Date.now();
-      console.log(`Replicate failed after ${(endTime - startTime) / 1000}s:`, error.message);
+      console.log(`⚠️ Replicate failed after ${(endTime - startTime) / 1000}s:`, replicateError.message);
       
-      if (error.message.includes('timeout')) {
-        return res.status(408).json({ 
-          error: 'Processing timeout - image enhancement is taking too long',
-          suggestion: 'Try with a smaller image or different model'
-        });
-      }
-      throw error;
+      // Instead of throwing, return the original blob URL as fallback
+      console.log('🔄 Using original image as fallback due to Replicate failure');
+      output = cleanBlobUrl;
+      
+      // Log the error but don't fail the request
+      console.log('Fallback: Using original blob URL:', output);
     }
 
     // CHECK: Is this a valid image URL or our input URL being returned?
