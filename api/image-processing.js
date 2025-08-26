@@ -82,18 +82,50 @@ export default async function handler(req, res) {
       throw error;
     }
 
-    // Handle output - Replicate usually returns array or string
-    let resultUrl;
-    if (Array.isArray(output)) {
-      resultUrl = output[0];
-    } else if (typeof output === 'string') {
+    // Handle output with detailed debugging
+    console.log('🔍 Raw output type:', typeof output);
+    console.log('🔍 Is array:', Array.isArray(output));
+    console.log('🔍 Raw output:', JSON.stringify(output, null, 2));
+    
+    let resultUrl = null;
+    
+    // Handle different output formats
+    if (typeof output === 'string' && output.startsWith('http')) {
       resultUrl = output;
-    } else {
-      resultUrl = output;
+      console.log('✅ Found direct string URL');
+    } else if (Array.isArray(output) && output.length > 0) {
+      // Check first element
+      if (typeof output[0] === 'string' && output[0].startsWith('http')) {
+        resultUrl = output[0];
+        console.log('✅ Found URL in array[0]');
+      } else {
+        console.log('❌ Array[0] is not a valid URL:', output[0]);
+      }
+    } else if (output && typeof output === 'object') {
+      // Check common properties
+      resultUrl = output.url || output.image || output.output;
+      if (resultUrl) {
+        console.log('✅ Found URL in object property');
+      } else {
+        console.log('❌ No URL found in object properties');
+      }
+    }
+    
+    // Validate the final URL
+    if (!resultUrl || typeof resultUrl !== 'string' || !resultUrl.startsWith('http')) {
+      console.error('❌ Invalid result URL:', resultUrl);
+      return res.status(500).json({ 
+        error: 'No valid URL returned from Replicate',
+        debug: {
+          outputType: typeof output,
+          isArray: Array.isArray(output),
+          rawOutput: output,
+          extractedUrl: resultUrl
+        }
+      });
     }
 
-    console.log('Result URL:', resultUrl);
-
+    console.log('✅ Final result URL:', resultUrl);
     return res.status(200).json({ url: resultUrl });
 
   } catch (error) {
