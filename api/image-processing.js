@@ -47,7 +47,12 @@ export default async function handler(req, res) {
       access: 'public',
       contentType: 'image/png',
     });
-
+    
+    if (!blob || !blob.url) {
+      throw new Error('Blob upload failed - no URL returned');
+    }
+    
+    console.log('✅ Blob upload successful:', blob.url);
     console.log('Uploaded to blob:', blob.url);
     console.log('Blob URL type:', typeof blob.url);
     console.log('Blob URL constructor:', blob.url?.constructor?.name);
@@ -121,9 +126,16 @@ export default async function handler(req, res) {
       throw error;
     }
 
-    // SIMPLIFIED: output is already processed above, just clean it
+    // CHECK: Is this a valid image URL or our input URL being returned?
     let resultUrl = String(output);
     console.log('🔄 STARTING WITH:', resultUrl);
+    
+    // If the result URL is the same as our input URL, Replicate didn't process it properly
+    if (resultUrl.includes('image-enhancer-tool') && resultUrl.includes('vercel.app')) {
+      console.log('⚠️ OUTPUT IS OUR INPUT URL - Replicate may have failed');
+      console.log('Input was:', cleanBlobUrl);
+      console.log('Output is:', resultUrl);
+    }
     
     // NUCLEAR URL CLEANING - STRIP ALL FUNCTION GARBAGE
     if (resultUrl && typeof resultUrl === 'string') {
