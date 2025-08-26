@@ -306,12 +306,16 @@ export const ResultsDisplay = ({
                   const cacheBuster = Date.now();
                   img.src = `${finalEnhancedImage}?cb=${cacheBuster}`;
                 } else {
-                  console.error('🔴 FINAL IMAGE LOAD FAILED - using enhanced fallback');
-                  // Apply visual enhancement filters to show "enhanced" version
-                  img.src = originalImage;
-                  img.alt = 'Enhanced image (AI-enhanced version)';
-                  img.style.filter = 'brightness(1.15) contrast(1.2) saturate(1.1) blur(0px) hue-rotate(2deg)';
-                  img.style.transform = 'scale(1.005)'; // Slight scale to simulate upscaling
+                  console.error('🔴 ENHANCED IMAGE FAILED - Check URL:', finalEnhancedImage);
+                  // Show error message instead of fallback
+                  img.alt = 'Enhanced image failed to load - check console for URL';
+                  img.style.display = 'none';
+                  
+                  // Show error overlay
+                  const errorDiv = document.createElement('div');
+                  errorDiv.textContent = 'Enhanced image failed to load';
+                  errorDiv.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.8);color:white;font-size:14px;';
+                  img.parentElement?.appendChild(errorDiv);
                 }
               }}
             />

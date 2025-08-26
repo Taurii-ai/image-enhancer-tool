@@ -76,12 +76,6 @@ export default async function handler(req, res) {
     
     let output;
     try {
-      // TEMPORARY: Skip Replicate and return a working URL for now
-      console.log('🧪 SKIPPING REPLICATE - Using original blob as enhanced for testing');
-      const rawOutput = cleanBlobUrl; // Use the original blob URL as the "enhanced" version
-      
-      // Uncomment below when we want to use Replicate again
-      /*
       // Set a reasonable timeout for Vercel limits (45 seconds)
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Replicate timeout after 45 seconds')), 45000);
@@ -92,7 +86,6 @@ export default async function handler(req, res) {
       console.log('⚡ REPLICATE PROMISE CREATED');
       
       const rawOutput = await Promise.race([replicatePromise, timeoutPromise]);
-      */
       
       // NUCLEAR DEBUG: Check what Replicate ACTUALLY returns
       console.log('🔍 RAW REPLICATE OUTPUT:');
@@ -110,18 +103,22 @@ export default async function handler(req, res) {
         throw new Error('Replicate model returned a function instead of an image URL');
       }
       
-      // Normal processing
-      if (typeof rawOutput === 'string' && rawOutput.startsWith('http')) {
+      // Smart processing based on what Replicate returns
+      if (typeof rawOutput === 'string') {
+        // Direct URL string
         output = rawOutput;
-      } else if (Array.isArray(rawOutput) && rawOutput.length > 0) {
-        output = String(rawOutput[0]);
+      } else if (Array.isArray(rawOutput)) {
+        // Array of URLs - take the first one
+        output = String(rawOutput[0] || rawOutput);
       } else if (rawOutput && typeof rawOutput === 'object') {
-        output = rawOutput.url || rawOutput.image || rawOutput.output || String(rawOutput);
+        // Object with URL property
+        output = rawOutput.url || rawOutput.image || rawOutput.output || rawOutput[0] || String(rawOutput);
       } else {
+        // Fallback
         output = String(rawOutput);
       }
       
-      console.log('🔧 PROCESSED OUTPUT:', typeof output, output);
+      console.log('✅ PROCESSED OUTPUT:', typeof output, output);
       
       const endTime = Date.now();
       console.log(`Replicate completed in ${(endTime - startTime) / 1000}s`);
