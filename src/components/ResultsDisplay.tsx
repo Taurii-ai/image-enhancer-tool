@@ -21,8 +21,17 @@ export const ResultsDisplay = ({
   planType = 'trial'
 }: ResultsDisplayProps) => {
   
-  // Direct URL usage - no proxy needed for same-origin URLs
-  const finalEnhancedImage = typeof enhancedImage === 'string' ? enhancedImage : String(enhancedImage || '');
+  // Direct URL usage - clean any encoded function parts from URLs
+  let finalEnhancedImage = typeof enhancedImage === 'string' ? enhancedImage : String(enhancedImage || '');
+  
+  // Clean up URLs that contain encoded function garbage
+  if (finalEnhancedImage.includes('%20') || finalEnhancedImage.includes('url()')) {
+    const cleanMatch = finalEnhancedImage.match(/https:\/\/[^%\s\)]+/);
+    if (cleanMatch) {
+      finalEnhancedImage = cleanMatch[0];
+      console.log('🧹 Cleaned URL:', finalEnhancedImage);
+    }
+  }
   const [comparison, setComparison] = useState(10); // Show more enhanced image by default
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
