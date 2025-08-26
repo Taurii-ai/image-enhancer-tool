@@ -4,6 +4,49 @@ import { trackImageEnhancement, trackApiCost } from './analytics';
 import { UserService } from './userService';
 import { normalizeUrl } from '@/utils/normalizeUrl';
 
+type EnhanceResponse = { url?: string; enhancedUrl?: string } & Record<string, any>;
+
+// Standalone function for clean API calls
+export async function enhanceImageAPI(imageBase64: string, model: string): Promise<string> {
+  const res = await fetch("/api/image-processing", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ imageBase64, model }),
+  });
+
+  const ct = res.headers.get("content-type") || "";
+  const text = await res.text();
+
+  if (!ct.includes("application/json")) {
+    throw new Error(`Server returned non-JSON response: ${text || res.statusText}`);
+  }
+
+  let data: EnhanceResponse;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`Invalid JSON from server: ${text.slice(0, 140)}`);
+  }
+
+  if (!res.ok) {
+    throw new Error(`Backend API failed: ${res.status} - ${data?.error || "Unknown error"}`);
+  }
+
+  console.log("🧪 Enhanced image result ::", data);
+  console.log("🧪 Typeof data.url:", typeof data.url);
+  console.log("🧪 Typeof data.enhancedUrl:", typeof data.enhancedUrl);
+
+  // Accept either `url` or `enhancedUrl`
+  const raw: unknown = data.url ?? data.enhancedUrl;
+  if (!raw) throw new Error("Backend did not return a usable URL");
+
+  // ✅ Force string conversion here
+  const finalUrl = normalizeUrl(raw);
+
+  console.log("🟢 Normalized URL string:", finalUrl);
+  return finalUrl;
+}
+
 // These functions were used for the old API-based approach, now using direct client
 
 export interface EnhancementProgress {
@@ -195,50 +238,10 @@ export const enhanceImage = async (
       console.log("📷 Image converted to data URL, size:", imageDataUrl.length);
       console.log("🤖 Using model:", modelSlug);
 
-      const res = await fetch("/api/image-processing", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          imageBase64: imageDataUrl, // Send full data URL
-          model: modelSlug 
-        }),
-      });
-
-      // Always parse as JSON or throw a readable error
-      const ct = res.headers.get("content-type") || "";
-      const text = await res.text();
-      if (!ct.includes("application/json")) {
-        throw new Error(`Server returned non-JSON response: ${text || res.statusText}`);
-      }
-
-      let data: any;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error(`Invalid JSON from server: ${text.slice(0, 140)}`);
-      }
-
-      console.log("🧪 Enhanced image result ::", data);
-      console.log("🧪 Typeof data.url:", typeof (data as any).url);
-      console.log("🧪 Typeof enhancedUrl:", typeof (data as any).enhancedUrl);
-
-      if (!res.ok) {
-        throw new Error(`Backend API failed: ${res.status} - ${data?.error || "Unknown error"}`);
-      }
-
-      // Accept either { url } or { enhancedUrl }
-      const raw = (data as any).url ?? (data as any).enhancedUrl ?? null;
-      if (!raw) throw new Error("Backend did not return a URL");
-
       onProgress({ status: 'processing', progress: 60, message: 'Real-ESRGAN processing...' });
 
-      console.log("✅ Enhanced image result:", data);
-
-      // 🔒 Critical: coerce to a plain string BEFORE setting state/using in <img>
-      const finalUrl = normalizeUrl(raw);
-      console.log("🟢 Normalized URL string:", finalUrl);
-      
-      enhancedUrl = finalUrl;
+      // Use the clean API function that always returns a normalized string
+      enhancedUrl = await enhanceImageAPI(imageDataUrl, modelSlug);
       
       console.log('✅ Enhanced image URL received:', enhancedUrl);
       
