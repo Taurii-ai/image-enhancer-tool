@@ -5,6 +5,13 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
 
+// Validate API token on startup
+if (!process.env.REPLICATE_API_TOKEN) {
+  console.error('❌ REPLICATE_API_TOKEN is not set!');
+} else {
+  console.log('✅ REPLICATE_API_TOKEN is configured');
+}
+
 function buildInput(model, imageUrl) {
   // Keep it simple - just use image parameter for all models
   return { image: imageUrl };
@@ -76,9 +83,9 @@ export default async function handler(req, res) {
     
     let output;
     try {
-      // Set a reasonable timeout for Vercel limits (45 seconds)
+      // Set a reasonable timeout for Vercel limits (30 seconds)
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Replicate timeout after 45 seconds')), 45000);
+        setTimeout(() => reject(new Error('AI processing timeout - try again or use a smaller image')), 30000);
       });
       
       console.log('⚡ STARTING REPLICATE CALL...');
@@ -126,14 +133,19 @@ export default async function handler(req, res) {
       
     } catch (replicateError) {
       const endTime = Date.now();
-      console.log(`⚠️ Replicate failed after ${(endTime - startTime) / 1000}s:`, replicateError.message);
+      console.error(`❌ REPLICATE FAILED after ${(endTime - startTime) / 1000}s:`, replicateError);
+      console.error('  - Error message:', replicateError.message);
+      console.error('  - Error stack:', replicateError.stack);
+      console.error('  - Model used:', model);
+      console.error('  - Input used:', JSON.stringify(input));
       
-      // Instead of throwing, return the original blob URL as fallback
-      console.log('🔄 Using original image as fallback due to Replicate failure');
-      output = cleanBlobUrl;
-      
-      // Log the error but don't fail the request
-      console.log('Fallback: Using original blob URL:', output);
+      // Return detailed error instead of silent fallback
+      return res.status(500).json({ 
+        error: `AI model processing failed: ${replicateError.message}`,
+        details: replicateError.toString(),
+        model: model,
+        suggestion: 'Try a different model or check image format'
+      });
     }
 
     // CHECK: Is this a valid image URL or our input URL being returned?
