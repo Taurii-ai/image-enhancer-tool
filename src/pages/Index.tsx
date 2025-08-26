@@ -73,9 +73,15 @@ const Index = () => {
       console.log('🎯 INDEX: Got result from enhanceImage:', result);
       console.log('🎯 INDEX: Setting enhancedUrl to:', result.enhancedUrl);
       
-      // NUCLEAR OPTION: Accept ANY URL - no filtering
-      console.log('✅ ACCEPTING ANY URL:', result.enhancedUrl);
-      setEnhancedUrl(result.enhancedUrl);
+      // ✅ Defensive URL extraction and normalization
+      if (result?.enhancedUrl) {
+        setEnhancedUrl(result.enhancedUrl);
+      } else if (result?.url) {
+        setEnhancedUrl(result.url);
+      } else {
+        console.error("No enhanced URL found in result:", result);
+        throw new Error("Enhancement completed but no URL was returned");
+      }
       setAppState('results');
       
       toast({

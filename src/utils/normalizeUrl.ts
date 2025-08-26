@@ -1,6 +1,11 @@
 export function normalizeUrl(value: unknown): string {
   if (!value) throw new Error("No URL provided");
 
+  // 🚨 Prevent accidental function references
+  if (typeof value === "function") {
+    throw new Error("normalizeUrl received a function instead of a URL string");
+  }
+
   // Already a URL object
   if (value instanceof URL) return value.href;
 
