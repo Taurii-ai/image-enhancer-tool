@@ -118,12 +118,16 @@ export default async function handler(req, res) {
     // Make sure it's a string
     resultUrl = String(resultUrl);
     
-    // Try to extract URL if it's embedded in a string
+    // Try to extract URL if it's embedded in a string - be more aggressive
     if (resultUrl.includes('https://')) {
-      const urlMatch = resultUrl.match(/https:\/\/[^\s'")\]]+/);
+      // First try: get everything after https:// until we hit function garbage
+      const urlMatch = resultUrl.match(/https:\/\/[^%\s'")\]]+(?=\s|%20|\)|$)/);
       if (urlMatch) {
         resultUrl = urlMatch[0];
       }
+      
+      // Second cleanup: remove any trailing function artifacts
+      resultUrl = resultUrl.replace(/url\([^)]*$/, '').replace(/\([^)]*$/, '').replace(/\{.*$/, '');
     }
 
     console.log('Returning URL:', resultUrl);
