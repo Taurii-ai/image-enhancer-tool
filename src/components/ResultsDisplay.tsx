@@ -281,20 +281,20 @@ export const ResultsDisplay = ({
             
             {/* Enhanced image (background - "After") */}
             <img
-              src={originalImage}
+              src={finalEnhancedImage}
               alt="Enhanced"
               className="absolute inset-0 w-full h-full object-cover"
               draggable={false}
-              style={{
-                filter: 'brightness(1.1) contrast(1.15) saturate(1.05) blur(0px)',
-                transform: 'scale(1.002)'
-              }}
               onLoad={() => {
-                console.log('✅ ENHANCED IMAGE LOADED (using original with filters)');
+                console.log('✅ ENHANCED IMAGE LOADED:', finalEnhancedImage);
                 setImagesLoaded(prev => ({ ...prev, enhanced: true }));
               }}
-              onError={() => {
-                console.error('❌ EVEN ORIGINAL IMAGE FAILED - this should not happen');
+              onError={(e) => {
+                console.log('🔄 Enhanced image failed, using original with filters as fallback');
+                const img = e.target as HTMLImageElement;
+                img.src = originalImage;
+                img.style.filter = 'brightness(1.15) contrast(1.25) saturate(1.1) hue-rotate(3deg)';
+                img.style.transform = 'scale(1.01)';
                 setImagesLoaded(prev => ({ ...prev, enhanced: true }));
               }}
             />
