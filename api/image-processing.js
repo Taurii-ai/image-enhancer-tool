@@ -85,21 +85,44 @@ export default async function handler(req, res) {
     // Handle Replicate output and ensure we return a valid URL string
     let resultUrl;
     
+    console.log('Raw Replicate output type:', typeof output);
+    console.log('Raw Replicate output:', JSON.stringify(output, null, 2));
+    
     if (typeof output === 'string') {
       resultUrl = output;
     } else if (Array.isArray(output) && output.length > 0) {
       resultUrl = output[0];
     } else if (output && typeof output === 'object') {
-      resultUrl = output.url || output.image || output.output;
+      // Handle different object structures
+      if (output.url) {
+        resultUrl = output.url;
+      } else if (output.image) {
+        resultUrl = output.image;
+      } else if (output.output) {
+        resultUrl = output.output;
+      } else {
+        // Try to get the first property that looks like a URL
+        const values = Object.values(output);
+        resultUrl = values.find(val => 
+          typeof val === 'string' && 
+          (val.startsWith('http://') || val.startsWith('https://'))
+        );
+      }
     }
     
-    // Final fallback - convert whatever we have to string
+    // Final fallback - convert whatever we have to string and clean it
     if (!resultUrl) {
       resultUrl = String(output);
     }
     
-    // Make sure it's a string
-    resultUrl = String(resultUrl);
+    // Clean up the URL string - remove any function syntax
+    resultUrl = String(resultUrl).replace(/url\(\)\s*\{\s*return\s+new\s+URL\([^)]+\);\s*\}/g, '');
+    
+    // Extract URL from various formats
+    const urlMatch = resultUrl.match(/https?:\/\/[^\s'"]+/);
+    if (urlMatch) {
+      resultUrl = urlMatch[0];
+    }
 
     console.log('Returning URL:', resultUrl);
     return res.status(200).json({ url: resultUrl });
