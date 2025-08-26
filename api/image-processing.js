@@ -82,19 +82,26 @@ export default async function handler(req, res) {
       throw error;
     }
 
-    // Handle Replicate output - most models return string or array
-    let resultUrl = output;
+    // Handle Replicate output and ensure we return a valid URL string
+    let resultUrl;
     
-    // If it's an array, take the first element
-    if (Array.isArray(output)) {
+    if (typeof output === 'string') {
+      resultUrl = output;
+    } else if (Array.isArray(output) && output.length > 0) {
       resultUrl = output[0];
+    } else if (output && typeof output === 'object') {
+      resultUrl = output.url || output.image || output.output;
     }
     
-    // If it's still not a string, try to extract URL
-    if (typeof resultUrl !== 'string') {
-      resultUrl = output?.url || output?.image || output?.output || String(output);
+    // Final fallback - convert whatever we have to string
+    if (!resultUrl) {
+      resultUrl = String(output);
     }
+    
+    // Make sure it's a string
+    resultUrl = String(resultUrl);
 
+    console.log('Returning URL:', resultUrl);
     return res.status(200).json({ url: resultUrl });
 
   } catch (error) {
