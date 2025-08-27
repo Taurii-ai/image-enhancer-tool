@@ -41,14 +41,9 @@ export const Navigation = ({ currentPage = 'home', variant = 'dark' }: Navigatio
   };
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-[9999999] p-4 md:p-6 transition-all duration-300 ${
-      scrolled 
-        ? 'bg-white backdrop-blur-md border-b border-border/50 shadow-sm' 
-        : variant === 'light' 
-          ? 'bg-white border-b border-border'
-          : 'bg-background/95 backdrop-blur-md'
-    }`}>
-      <nav className="max-w-7xl mx-auto flex items-center justify-between">
+    <header className={`fixed top-0 left-0 right-0 z-[9999999] transition-all duration-300 bg-background border-b border-border`}>
+      <div className="p-4 md:p-6">
+        <nav className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
           <div className="p-2 bg-white rounded-lg">
             <EnhpixLogo className="w-8 h-8" />
@@ -88,7 +83,8 @@ export const Navigation = ({ currentPage = 'home', variant = 'dark' }: Navigatio
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </Button>
         </div>
-      </nav>
+        </nav>
+      </div>
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
