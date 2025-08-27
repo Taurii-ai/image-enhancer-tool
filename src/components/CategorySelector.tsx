@@ -66,7 +66,7 @@ export const CategorySelector = ({ selectedCategory, onCategoryChange, disabled 
             <Card
               key={category.id}
               className={cn(
-                "relative p-4 cursor-pointer transition-all duration-300 ease-out border-2",
+                "relative p-4 cursor-pointer transition-all duration-300 ease-out border-2 z-10",
                 isSelected 
                   ? `${category.border} ${category.bg} shadow-lg scale-[1.02]`
                   : isHovered
