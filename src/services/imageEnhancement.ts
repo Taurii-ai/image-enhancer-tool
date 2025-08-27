@@ -13,7 +13,7 @@ export async function enhanceImageAPI(imageBase64: string, modelType: string = '
     console.log("  - Image length:", imageBase64.length);
     console.log("  - Model type:", modelType);
     
-    const res = await fetch("/api/test-simple", {
+    const res = await fetch("/api/image-processing", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 

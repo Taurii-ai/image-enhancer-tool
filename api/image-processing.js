@@ -1,165 +1,143 @@
-const Replicate = require("replicate");
-
-// Model configurations
-const MODELS = {
-  'general': 'jingyunliang/swinir:660d922d33153019e8c263a3bba265de882e7f4f70396546b6c9c8f9d47a021a',
-  'faces': 'sczhou/codeformer:cc4956dd26fa5a7185d5660cc9100fab1b8070a1d1654a8bb5eb6d443b020bb2', 
-  'anime': 'xinntao/realesrgan:1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56'
-};
-
-// Initialize Replicate
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN || "",
-});
-
-// Extract first HTTPS URL from any nested structure
-function extractUrl(obj) {
-  if (!obj) return null;
-  
-  // If it's a string and starts with https, return it
-  if (typeof obj === "string" && obj.startsWith("https://")) {
-    return obj;
-  }
-  
-  // If it's an array, search through each item
-  if (Array.isArray(obj)) {
-    for (const item of obj) {
-      const url = extractUrl(item);
-      if (url) return url;
-    }
-  }
-  
-  // If it's an object, search through each value
-  if (typeof obj === "object") {
-    for (const key in obj) {
-      const url = extractUrl(obj[key]);
-      if (url) return url;
-    }
-  }
-  
-  return null;
-}
-
 export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
-    // Always set JSON content type first
-    res.setHeader('Content-Type', 'application/json');
-    
-    // CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    
-    if (req.method === 'OPTIONS') {
-      return res.status(200).json({ message: 'OK' });
-    }
-    
-    if (req.method !== 'POST') {
-      return res.status(405).json({ error: 'Method not allowed' });
-    }
     console.log("🚀 Image processing API called");
     
-    // Check API token
-    if (!process.env.REPLICATE_API_TOKEN) {
-      console.error("❌ REPLICATE_API_TOKEN missing");
-      return res.status(500).json({ error: "API token not configured" });
-    }
-
-    // Parse request body
     const { image, model = 'general' } = req.body || {};
-    console.log("📥 Request body keys:", Object.keys(req.body || {}));
-    console.log("🔍 Image type:", typeof image, "length:", image?.length || 0);
-    console.log("🎯 Model selected:", model);
+    
+    if (!image) {
+      return res.status(400).json({ error: 'No image provided' });
+    }
+    
+    console.log("✅ Image received, length:", image.length);
+    console.log("✅ Model:", model);
+    
+    const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
+    
+    if (!REPLICATE_API_TOKEN) {
+      console.error("❌ No REPLICATE_API_TOKEN");
+      return res.status(500).json({ error: 'API token not configured' });
+    }
+    
+    console.log("✅ Token exists, length:", REPLICATE_API_TOKEN.length);
 
-    if (!image || typeof image !== "string") {
-      console.error("❌ No valid image provided");
-      return res.status(400).json({ error: "No image provided" });
+    // Model mapping
+    const models = {
+      'general': '660d922d33153019e8c263a3bba265de882e7f4f70396546b6c9c8f9d47a021a',
+      'faces': 'cc4956dd26fa5a7185d5660cc9100fab1b8070a1d1654a8bb5eb6d443b020bb2',
+      'anime': '1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56'
+    };
+    
+    const versionId = models[model] || models.general;
+    console.log("✅ Using model version:", versionId);
+
+    // Create prediction
+    console.log("🤖 Creating Replicate prediction...");
+    const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${REPLICATE_API_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        version: versionId,
+        input: { image }
+      })
+    });
+
+    if (!createResponse.ok) {
+      const errorData = await createResponse.text();
+      console.error("❌ Replicate create failed:", createResponse.status, errorData);
+      return res.status(500).json({ 
+        error: `Replicate create failed: ${createResponse.status}`,
+        details: errorData
+      });
     }
 
-    // Select model
-    const selectedModel = MODELS[model] || MODELS.general;
-    console.log("🤖 Using model:", selectedModel);
+    const prediction = await createResponse.json();
+    console.log("✅ Prediction created:", prediction.id);
 
-    // Create Replicate prediction
-    console.log("⏳ Creating Replicate prediction...");
-    let prediction = await replicate.predictions.create({
-      version: selectedModel,
-      input: { image }
-    });
-    
-    console.log("📝 Prediction created:", prediction.id, "status:", prediction.status);
-
-    // Poll until completion
+    // Poll for completion
     let attempts = 0;
-    const maxAttempts = 60; // 2 minutes max
+    const maxAttempts = 60; // 2 minutes
+    let currentPrediction = prediction;
     
     while (
-      prediction.status !== "succeeded" && 
-      prediction.status !== "failed" && 
-      prediction.status !== "canceled" &&
+      currentPrediction.status !== 'succeeded' && 
+      currentPrediction.status !== 'failed' && 
       attempts < maxAttempts
     ) {
       await new Promise(resolve => setTimeout(resolve, 2000));
-      prediction = await replicate.predictions.get(prediction.id);
-      attempts++;
-      console.log(`🔄 Poll ${attempts}/${maxAttempts}: ${prediction.status}`);
       
-      if (attempts >= maxAttempts) {
-        console.error("⏰ Prediction timed out");
-        return res.status(504).json({ error: "Enhancement timed out" });
+      const pollResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+        headers: {
+          'Authorization': `Token ${REPLICATE_API_TOKEN}`
+        }
+      });
+      
+      if (!pollResponse.ok) {
+        console.error("❌ Polling failed:", pollResponse.status);
+        break;
       }
+      
+      currentPrediction = await pollResponse.json();
+      attempts++;
+      console.log(`🔄 Poll ${attempts}/${maxAttempts}: ${currentPrediction.status}`);
     }
-    
-    if (prediction.status !== "succeeded") {
-      console.error("❌ Prediction failed:", prediction.status);
+
+    if (currentPrediction.status !== 'succeeded') {
+      console.error("❌ Prediction failed:", currentPrediction.status);
       return res.status(500).json({ 
-        error: `Replicate job ${prediction.status}`,
-        logs: prediction.logs || null
+        error: `Prediction ${currentPrediction.status}`,
+        logs: currentPrediction.logs
       });
     }
+
+    // Extract URL
+    const output = currentPrediction.output;
+    console.log("🔍 Raw output:", output);
     
-    // Log raw output for debugging
-    console.log("🔍 Raw Replicate output:", JSON.stringify(prediction.output, null, 2));
+    let enhancedUrl = null;
     
-    // Extract URL from response
-    const enhancedUrl = extractUrl(prediction.output);
+    if (typeof output === 'string' && output.startsWith('https://')) {
+      enhancedUrl = output;
+    } else if (Array.isArray(output) && output.length > 0) {
+      enhancedUrl = output[0];
+    }
     
     if (!enhancedUrl) {
-      console.error("❌ No URL found in output:", prediction.output);
+      console.error("❌ No URL found in output:", output);
       return res.status(500).json({ 
-        error: "No enhanced image URL returned from Replicate",
-        rawOutput: prediction.output
+        error: 'No enhanced image URL returned',
+        output: output
       });
     }
+
+    console.log("✅ Success! Enhanced URL:", enhancedUrl);
     
-    console.log("✅ Enhancement successful:", enhancedUrl);
-    
-    // Return success response
     return res.status(200).json({ 
       enhancedUrl,
       predictionId: prediction.id,
-      model: model
+      model
     });
-    
-  } catch (innerError) {
-    console.error("❌ Inner API Error:", innerError);
+
+  } catch (error) {
+    console.error("❌ API Error:", error);
     return res.status(500).json({ 
-      error: innerError.message || "Internal server error",
-      details: innerError.toString()
-    });
-  }
-  } catch (outerError) {
-    console.error("❌ Outer API Error:", outerError);
-    // Ensure we always return JSON, even if headers failed
-    try {
-      res.setHeader('Content-Type', 'application/json');
-    } catch (headerError) {
-      console.error("❌ Header Error:", headerError);
-    }
-    return res.status(500).json({ 
-      error: "Critical API failure",
-      message: outerError.message || "Unknown error",
-      details: outerError.toString()
+      error: error.message || 'Internal server error',
+      stack: error.stack
     });
   }
 }
