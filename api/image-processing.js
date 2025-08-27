@@ -32,8 +32,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  console.log('🚀 API HANDLER STARTED');
+  console.log('  - Method:', req.method);
+  console.log('  - Body keys:', Object.keys(req.body || {}));
+
   try {
     const { imageBase64, model } = req.body;
+    
+    console.log('📋 REQUEST DATA:');
+    console.log('  - Has imageBase64:', !!imageBase64);
+    console.log('  - Model:', model);
+    console.log('  - Image data length:', imageBase64?.length || 0);
 
     if (!imageBase64 || !model) {
       return res.status(400).json({ error: 'Missing imageBase64 or model' });
