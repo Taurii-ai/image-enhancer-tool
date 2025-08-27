@@ -41,20 +41,22 @@ function extractUrl(obj) {
 }
 
 export default async function handler(req, res) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   try {
+    // Always set JSON content type first
+    res.setHeader('Content-Type', 'application/json');
+    
+    // CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    
+    if (req.method === 'OPTIONS') {
+      return res.status(200).json({ message: 'OK' });
+    }
+    
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
     console.log("🚀 Image processing API called");
     
     // Check API token
@@ -139,11 +141,25 @@ export default async function handler(req, res) {
       model: model
     });
     
-  } catch (error) {
-    console.error("❌ API Error:", error);
+  } catch (innerError) {
+    console.error("❌ Inner API Error:", innerError);
     return res.status(500).json({ 
-      error: error.message || "Internal server error",
-      details: error.toString()
+      error: innerError.message || "Internal server error",
+      details: innerError.toString()
+    });
+  }
+  } catch (outerError) {
+    console.error("❌ Outer API Error:", outerError);
+    // Ensure we always return JSON, even if headers failed
+    try {
+      res.setHeader('Content-Type', 'application/json');
+    } catch (headerError) {
+      console.error("❌ Header Error:", headerError);
+    }
+    return res.status(500).json({ 
+      error: "Critical API failure",
+      message: outerError.message || "Unknown error",
+      details: outerError.toString()
     });
   }
 }
