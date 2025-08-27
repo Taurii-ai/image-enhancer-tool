@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import Replicate from "replicate";
 
+// Vercel runtime configuration
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN || "",
 });
@@ -31,19 +36,52 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    console.log("📥 Incoming body:", body);
+    console.log("🚀 API route called");
+    
+    // Check environment variables
+    if (!process.env.REPLICATE_API_TOKEN) {
+      console.error("❌ REPLICATE_API_TOKEN is missing from environment");
+      return NextResponse.json({ error: "Server configuration error: REPLICATE_API_TOKEN not set" }, { status: 500 });
+    }
+    
+    console.log("✅ REPLICATE_API_TOKEN is present:", process.env.REPLICATE_API_TOKEN ? "***set***" : "missing");
+    
+    const body = await req.json().catch((err) => {
+      console.error("❌ Failed to parse request body:", err);
+      return null;
+    });
+    
+    console.log("📥 Incoming body keys:", body ? Object.keys(body) : "null");
+    console.log("📥 Image field type:", typeof body?.image);
+    console.log("📥 Image field length:", body?.image?.length || 0);
 
     const image = body?.image;
     if (!image || typeof image !== "string") {
+      console.error("❌ No valid image in request body");
       return NextResponse.json({ error: "No image provided" }, { status: 400 });
     }
 
     // Send to Replicate
-    let prediction = await replicate.predictions.create({
-      version: MODEL,
-      input: { image },
-    });
+    console.log("🤖 Creating Replicate prediction...");
+    let prediction;
+    try {
+      prediction = await replicate.predictions.create({
+        version: MODEL,
+        input: { image },
+      });
+      console.log("✅ Prediction created:", prediction.id, "status:", prediction.status);
+    } catch (replicateError: any) {
+      console.error("❌ Replicate API error:", replicateError);
+      console.error("❌ Error details:", {
+        message: replicateError.message,
+        status: replicateError.status,
+        body: replicateError.body,
+      });
+      return NextResponse.json({ 
+        error: `Replicate API failed: ${replicateError.message}`,
+        details: replicateError.body || replicateError.message 
+      }, { status: 500 });
+    }
 
     // Poll until complete
     while (
