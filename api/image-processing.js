@@ -44,38 +44,43 @@ export default async function handler(req, res) {
 
     console.log("🔍 Raw Replicate output:", JSON.stringify(output, null, 2));
 
-    // Normalize output into a single URL
+    // 🔑 Normalize into a string URL using recursive extraction
     let enhancedUrl = null;
 
-    if (typeof output === "string") {
-      enhancedUrl = output;
-    } else if (Array.isArray(output) && typeof output[0] === "string") {
-      enhancedUrl = output[0];
-    } else if (
-      Array.isArray(output) &&
-      output[0] &&
-      typeof output[0] === "object" &&
-      typeof output[0].url === "string"
-    ) {
-      enhancedUrl = output[0].url;
-    } else if (
-      typeof output === "object" &&
-      output !== null &&
-      typeof output.url === "string"
-    ) {
-      enhancedUrl = output.url;
-    }
+    const tryExtract = (val) => {
+      if (!val) return null;
+      if (typeof val === "string" && val.startsWith("http")) return val;
+      if (Array.isArray(val)) {
+        for (const v of val) {
+          const found = tryExtract(v);
+          if (found) return found;
+        }
+      }
+      if (typeof val === "object") {
+        if (typeof val.url === "string") return val.url;
+        for (const key of Object.keys(val)) {
+          const found = tryExtract(val[key]);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    enhancedUrl = tryExtract(output);
 
     if (!enhancedUrl) {
-      console.error("❌ Could not extract enhanced URL from:", output);
+      console.error("❌ Could not extract URL from Replicate output:", output);
       return res.status(500).json({ error: "No enhanced image URL returned from Replicate" });
     }
 
-    console.log('✅ Enhanced URL:', enhancedUrl);
+    console.log("✅ Final enhancedUrl:", enhancedUrl);
     return res.status(200).json({ url: enhancedUrl });
 
   } catch (err) {
     console.error("❌ Enhance API error:", err);
-    return res.status(500).json({ error: "Image enhancement failed" });
+    return res.status(500).json({ 
+      error: "Image enhancement failed", 
+      details: err.message 
+    });
   }
 }
