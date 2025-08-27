@@ -41,7 +41,7 @@ function extractUrl(obj: any): string | null {
 
 export async function POST(req: Request) {
   try {
-    console.log("🚀 API /api/image-processing called");
+    console.log("🚀 API /api/image-processing called - LIMIT RESET");
     
     // Parse request body
     const body = await req.json();
