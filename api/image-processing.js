@@ -120,30 +120,18 @@ export default async function handler(req, res) {
       }
       
       // Smart processing based on what Replicate returns
-      console.log('🎯 PROCESSING REPLICATE OUTPUT:');
-      
       if (typeof rawOutput === 'string') {
-        console.log('✅ Got string output:', rawOutput);
+        // Direct URL string
         output = rawOutput;
       } else if (Array.isArray(rawOutput)) {
-        console.log('✅ Got array output:', rawOutput);
+        // Array of URLs - take the first one
         output = String(rawOutput[0] || rawOutput);
       } else if (rawOutput && typeof rawOutput === 'object') {
-        console.log('✅ Got object output:', rawOutput);
-        // Check all possible properties
+        // Object with URL property
         output = rawOutput.url || rawOutput.image || rawOutput.output || rawOutput[0] || String(rawOutput);
-        console.log('🎯 Extracted from object:', output);
       } else {
-        console.log('⚠️ Unknown output type, converting to string:', typeof rawOutput);
+        // Fallback
         output = String(rawOutput);
-      }
-      
-      // Ensure we have a proper URL from Replicate
-      if (!output || (!output.includes('replicate.delivery') && !output.startsWith('https://'))) {
-        console.error('❌ No valid Replicate URL found!');
-        console.error('  - Raw output:', rawOutput);
-        console.error('  - Processed output:', output);
-        throw new Error('Replicate did not return a valid image URL');
       }
       
       console.log('✅ PROCESSED OUTPUT:', typeof output, output);
