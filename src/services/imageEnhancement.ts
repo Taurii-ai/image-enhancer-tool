@@ -6,15 +6,20 @@ import { normalizeUrl } from '@/utils/normalizeUrl';
 
 type EnhanceResponse = { url?: string; enhancedUrl?: string } & Record<string, any>;
 
-// Fixed API function with proper error handling
-export async function enhanceImageAPI(imageBase64: string, model?: string): Promise<string | null> {
+// Fixed API function with proper model selection support
+export async function enhanceImageAPI(imageBase64: string, modelType: string = 'general'): Promise<string | null> {
   try {
-    console.log("🔄 Starting API call with image length:", imageBase64.length);
+    console.log("🔄 Starting API call with:");
+    console.log("  - Image length:", imageBase64.length);
+    console.log("  - Model type:", modelType);
     
     const res = await fetch("/api/image-processing", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: imageBase64 }),
+      body: JSON.stringify({ 
+        image: imageBase64,
+        model: modelType 
+      }),
     });
 
     console.log("📡 API Response status:", res.status, res.statusText);
@@ -32,7 +37,11 @@ export async function enhanceImageAPI(imageBase64: string, model?: string): Prom
       throw new Error("No enhanced URL returned from API");
     }
 
-    console.log("✅ Enhanced URL received:", data.enhancedUrl);
+    console.log("✅ Enhancement successful!");
+    console.log("  - Enhanced URL:", data.enhancedUrl);
+    console.log("  - Model used:", data.model);
+    console.log("  - Prediction ID:", data.predictionId);
+    
     return data.enhancedUrl;
   } catch (err: any) {
     console.error("❌ enhanceImageAPI failed:", err.message || err);
@@ -233,8 +242,8 @@ export const enhanceImage = async (
 
       onProgress({ status: 'processing', progress: 60, message: 'Real-ESRGAN processing...' });
 
-      // Use the clean API function that always returns a normalized string
-      enhancedUrl = await enhanceImageAPI(imageDataUrl, modelSlug);
+      // Use the clean API function with the correct category mapping
+      enhancedUrl = await enhanceImageAPI(imageDataUrl, category);
       
       console.log('✅ Enhanced image URL received:', enhancedUrl);
       
