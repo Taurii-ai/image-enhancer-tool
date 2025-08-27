@@ -41,7 +41,7 @@ export const Navigation = ({ currentPage = 'home', variant = 'dark' }: Navigatio
   };
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-[9999] p-4 md:p-6 transition-all duration-300 ${
+    <header className={`fixed top-0 left-0 right-0 z-[99999] p-4 md:p-6 transition-all duration-300 ${
       scrolled 
         ? 'bg-white/80 backdrop-blur-md border-b border-border/50 shadow-sm' 
         : variant === 'light' 
