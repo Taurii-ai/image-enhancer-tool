@@ -41,7 +41,7 @@ export const Navigation = ({ currentPage = 'home', variant = 'dark' }: Navigatio
   };
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-[9999999] transition-all duration-300 bg-background border-b border-border`}>
+    <header className="fixed top-0 left-0 right-0 transition-all duration-300 bg-background border-b border-border" style={{zIndex: 99999999}}>
       <div className="p-4 md:p-6">
         <nav className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
@@ -88,11 +88,11 @@ export const Navigation = ({ currentPage = 'home', variant = 'dark' }: Navigatio
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className={`md:hidden absolute top-full left-0 right-0 border-b border-border z-[9999998] ${
+        <div className={`md:hidden absolute top-full left-0 right-0 border-b border-border ${
           scrolled 
             ? 'bg-white/95 backdrop-blur-md' 
             : 'bg-white'
-        }`}>
+        }`} style={{zIndex: 99999998}}>
           <div className="flex flex-col p-4 space-y-2">
             {navigationItems.map((item) => (
               <Button
