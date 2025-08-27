@@ -42,16 +42,32 @@ export default async function handler(req, res) {
       input: { image }
     });
 
-    console.log('🧪 Raw Replicate output:', output);
+    console.log("🔍 Raw Replicate output:", JSON.stringify(output, null, 2));
 
-    // ✅ Replicate always returns array of URLs → take first one
-    const enhancedUrl = 
-      Array.isArray(output) && typeof output[0] === "string"
-        ? output[0]
-        : null;
+    // Normalize output into a single URL
+    let enhancedUrl = null;
+
+    if (typeof output === "string") {
+      enhancedUrl = output;
+    } else if (Array.isArray(output) && typeof output[0] === "string") {
+      enhancedUrl = output[0];
+    } else if (
+      Array.isArray(output) &&
+      output[0] &&
+      typeof output[0] === "object" &&
+      typeof output[0].url === "string"
+    ) {
+      enhancedUrl = output[0].url;
+    } else if (
+      typeof output === "object" &&
+      output !== null &&
+      typeof output.url === "string"
+    ) {
+      enhancedUrl = output.url;
+    }
 
     if (!enhancedUrl) {
-      console.error("❌ Replicate response missing enhancedUrl:", output);
+      console.error("❌ Could not extract enhanced URL from:", output);
       return res.status(500).json({ error: "No enhanced image URL returned from Replicate" });
     }
 
