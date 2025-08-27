@@ -43,8 +43,24 @@ export default async function handler(req, res) {
     const versionId = models[model] || models.general;
     console.log("✅ Using model version:", versionId);
 
-    // Create prediction
+    // Create prediction with model-specific input parameters
     console.log("🤖 Creating Replicate prediction...");
+    
+    let inputParams;
+    if (model === 'anime') {
+      // Real-ESRGAN model needs specific parameters
+      inputParams = {
+        image: image,
+        scale: 4,
+        face_enhance: false
+      };
+    } else {
+      // SwinIR (general) and CodeFormer (faces) use simple image input
+      inputParams = { image };
+    }
+    
+    console.log("🎯 Input params for", model, ":", Object.keys(inputParams));
+    
     const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
@@ -53,7 +69,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         version: versionId,
-        input: { image }
+        input: inputParams
       })
     });
 
