@@ -6,22 +6,23 @@ import { normalizeUrl } from '@/utils/normalizeUrl';
 
 type EnhanceResponse = { url?: string; enhancedUrl?: string } & Record<string, any>;
 
-// Standalone function for clean API calls
+// Standalone function for clean API calls using new App Router structure
 export async function enhanceImageAPI(imageBase64: string, model: string): Promise<string | null> {
   try {
     const res = await fetch("/api/image-processing", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ imageBase64, model }),
+      body: JSON.stringify({ image: imageBase64, model }),
+      cache: "no-store",
     });
 
     const data = await res.json();
     console.log("🎯 enhanceImage response:", data);
 
     if (!res.ok) throw new Error(data.error || "Backend error");
-    if (!data.url) throw new Error("No URL from backend");
+    if (!data.enhancedUrl) throw new Error("No enhanced URL from backend");
 
-    return data.url;
+    return data.enhancedUrl;
   } catch (err) {
     console.error("❌ enhanceImage failed:", err);
     return null; // fallback
