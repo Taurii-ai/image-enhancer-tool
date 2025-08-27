@@ -42,34 +42,17 @@ export default async function handler(req, res) {
       input: { image }
     });
 
-    console.log("🔍 Raw Replicate output:", JSON.stringify(output, null, 2));
+    console.log("🧪 Raw replicate output:", output);
 
-    // 🔑 Normalize into a string URL using recursive extraction
+    // 🔑 Replicate returns an array of URLs
     let enhancedUrl = null;
-
-    const tryExtract = (val) => {
-      if (!val) return null;
-      if (typeof val === "string" && val.startsWith("http")) return val;
-      if (Array.isArray(val)) {
-        for (const v of val) {
-          const found = tryExtract(v);
-          if (found) return found;
-        }
-      }
-      if (typeof val === "object") {
-        if (typeof val.url === "string") return val.url;
-        for (const key of Object.keys(val)) {
-          const found = tryExtract(val[key]);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-
-    enhancedUrl = tryExtract(output);
+    if (Array.isArray(output) && output.length > 0 && typeof output[0] === "string") {
+      enhancedUrl = output[0];
+    } else if (typeof output === "string") {
+      enhancedUrl = output;
+    }
 
     if (!enhancedUrl) {
-      console.error("❌ Could not extract URL from Replicate output:", output);
       return res.status(500).json({ error: "No enhanced image URL returned from Replicate" });
     }
 
@@ -77,10 +60,9 @@ export default async function handler(req, res) {
     return res.status(200).json({ url: enhancedUrl });
 
   } catch (err) {
-    console.error("❌ Enhance API error:", err);
+    console.error("❌ Replicate API error:", err);
     return res.status(500).json({ 
-      error: "Image enhancement failed", 
-      details: err.message 
+      error: err?.message || "Internal Server Error"
     });
   }
 }

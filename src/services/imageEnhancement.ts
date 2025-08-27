@@ -7,51 +7,25 @@ import { normalizeUrl } from '@/utils/normalizeUrl';
 type EnhanceResponse = { url?: string; enhancedUrl?: string } & Record<string, any>;
 
 // Standalone function for clean API calls
-export async function enhanceImageAPI(imageBase64: string, model: string): Promise<string> {
-  const res = await fetch("/api/image-processing", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ imageBase64, model }),
-  });
-
-  const ct = res.headers.get("content-type") || "";
-  const text = await res.text();
-
-  if (!ct.includes("application/json")) {
-    throw new Error(`Server returned non-JSON response: ${text || res.statusText}`);
-  }
-
-  let data: EnhanceResponse;
+export async function enhanceImageAPI(imageBase64: string, model: string): Promise<string | null> {
   try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error(`Invalid JSON from server: ${text.slice(0, 140)}`);
+    const res = await fetch("/api/image-processing", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageBase64, model }),
+    });
+
+    const data = await res.json();
+    console.log("🎯 enhanceImage response:", data);
+
+    if (!res.ok) throw new Error(data.error || "Backend error");
+    if (!data.url) throw new Error("No URL from backend");
+
+    return data.url;
+  } catch (err) {
+    console.error("❌ enhanceImage failed:", err);
+    return null; // fallback
   }
-
-  if (!res.ok) {
-    throw new Error(`Backend API failed: ${res.status} - ${data?.error || "Unknown error"}`);
-  }
-
-  console.log("🧪 Enhanced image result ::", data);
-  console.log("🧪 Typeof data.url:", typeof data.url);
-  console.log("🧪 Typeof data.enhancedUrl:", typeof data.enhancedUrl);
-
-  // ✅ Robust URL validation like your working code
-  if (!data?.url || typeof data.url !== "string") {
-    console.error("❌ Invalid URL from backend:", data);
-    throw new Error("No valid enhanced image URL returned from API");
-  }
-
-  const raw = data.url;
-
-  // ✅ NUCLEAR DEBUG: Track where function contamination happens
-  console.log("🔍 BEFORE NORMALIZE - Raw value:", typeof raw, raw);
-  
-  const finalUrl = normalizeUrl(raw);
-  
-  console.log("🔍 AFTER NORMALIZE - Final URL:", typeof finalUrl, finalUrl);
-  console.log("🟢 Final usable URL:", finalUrl);
-  return finalUrl;
 }
 
 // These functions were used for the old API-based approach, now using direct client

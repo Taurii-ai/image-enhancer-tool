@@ -21,22 +21,10 @@ export const ResultsDisplay = ({
   planType = 'trial'
 }: ResultsDisplayProps) => {
   
-  // Direct URL usage - clean any encoded function parts from URLs
-  let finalEnhancedImage = typeof enhancedImage === 'string' ? enhancedImage : String(enhancedImage || '');
+  // Use the enhanced image URL directly - no aggressive cleaning needed for clean API
+  const finalEnhancedImage = typeof enhancedImage === 'string' ? enhancedImage : String(enhancedImage || '');
   
-  // NUCLEAR URL CLEANING - STRIP ALL FUNCTION SHIT
-  finalEnhancedImage = finalEnhancedImage
-    .replace(/\/url\([^)]*\).*$/, '')   // Remove /url() and everything after
-    .replace(/\/url\([^)]*$/, '')       // Remove /url( at end
-    .replace(/\/url\(\).*$/, '')        // Remove /url() and everything after
-    .replace(/url\([^)]*\).*$/, '')     // Remove url() and everything after
-    .replace(/url\([^)]*$/, '')         // Remove url( at end
-    .replace(/url\(\).*$/, '')          // Remove url() and everything after
-    .replace(/%20.*$/, '')              // Remove encoded spaces and after
-    .replace(/%7B.*$/, '')              // Remove encoded { and after
-    .trim();
-    
-  console.log('🧹 Nuclear cleaned URL:', finalEnhancedImage);
+  console.log('🔗 Using enhanced image URL directly:', finalEnhancedImage);
   const [comparison, setComparison] = useState(10); // Show more enhanced image by default
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -290,11 +278,8 @@ export const ResultsDisplay = ({
                 setImagesLoaded(prev => ({ ...prev, enhanced: true }));
               }}
               onError={(e) => {
-                console.log('🔄 Enhanced image failed, using original with filters as fallback');
-                const img = e.target as HTMLImageElement;
-                img.src = originalImage;
-                img.style.filter = 'brightness(1.15) contrast(1.25) saturate(1.1) hue-rotate(3deg)';
-                img.style.transform = 'scale(1.01)';
+                console.error('❌ Enhanced image failed to load:', finalEnhancedImage);
+                console.error('❌ Error details:', e);
                 setImagesLoaded(prev => ({ ...prev, enhanced: true }));
               }}
             />
