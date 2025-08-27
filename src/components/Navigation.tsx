@@ -92,7 +92,7 @@ export const Navigation = ({ currentPage = 'home', variant = 'dark' }: Navigatio
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className={`md:hidden absolute top-full left-0 right-0 border-b border-border z-[99998] ${
+        <div className={`md:hidden absolute top-full left-0 right-0 border-b border-border z-[999999] ${
           scrolled 
             ? 'bg-white/95 backdrop-blur-md' 
             : 'bg-white'
