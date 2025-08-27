@@ -6,25 +6,37 @@ import { normalizeUrl } from '@/utils/normalizeUrl';
 
 type EnhanceResponse = { url?: string; enhancedUrl?: string } & Record<string, any>;
 
-// Standalone function for clean API calls using streamlined App Router structure
+// Fixed API function with proper error handling
 export async function enhanceImageAPI(imageBase64: string, model?: string): Promise<string | null> {
   try {
+    console.log("🔄 Starting API call with image length:", imageBase64.length);
+    
     const res = await fetch("/api/image-processing", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: imageBase64 }), // ✅ FIXED - only send image
+      body: JSON.stringify({ image: imageBase64 }),
     });
 
+    console.log("📡 API Response status:", res.status, res.statusText);
+    
     const data = await res.json();
-    console.log("🎯 enhanceImage response:", data);
+    console.log("🎯 API Response data:", data);
 
-    if (!res.ok) throw new Error(data.error || "Backend error");
-    if (!data.enhancedUrl) throw new Error("Enhancement completed but no URL was returned");
+    if (!res.ok) {
+      console.error("❌ API Error:", data.error);
+      throw new Error(data.error || "Backend error");
+    }
+    
+    if (!data.enhancedUrl) {
+      console.error("❌ No enhanced URL in response");
+      throw new Error("No enhanced URL returned from API");
+    }
 
+    console.log("✅ Enhanced URL received:", data.enhancedUrl);
     return data.enhancedUrl;
-  } catch (err) {
-    console.error("❌ enhanceImage failed:", err);
-    return null; // fallback
+  } catch (err: any) {
+    console.error("❌ enhanceImageAPI failed:", err.message || err);
+    return null;
   }
 }
 
