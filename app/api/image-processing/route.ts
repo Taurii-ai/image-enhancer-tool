@@ -24,11 +24,11 @@ export async function POST(req: Request) {
     }
 
     // FOR NOW: Return a test response to see if basic JSON works
-    console.log("✅ Returning test response");
+    console.log("✅ Returning test response - REDEPLOY");
     return NextResponse.json({ 
       enhancedUrl: "https://replicate.delivery/pbxt/test123/output.png",
       test: true,
-      message: "API is working, returning test URL"
+      message: "API is working, returning test URL - REDEPLOY"
     });
     
   } catch (err: any) {
