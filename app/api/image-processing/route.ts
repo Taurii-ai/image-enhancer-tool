@@ -84,13 +84,33 @@ export async function POST(req: Request) {
     }
 
     // Poll until complete
+    let attempts = 0;
+    const maxAttempts = 60; // 2 minutes max
     while (
       prediction.status !== "succeeded" &&
       prediction.status !== "failed" &&
-      prediction.status !== "canceled"
+      prediction.status !== "canceled" &&
+      attempts < maxAttempts
     ) {
       await wait(2000);
-      prediction = await replicate.predictions.get(prediction.id);
+      try {
+        prediction = await replicate.predictions.get(prediction.id);
+        console.log(`🔄 Polling attempt ${attempts + 1}: Status = ${prediction.status}`);
+        attempts++;
+      } catch (pollError: any) {
+        console.error("❌ Polling error:", pollError);
+        return NextResponse.json({ 
+          error: "Failed to check prediction status",
+          message: pollError?.message || "Polling failed"
+        }, { status: 500 });
+      }
+    }
+    
+    if (attempts >= maxAttempts) {
+      return NextResponse.json({ 
+        error: "Enhancement timed out after 2 minutes",
+        predictionId: prediction.id
+      }, { status: 504 });
     }
 
     if (prediction.status !== "succeeded") {
@@ -100,19 +120,28 @@ export async function POST(req: Request) {
       );
     }
 
+    console.log("🔍 Raw Replicate output:", JSON.stringify(prediction.output, null, 2));
+    
     const enhancedUrl = extractUrl(prediction.output);
     if (!enhancedUrl) {
       console.error("⚠️ No URL in Replicate output:", prediction.output);
-      return NextResponse.json(
-        { error: "No enhanced image URL returned from Replicate" },
-        { status: 500 }
-      );
+      return NextResponse.json({
+        error: "No enhanced image URL returned from Replicate",
+        rawOutput: prediction.output,
+        predictionId: prediction.id
+      }, { status: 500 });
     }
 
     console.log("✅ Enhanced URL:", enhancedUrl);
+    console.log("🎯 Returning response:", { enhancedUrl });
+    
     return NextResponse.json({ enhancedUrl });
   } catch (err: any) {
     console.error("❌ API error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Image enhancement failed", 
+      message: err?.message || "Unknown error",
+      details: String(err)
+    }, { status: 500 });
   }
 }
