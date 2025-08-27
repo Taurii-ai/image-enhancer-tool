@@ -33,33 +33,18 @@ export default async function handler(req, res) {
     
     console.log("✅ Token exists, length:", REPLICATE_API_TOKEN.length);
 
-    // Model mapping
+    // Model mapping - using known working Real-ESRGAN model for anime
     const models = {
       'general': '660d922d33153019e8c263a3bba265de882e7f4f70396546b6c9c8f9d47a021a',
       'faces': 'cc4956dd26fa5a7185d5660cc9100fab1b8070a1d1654a8bb5eb6d443b020bb2',
-      'anime': '1b976a4d456ed9e4d1a846597b7614e79eadad3032e9124fa63859db0fd59b56'
+      'anime': 'f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa'
     };
     
     const versionId = models[model] || models.general;
     console.log("✅ Using model version:", versionId);
 
-    // Create prediction with model-specific input parameters
+    // Create prediction - all models use same input pattern
     console.log("🤖 Creating Replicate prediction...");
-    
-    let inputParams;
-    if (model === 'anime') {
-      // Real-ESRGAN model needs specific parameters
-      inputParams = {
-        image: image,
-        scale: 4,
-        face_enhance: false
-      };
-    } else {
-      // SwinIR (general) and CodeFormer (faces) use simple image input
-      inputParams = { image };
-    }
-    
-    console.log("🎯 Input params for", model, ":", Object.keys(inputParams));
     
     const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
@@ -69,7 +54,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         version: versionId,
-        input: inputParams
+        input: { image }
       })
     });
 
