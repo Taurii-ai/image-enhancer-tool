@@ -36,9 +36,13 @@ export async function enhanceImageAPI(imageBase64: string, model: string): Promi
   console.log("🧪 Typeof data.url:", typeof data.url);
   console.log("🧪 Typeof data.enhancedUrl:", typeof data.enhancedUrl);
 
-  // Accept either `url` or `enhancedUrl`
-  const raw: unknown = data.url ?? data.enhancedUrl;
-  if (!raw) throw new Error("Backend did not return a usable URL");
+  // ✅ Robust URL validation like your working code
+  if (!data?.url || typeof data.url !== "string") {
+    console.error("❌ Invalid URL from backend:", data);
+    throw new Error("No valid enhanced image URL returned from API");
+  }
+
+  const raw = data.url;
 
   // ✅ NUCLEAR DEBUG: Track where function contamination happens
   console.log("🔍 BEFORE NORMALIZE - Raw value:", typeof raw, raw);

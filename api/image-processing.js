@@ -44,11 +44,15 @@ export default async function handler(req, res) {
 
     console.log('🧪 Raw Replicate output:', output);
 
-    // Replicate returns an array of URLs
-    const enhancedUrl = Array.isArray(output) ? output[0] : output;
+    // ✅ Replicate always returns array of URLs → take first one
+    const enhancedUrl = 
+      Array.isArray(output) && typeof output[0] === "string"
+        ? output[0]
+        : null;
 
     if (!enhancedUrl) {
-      return res.status(500).json({ error: "No enhanced image returned from Replicate" });
+      console.error("❌ Replicate response missing enhancedUrl:", output);
+      return res.status(500).json({ error: "No enhanced image URL returned from Replicate" });
     }
 
     console.log('✅ Enhanced URL:', enhancedUrl);
