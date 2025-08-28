@@ -66,7 +66,7 @@ export const CategorySelector = ({ selectedCategory, onCategoryChange, disabled 
             <Card
               key={category.id}
               className={cn(
-                "relative p-4 cursor-pointer transition-all duration-300 ease-out border-2 z-1",
+                "relative p-4 cursor-pointer transition-all duration-300 ease-out border-2",
                 isSelected 
                   ? `${category.border} ${category.bg} shadow-lg scale-[1.02]`
                   : isHovered
@@ -74,6 +74,7 @@ export const CategorySelector = ({ selectedCategory, onCategoryChange, disabled 
                   : "border-border bg-card hover:border-border/70",
                 disabled && "opacity-50 cursor-not-allowed"
               )}
+              style={{zIndex: 1}}
               onClick={() => !disabled && onCategoryChange(category.id)}
               onMouseEnter={() => !disabled && setHoveredCategory(category.id)}
               onMouseLeave={() => setHoveredCategory(null)}
