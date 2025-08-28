@@ -3,6 +3,11 @@
   "short_name": "Enhpix AI",
   "icons": [
     {
+      "src": "/IMG.1037-favicon.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
       "src": "/IMG.1037.png",
       "sizes": "192x192",
       "type": "image/png"
