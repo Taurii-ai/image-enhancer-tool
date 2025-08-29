@@ -214,13 +214,26 @@ const MODEL_MAP = {
 export const enhanceImage = async (
   file: File,
   onProgress: (progress: EnhancementProgress) => void,
-  userEmail?: string,
+  userEmail: string,
   category: string = 'general'
 ): Promise<EnhancementResult> => {
   const startTime = Date.now();
   
   try {
-    onProgress({ status: 'starting', progress: 0, message: 'Starting enhancement...' });
+    onProgress({ status: 'starting', progress: 0, message: 'Checking subscription...' });
+    
+    // Check user authentication and limits
+    if (!userEmail) {
+      throw new Error('User authentication required');
+    }
+
+    // Check if user can process images and decrement usage
+    const usageCheck = await UserService.processImageForUser(userEmail);
+    if (!usageCheck.success) {
+      throw new Error(usageCheck.message);
+    }
+
+    onProgress({ status: 'starting', progress: 5, message: 'Starting enhancement...' });
     
     let enhancedUrl: string;
     
@@ -236,7 +249,7 @@ export const enhanceImage = async (
       // Get the model slug for the selected category
       const modelSlug = MODEL_MAP[category as keyof typeof MODEL_MAP] || MODEL_MAP.general;
       
-      console.log("🔍 TESTING: Processing image for user:", "test@enhpix.com");
+      console.log("🔍 Processing image for authenticated user:", userEmail);
       console.log("📷 Image converted to data URL, size:", imageDataUrl.length);
       console.log("🤖 Using model:", modelSlug);
 

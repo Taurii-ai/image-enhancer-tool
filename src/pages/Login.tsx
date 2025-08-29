@@ -6,27 +6,35 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EnhpixLogo } from '@/components/ui/enhpix-logo';
-// import { supabase } from '@/lib/supabase'; // Temporarily disabled
-// import { useAuth } from '@/hooks/useAuth'; // Temporarily disabled
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
 const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  // const { user, isAuthenticated } = useAuth(); // Temporarily disabled
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ email: '', password: '', name: '' });
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [defaultTab, setDefaultTab] = useState('login');
 
   useEffect(() => {
+    // Redirect if already authenticated
+    if (isAuthenticated) {
+      handleRedirectAfterAuth();
+      return;
+    }
+
     // Check for tab parameter
     const tab = searchParams.get('tab');
     if (tab === 'signup') {
       setDefaultTab('signup');
     }
-  }, [searchParams]);
+  }, [isAuthenticated, searchParams]);
 
   const handleRedirectAfterAuth = () => {
     const redirect = searchParams.get('redirect');
@@ -46,39 +54,41 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // Check if user exists
-      const userData = localStorage.getItem(`user_${loginData.email}`);
-      if (!userData) {
-        toast({
-          title: 'Account Not Found',
-          description: 'No account found with this email. Please choose a plan first.',
-          variant: 'destructive'
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // Validate password
-      const user = JSON.parse(userData);
-      if (user.password !== loginData.password) {
-        toast({
-          title: 'Invalid Password',
-          description: 'The password you entered is incorrect.',
-          variant: 'destructive'
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // Login process
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: 'Login Successful!',
-        description: 'Welcome back to Enhpix!',
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginData.email,
+        password: loginData.password,
       });
-      
-      handleRedirectAfterAuth();
+
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast({
+            title: 'Invalid Credentials',
+            description: 'The email or password you entered is incorrect.',
+            variant: 'destructive'
+          });
+        } else if (error.message.includes('Email not confirmed')) {
+          toast({
+            title: 'Email Not Confirmed',
+            description: 'Please check your email and confirm your account.',
+            variant: 'destructive'
+          });
+        } else {
+          toast({
+            title: 'Login Failed',
+            description: error.message,
+            variant: 'destructive'
+          });
+        }
+        return;
+      }
+
+      if (data.user) {
+        toast({
+          title: 'Login Successful!',
+          description: 'Welcome back to Enhpix!',
+        });
+        handleRedirectAfterAuth();
+      }
     } catch (error) {
       console.error('Login failed:', error);
       toast({
@@ -93,8 +103,105 @@ const Login = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Redirect directly to pricing - no signup without payment
-    navigate('/pricing');
+    setIsLoading(true);
+
+    try {
+      // Check if user already exists
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', signupData.email)
+        .single();
+
+      if (existingUser) {
+        toast({
+          title: 'Account Already Exists',
+          description: 'An account with this email already exists. Please sign in instead.',
+          variant: 'destructive'
+        });
+        setDefaultTab('login');
+        setLoginData({ email: signupData.email, password: '' });
+        return;
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email: signupData.email,
+        password: signupData.password,
+        options: {
+          data: {
+            name: signupData.name,
+          }
+        }
+      });
+
+      if (error) {
+        toast({
+          title: 'Signup Failed',
+          description: error.message,
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      if (data.user && !data.session) {
+        toast({
+          title: 'Check Your Email',
+          description: 'We sent you a confirmation link. Please check your email before signing in.',
+        });
+        setDefaultTab('login');
+      } else if (data.user) {
+        toast({
+          title: 'Account Created!',
+          description: 'Welcome to Enhpix! Please choose a plan to start enhancing images.',
+        });
+        handleRedirectAfterAuth();
+      }
+    } catch (error) {
+      console.error('Signup failed:', error);
+      toast({
+        title: 'Signup Error',
+        description: 'An unexpected error occurred. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        toast({
+          title: 'Reset Failed',
+          description: error.message,
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      toast({
+        title: 'Password Reset Sent',
+        description: 'Check your email for a password reset link.',
+      });
+      setShowForgotPassword(false);
+      setForgotPasswordEmail('');
+    } catch (error) {
+      console.error('Password reset failed:', error);
+      toast({
+        title: 'Reset Error',
+        description: 'An unexpected error occurred. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -153,33 +260,78 @@ const Login = () => {
               </TabsList>
 
               <TabsContent value="login" className="space-y-4">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      value={loginData.email}
-                      onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                      placeholder="your@email.com"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      value={loginData.password}
-                      onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                      placeholder="••••••••"
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Signing in...' : 'Sign In'}
-                  </Button>
-                </form>
+                {!showForgotPassword ? (
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="login-email">Email</Label>
+                      <Input
+                        id="login-email"
+                        type="email"
+                        value={loginData.email}
+                        onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                        placeholder="your@email.com"
+                        required
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="login-password">Password</Label>
+                        <button
+                          type="button"
+                          onClick={() => setShowForgotPassword(true)}
+                          className="text-xs text-primary hover:underline"
+                        >
+                          Forgot password?
+                        </button>
+                      </div>
+                      <Input
+                        id="login-password"
+                        type="password"
+                        value={loginData.password}
+                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                        placeholder="••••••••"
+                        required
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? 'Signing in...' : 'Sign In'}
+                    </Button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleForgotPassword} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="forgot-email">Email Address</Label>
+                      <Input
+                        id="forgot-email"
+                        type="email"
+                        value={forgotPasswordEmail}
+                        onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                        placeholder="your@email.com"
+                        required
+                        disabled={isLoading}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        We'll send you a link to reset your password.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? 'Sending...' : 'Send Reset Link'}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        className="w-full"
+                        onClick={() => setShowForgotPassword(false)}
+                        disabled={isLoading}
+                      >
+                        Back to Sign In
+                      </Button>
+                    </div>
+                  </form>
+                )}
               </TabsContent>
 
               <TabsContent value="signup" className="space-y-4">
@@ -192,6 +344,7 @@ const Login = () => {
                       onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
                       placeholder="John Doe"
                       required
+                      disabled={isLoading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -203,6 +356,7 @@ const Login = () => {
                       onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                       placeholder="your@email.com"
                       required
+                      disabled={isLoading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -214,13 +368,18 @@ const Login = () => {
                       onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
                       placeholder="••••••••"
                       required
+                      disabled={isLoading}
+                      minLength={6}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Password must be at least 6 characters long
+                    </p>
                   </div>
-                  <Button type="submit" className="w-full">
-                    Choose Plan to Sign Up
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? 'Creating account...' : 'Create Account'}
                   </Button>
                   <p className="text-xs text-muted-foreground text-center">
-                    Payment required. Choose a plan to create your account.
+                    By creating an account, you agree to our Terms of Service and Privacy Policy.
                   </p>
                 </form>
               </TabsContent>

@@ -50,55 +50,14 @@ const Index = () => {
   };
 
   const handleImageUpload = async (file: File) => {
-    // FOR TESTING ONLY - normally would require payment first
-    // navigate('/pricing');
-    // return;
-    
-    try {
-      setUploadedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-      setAppState('processing');
-      setEnhancementProgress({ status: 'starting', progress: 0 });
-
-      // Test user data (normally would come from authentication)
-      const testUserEmail = 'test@enhpix.com';
-      
-      console.log('🔍 TESTING: Processing image for user:', testUserEmail);
-
-      const result = await enhanceImage(file, (progress) => {
-        setEnhancementProgress(progress);
-      }, testUserEmail, selectedCategory);
-
-      console.log('🎯 INDEX: Got result from enhanceImage:', result);
-      console.log('🎯 INDEX: Setting enhancedUrl to:', result.enhancedUrl);
-      
-      // ✅ Defensive URL extraction and normalization
-      if (result?.enhancedUrl) {
-        setEnhancedUrl(result.enhancedUrl);
-      } else if (result?.url) {
-        setEnhancedUrl(result.url);
-      } else {
-        console.error("No enhanced URL found in result:", result);
-        throw new Error("Enhancement completed but no URL was returned");
-      }
-      setAppState('results');
-      
-      toast({
-        title: "Enhancement Complete!",
-        description: "Your image has been successfully enhanced with AI. Check console for user data logs.",
-      });
-
-    } catch (error) {
-      console.error('Enhancement failed:', error);
-      setAppState('upload');
-      setEnhancementProgress(null);
-      
-      toast({
-        title: "Enhancement Failed",
-        description: "Sorry, we couldn't enhance your image. Please try again.",
-        variant: "destructive",
-      });
-    }
+    // Redirect to pricing page - users must have a paid plan to enhance images
+    toast({
+      title: "Subscription Required",
+      description: "Please choose a plan to start enhancing your images with AI.",
+      variant: "default",
+    });
+    navigate('/pricing');
+    return;
   };
 
 

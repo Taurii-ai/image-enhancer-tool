@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Pricing from "./pages/Pricing";
 import About from "./pages/About";
 import Login from "./pages/Login";
+import ResetPassword from "./pages/ResetPassword";
 import Checkout from "./pages/Checkout";
 import DemoPayment from "./pages/DemoPayment";
 import Dashboard from "./pages/Dashboard";
@@ -46,6 +47,7 @@ const App = () => {
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/demo-payment" element={<DemoPayment />} />
             <Route path="/dashboard" element={<Dashboard />} />
