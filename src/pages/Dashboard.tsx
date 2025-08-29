@@ -160,7 +160,16 @@ const Dashboard = () => {
               <Crown className="w-4 h-4 text-accent" />
               <span className="text-sm font-medium text-foreground">{subscriptionInfo.planName}</span>
             </div>
-            <Button variant="ghost" size="sm">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => {
+                // For now, redirect to pricing page for account management
+                // In the future, this could go to a dedicated settings page
+                navigate('/pricing');
+              }}
+              title="Account Settings"
+            >
               <Settings className="w-4 h-4" />
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/')}>
