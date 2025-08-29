@@ -149,8 +149,8 @@ const Terms = () => {
               <h2 className="text-sm sm:text-base md:text-2xl font-semibold text-foreground mb-2 sm:mb-3 md:mb-4 break-words overflow-wrap-anywhere max-w-full">Contact Us</h2>
               <p className="text-xs sm:text-sm md:text-base text-muted-foreground leading-relaxed break-words overflow-wrap-anywhere max-w-full">
                 If you have any questions about these Terms, please contact us at{' '}
-                <a href="mailto:legal@enhpix.com" className="text-primary hover:underline break-words overflow-wrap-anywhere">
-                  legal@enhpix.com
+                <a href="mailto:support@enhpix.com" className="text-primary hover:underline break-words overflow-wrap-anywhere">
+                  support@enhpix.com
                 </a>
               </p>
             </div>

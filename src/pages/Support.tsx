@@ -112,60 +112,21 @@ const Support = () => {
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-8 mb-4 sm:mb-6 md:mb-16 px-1 sm:px-2">
-            <div className="text-center p-3 sm:p-4 md:p-6 bg-card rounded-lg sm:rounded-xl border border-border">
-              <div className="w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16 bg-primary/10 rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-2 sm:mb-3 md:mb-4">
-                <Mail className="w-4 h-4 sm:w-6 sm:h-6 md:w-8 md:h-8 text-primary" />
+          <div className="flex justify-center mb-4 sm:mb-6 md:mb-16 px-1 sm:px-2">
+            <div className="text-center p-4 sm:p-6 md:p-8 bg-card rounded-lg sm:rounded-xl border border-border max-w-md">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-primary/10 rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 md:mb-6">
+                <Mail className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-primary" />
               </div>
-              <h3 className="text-sm sm:text-base md:text-xl font-semibold text-foreground mb-2 sm:mb-3">Email Support</h3>
-              <p className="text-xs sm:text-sm md:text-base text-muted-foreground mb-3 sm:mb-4">
+              <h3 className="text-lg sm:text-xl md:text-2xl font-semibold text-foreground mb-2 sm:mb-3 md:mb-4">Email Support</h3>
+              <p className="text-sm sm:text-base md:text-lg text-muted-foreground mb-4 sm:mb-6">
                 Get personalized help from our support team
               </p>
               <Button 
                 onClick={() => window.open('mailto:support@enhpix.com?subject=Support Request', '_blank')}
                 className="w-full"
+                size="lg"
               >
                 Contact Support
-              </Button>
-            </div>
-
-            <div className="text-center p-3 sm:p-4 md:p-6 bg-card rounded-lg sm:rounded-xl border border-border">
-              <div className="w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16 bg-accent/10 rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-2 sm:mb-3 md:mb-4">
-                <MessageCircle className="w-4 h-4 sm:w-6 sm:h-6 md:w-8 md:h-8 text-accent" />
-              </div>
-              <h3 className="text-sm sm:text-base md:text-xl font-semibold text-foreground mb-2 sm:mb-3">Live Chat</h3>
-              <p className="text-xs sm:text-sm md:text-base text-muted-foreground mb-3 sm:mb-4">
-                Chat with us in real-time during business hours
-              </p>
-              <Button 
-                variant="outline"
-                onClick={() => {
-                  // In a real app, this would open a chat widget
-                  alert('Live chat coming soon! Please use email support for now.');
-                }}
-                className="w-full"
-              >
-                Start Chat
-              </Button>
-            </div>
-
-            <div className="text-center p-3 sm:p-4 md:p-6 bg-card rounded-lg sm:rounded-xl border border-border">
-              <div className="w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16 bg-primary/10 rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-2 sm:mb-3 md:mb-4">
-                <FileText className="w-4 h-4 sm:w-6 sm:h-6 md:w-8 md:h-8 text-primary" />
-              </div>
-              <h3 className="text-sm sm:text-base md:text-xl font-semibold text-foreground mb-2 sm:mb-3">Documentation</h3>
-              <p className="text-xs sm:text-sm md:text-base text-muted-foreground mb-3 sm:mb-4">
-                Browse our comprehensive guides and tutorials
-              </p>
-              <Button 
-                variant="outline"
-                onClick={() => {
-                  // In a real app, this would go to docs
-                  alert('Documentation coming soon!');
-                }}
-                className="w-full"
-              >
-                View Docs
               </Button>
             </div>
           </div>
