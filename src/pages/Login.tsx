@@ -103,69 +103,13 @@ const Login = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      // Check if user already exists
-      const { data: existingUser } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('email', signupData.email)
-        .single();
-
-      if (existingUser) {
-        toast({
-          title: 'Account Already Exists',
-          description: 'An account with this email already exists. Please sign in instead.',
-          variant: 'destructive'
-        });
-        setDefaultTab('login');
-        setLoginData({ email: signupData.email, password: '' });
-        return;
-      }
-
-      const { data, error } = await supabase.auth.signUp({
-        email: signupData.email,
-        password: signupData.password,
-        options: {
-          data: {
-            name: signupData.name,
-          }
-        }
-      });
-
-      if (error) {
-        toast({
-          title: 'Signup Failed',
-          description: error.message,
-          variant: 'destructive'
-        });
-        return;
-      }
-
-      if (data.user && !data.session) {
-        toast({
-          title: 'Check Your Email',
-          description: 'We sent you a confirmation link. Please check your email before signing in.',
-        });
-        setDefaultTab('login');
-      } else if (data.user) {
-        toast({
-          title: 'Account Created!',
-          description: 'Welcome to Enhpix! Please choose a plan to start enhancing images.',
-        });
-        handleRedirectAfterAuth();
-      }
-    } catch (error) {
-      console.error('Signup failed:', error);
-      toast({
-        title: 'Signup Error',
-        description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    
+    // Redirect to pricing - signup requires choosing a plan first
+    toast({
+      title: 'Choose a Plan First',
+      description: 'Please select a subscription plan to create your account and start enhancing images.',
+    });
+    navigate('/pricing');
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -376,10 +320,10 @@ const Login = () => {
                     </p>
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Creating account...' : 'Create Account'}
+                    Choose Plan to Sign Up
                   </Button>
                   <p className="text-xs text-muted-foreground text-center">
-                    By creating an account, you agree to our Terms of Service and Privacy Policy.
+                    You'll choose a subscription plan and create your account in the next step.
                   </p>
                 </form>
               </TabsContent>
