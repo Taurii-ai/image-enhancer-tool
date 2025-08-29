@@ -28,30 +28,21 @@ const Dashboard = () => {
   const [result, setResult] = useState<EnhancementResult | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<EnhancementCategory>('general');
   const [subscriptionInfo, setSubscriptionInfo] = useState(formatSubscriptionInfo());
-  const [demoUser, setDemoUser] = useState<any>(null);
 
   // Update subscription info when component mounts
   useEffect(() => {
     setSubscriptionInfo(formatSubscriptionInfo());
   }, []);
 
-  // Check for demo user
+  // Authentication check
   useEffect(() => {
-    const demoUserData = localStorage.getItem('demo_user');
-    if (demoUserData) {
-      setDemoUser(JSON.parse(demoUserData));
-    }
-  }, []);
-
-  // Authentication check (allow demo user)
-  useEffect(() => {
-    if (!loading && !isAuthenticated && !demoUser) {
+    if (!loading && !isAuthenticated) {
       navigate('/login');
     }
-  }, [isAuthenticated, loading, navigate, demoUser]);
+  }, [isAuthenticated, loading, navigate]);
 
   // Show loading state while checking authentication
-  if (loading && !demoUser) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -59,14 +50,10 @@ const Dashboard = () => {
     );
   }
 
-  // Redirect if not authenticated and not demo user
-  if (!isAuthenticated && !demoUser) {
+  // Redirect if not authenticated
+  if (!isAuthenticated || !user?.email) {
     return null;
   }
-
-  // Use demo user email if available, otherwise real user email
-  const currentUser = demoUser || user;
-  const userEmail = currentUser?.email || 'demo@test.com';
 
   const debugLog = (level: 'info' | 'error' | 'success' | 'warning', message: string, data?: any) => {
     console.log(`[DASHBOARD ${level.toUpperCase()}] ${message}`, data || '');
@@ -89,12 +76,11 @@ const Dashboard = () => {
 
     try {
       debugLog('info', '📞 CALLING ENHANCE IMAGE FUNCTION', {
-        userEmail: userEmail,
-        category: selectedCategory,
-        isDemoUser: !!demoUser
+        userEmail: user.email,
+        category: selectedCategory
       });
       
-      const enhancementResult = await enhanceImage(file, setProgress, userEmail, selectedCategory);
+      const enhancementResult = await enhanceImage(file, setProgress, user.email, selectedCategory);
       
       debugLog('success', '✅ ENHANCEMENT COMPLETED', {
         originalUrl: enhancementResult?.originalUrl,
@@ -127,24 +113,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Demo Banner */}
-      {demoUser && (
-        <div className="bg-yellow-100 border-b border-yellow-200 p-2 text-center">
-          <p className="text-sm text-yellow-800">
-            🧪 <strong>DEMO MODE</strong> - This is temporary access to test the UI. 
-            <button 
-              onClick={() => {
-                localStorage.removeItem('demo_user');
-                navigate('/login');
-              }}
-              className="ml-2 text-yellow-900 underline hover:no-underline"
-            >
-              Exit Demo
-            </button>
-          </p>
-        </div>
-      )}
-
       {/* Header */}
       <header className="p-4 md:p-6 border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">

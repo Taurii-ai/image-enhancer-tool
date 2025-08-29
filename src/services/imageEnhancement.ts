@@ -227,15 +227,10 @@ export const enhanceImage = async (
       throw new Error('User authentication required');
     }
 
-    // Skip usage limits for demo user
-    if (userEmail !== 'demo@test.com') {
-      // Check if user can process images and decrement usage
-      const usageCheck = await UserService.processImageForUser(userEmail);
-      if (!usageCheck.success) {
-        throw new Error(usageCheck.message);
-      }
-    } else {
-      console.log('🧪 DEMO MODE: Bypassing usage limits');
+    // Check if user can process images and decrement usage
+    const usageCheck = await UserService.processImageForUser(userEmail);
+    if (!usageCheck.success) {
+      throw new Error(usageCheck.message);
     }
 
     onProgress({ status: 'starting', progress: 5, message: 'Starting enhancement...' });
