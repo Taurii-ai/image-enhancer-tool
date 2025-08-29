@@ -235,12 +235,21 @@ const Index = () => {
       <div className="px-2 sm:px-3 md:px-6 py-4 sm:py-6 md:py-12 mt-20 sm:mt-24 md:mt-28">
         <div className={`mx-auto ${appState === 'results' ? 'max-w-7xl' : 'max-w-4xl'}`}>
           {appState === 'upload' && (
-            <div className="space-y-6">
-              <CategorySelector 
-                selectedCategory={selectedCategory}
-                onCategoryChange={setSelectedCategory}
-              />
-              <ImageUploader onImageUpload={handleImageUpload} />
+            <div className="text-center space-y-6">
+              <div className="max-w-2xl mx-auto">
+                <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
+                  Ready to Enhance Your Images?
+                </h2>
+                <p className="text-muted-foreground mb-8">
+                  Choose a subscription plan to start transforming your images with AI-powered enhancement.
+                </p>
+                <button
+                  onClick={() => navigate('/pricing')}
+                  className="inline-flex items-center justify-center px-8 py-3 text-lg font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  View Pricing Plans
+                </button>
+              </div>
             </div>
           )}
 

@@ -147,11 +147,11 @@ const About = () => {
                 Join thousands of users who trust Enhpix for their image enhancement needs.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 md:gap-4 overflow-x-hidden w-full">
-                <Button size="sm" className="sm:size-default md:size-lg" onClick={() => navigate('/login?tab=signup')}>
-                  Try Free Now
+                <Button size="sm" className="sm:size-default md:size-lg" onClick={() => navigate('/pricing')}>
+                  View Pricing Plans
                 </Button>
-                <Button variant="outline" size="sm" className="sm:size-default md:size-lg" onClick={() => navigate('/pricing')}>
-                  View Pricing
+                <Button variant="outline" size="sm" className="sm:size-default md:size-lg" onClick={() => navigate('/login')}>
+                  Sign In
                 </Button>
               </div>
             </div>
