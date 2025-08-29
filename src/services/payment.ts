@@ -15,8 +15,8 @@ export const PRICING_PLANS = {
     priceIdYearly: import.meta.env.VITE_STRIPE_PRICE_BASIC_YEARLY,
     features: [
       '150 images/month',
-      '4x upscaling resolution',
-      'Basic quality enhancement',
+      'HD quality enhancement',
+      'All category models included',
       'Email support',
       'Standard processing speed'
     ]
@@ -30,8 +30,8 @@ export const PRICING_PLANS = {
     priceIdYearly: import.meta.env.VITE_STRIPE_PRICE_PRO_YEARLY,
     features: [
       '400 images/month',
-      '8x upscaling resolution',
-      'Premium quality enhancement',
+      'Ultra-HD quality enhancement',
+      'Advanced AI model selection',
       'Priority support',
       'Batch processing'
     ]
@@ -45,8 +45,8 @@ export const PRICING_PLANS = {
     priceIdYearly: import.meta.env.VITE_STRIPE_PRICE_PREMIUM_YEARLY,
     features: [
       '1,300 images/month',
-      '16x upscaling resolution',
-      'Ultra quality enhancement',
+      'Maximum quality enhancement',
+      'Fastest processing times',
       '24/7 priority support',
       'API access & integrations'
     ]
