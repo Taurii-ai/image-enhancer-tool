@@ -329,7 +329,27 @@ const Login = () => {
               </TabsContent>
             </Tabs>
 
-            <div className="mt-6 text-center">
+            <div className="mt-6 text-center space-y-4">
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-xs text-yellow-700 mb-2">🧪 TEMPORARY DEMO ACCESS</p>
+                <Button 
+                  onClick={() => {
+                    // Create fake user session for demo
+                    localStorage.setItem('demo_user', JSON.stringify({
+                      email: 'demo@test.com',
+                      name: 'Demo User',
+                      id: 'demo-123'
+                    }));
+                    navigate('/dashboard');
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="text-yellow-700 border-yellow-300 hover:bg-yellow-100"
+                >
+                  Access Dashboard (Demo)
+                </Button>
+              </div>
+              
               <p className="text-sm text-muted-foreground">
                 Need a subscription?{' '}
                 <button 
