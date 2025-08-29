@@ -103,11 +103,11 @@ const Pricing = () => {
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
-                  <span className="text-sm">4x upscaling resolution</span>
+                  <span className="text-sm">HD quality enhancement</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
-                  <span className="text-sm">Basic quality enhancement</span>
+                  <span className="text-sm">All category models included</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
@@ -164,11 +164,11 @@ const Pricing = () => {
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
-                  <span className="text-sm">8x upscaling resolution</span>
+                  <span className="text-sm">Ultra-HD quality enhancement</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
-                  <span className="text-sm">Premium quality enhancement</span>
+                  <span className="text-sm">Advanced AI model selection</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
@@ -219,11 +219,11 @@ const Pricing = () => {
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
-                  <span className="text-sm">16x upscaling resolution</span>
+                  <span className="text-sm">Maximum quality enhancement</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
-                  <span className="text-sm">Ultra quality enhancement</span>
+                  <span className="text-sm">Fastest processing times</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
