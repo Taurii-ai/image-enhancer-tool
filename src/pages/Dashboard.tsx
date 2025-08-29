@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { EnhpixLogo } from '@/components/ui/enhpix-logo';
 import { ImageUploader } from '@/components/ImageUploader';
+import { CategorySelector, EnhancementCategory } from '@/components/CategorySelector';
 import { ProcessingStatus } from '@/components/ProcessingStatus';
 import { ResultsDisplay } from '@/components/ResultsDisplay';
 import { enhanceImage, EnhancementProgress, EnhancementResult } from '@/services/imageEnhancement';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   getUserSubscription, 
   consumeImageCredit, 
@@ -19,16 +21,39 @@ type ProcessingState = 'idle' | 'processing' | 'completed';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { user, isAuthenticated, loading } = useAuth();
   const [processingState, setProcessingState] = useState<ProcessingState>('idle');
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [progress, setProgress] = useState<EnhancementProgress | null>(null);
   const [result, setResult] = useState<EnhancementResult | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<EnhancementCategory>('general');
   const [subscriptionInfo, setSubscriptionInfo] = useState(formatSubscriptionInfo());
 
   // Update subscription info when component mounts
   useEffect(() => {
     setSubscriptionInfo(formatSubscriptionInfo());
   }, []);
+
+  // Authentication check
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, loading, navigate]);
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (!isAuthenticated || !user?.email) {
+    return null;
+  }
 
   const debugLog = (level: 'info' | 'error' | 'success' | 'warning', message: string, data?: any) => {
     console.log(`[DASHBOARD ${level.toUpperCase()}] ${message}`, data || '');
@@ -50,8 +75,12 @@ const Dashboard = () => {
     setResult(null);
 
     try {
-      debugLog('info', '📞 CALLING ENHANCE IMAGE FUNCTION');
-      const enhancementResult = await enhanceImage(file, setProgress);
+      debugLog('info', '📞 CALLING ENHANCE IMAGE FUNCTION', {
+        userEmail: user.email,
+        category: selectedCategory
+      });
+      
+      const enhancementResult = await enhanceImage(file, setProgress, user.email, selectedCategory);
       
       debugLog('success', '✅ ENHANCEMENT COMPLETED', {
         originalUrl: enhancementResult?.originalUrl,
@@ -63,9 +92,8 @@ const Dashboard = () => {
       setResult(enhancementResult);
       setProcessingState('completed');
       
-      // TEMPORARILY DISABLE CREDIT CONSUMPTION
-      // consumeImageCredit();
-      // setSubscriptionInfo(formatSubscriptionInfo());
+      // Update subscription info after successful enhancement
+      setSubscriptionInfo(formatSubscriptionInfo());
       debugLog('info', '🔧 UPDATING UI STATE');
     } catch (error) {
       debugLog('error', '❌ ENHANCEMENT FAILED', {
@@ -217,6 +245,14 @@ const Dashboard = () => {
                     <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                       Upload your image and watch our AI transform it into stunning high-resolution quality
                     </p>
+                    
+                    <div className="mb-6">
+                      <CategorySelector 
+                        selectedCategory={selectedCategory}
+                        onCategoryChange={setSelectedCategory}
+                        disabled={processingState === 'processing'}
+                      />
+                    </div>
                     
                     <div className="max-w-md mx-auto">
                       <ImageUploader 
