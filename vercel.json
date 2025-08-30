@@ -7,6 +7,19 @@
       "maxDuration": 60
     }
   },
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "enhpix.com"
+        }
+      ],
+      "destination": "https://www.enhpix.com/$1",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
