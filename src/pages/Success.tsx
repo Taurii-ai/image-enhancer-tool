@@ -112,7 +112,8 @@ const Success = () => {
         description: "In production, you would have full access to the app!",
       });
     }
-    navigate('/');
+    // After successful payment, redirect to login page with checkout redirect
+    navigate('/login?redirect=dashboard');
   };
 
   if (isLoading) {
@@ -290,7 +291,7 @@ const Success = () => {
             </Button>
             
             <div className="flex justify-center gap-4 text-sm">
-              <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/login?redirect=dashboard')}>
                 Go to Dashboard
               </Button>
               <Button variant="ghost" size="sm" onClick={() => navigate('/pricing')}>

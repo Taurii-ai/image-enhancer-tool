@@ -43,8 +43,11 @@ const Login = () => {
     
     if (redirect === 'checkout' && plan && billing) {
       navigate(`/checkout?plan=${plan}&billing=${billing}`);
+    } else if (redirect === 'dashboard') {
+      // After payment, allow access to dashboard
+      navigate('/dashboard');
     } else {
-      // Always redirect to pricing - payment required before access
+      // Default: redirect to pricing for plan selection
       navigate('/pricing');
     }
   };
