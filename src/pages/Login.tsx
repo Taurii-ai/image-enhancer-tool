@@ -107,48 +107,13 @@ const Login = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    // TEMPORARY TEST MODE - Allow direct signup for testing
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: signupData.email,
-        password: signupData.password,
-        options: {
-          data: {
-            full_name: signupData.name,
-          }
-        }
-      });
-
-      if (error) {
-        toast({
-          title: 'Signup Failed',
-          description: error.message,
-          variant: 'destructive'
-        });
-        return;
-      }
-
-      if (data.user) {
-        toast({
-          title: 'Account Created!',
-          description: 'Please check your email to confirm your account.',
-        });
-        
-        // For testing - redirect to pricing to choose plan
-        navigate('/pricing');
-      }
-    } catch (error) {
-      console.error('Signup failed:', error);
-      toast({
-        title: 'Signup Error',
-        description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    
+    // Redirect to pricing - signup requires choosing a plan first
+    toast({
+      title: 'Choose a Plan First',
+      description: 'Please select a subscription plan to create your account and start enhancing images.',
+    });
+    navigate('/pricing');
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -435,12 +400,10 @@ const Login = () => {
                     </p>
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Creating Account...' : 'Create Test Account'}
+                    Sign Up - Choose Plan First
                   </Button>
-                  
-                  
                   <p className="text-xs text-muted-foreground text-center">
-                    Test Mode: Creates account directly for testing authentication flow.
+                    You'll choose a subscription plan and create your account in the next step.
                   </p>
                 </form>
               </TabsContent>

@@ -72,62 +72,6 @@ const Checkout = () => {
     }
   };
 
-  const handleTestMode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!customerEmail.trim() || !customerName.trim()) {
-      toast({
-        title: "Missing Information", 
-        description: "Please enter your name and email address.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // Create test account
-      const { data, error } = await supabase.auth.signUp({
-        email: customerEmail.trim(),
-        password: 'testpassword123', // Default test password
-        options: {
-          data: {
-            full_name: customerName.trim(),
-          }
-        }
-      });
-
-      if (error) {
-        toast({
-          title: 'Test Account Creation Failed',
-          description: error.message,
-          variant: 'destructive'
-        });
-        return;
-      }
-
-      toast({
-        title: 'Test Account Created!',
-        description: 'Use password: testpassword123 to login. Check email for confirmation.',
-      });
-      
-      // Simulate successful payment and redirect
-      setTimeout(() => {
-        navigate('/success?session_id=test_session');
-      }, 2000);
-
-    } catch (error) {
-      console.error('Test signup failed:', error);
-      toast({
-        title: 'Test Mode Error',
-        description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   if (!selectedPlan) {
     return null; // Loading or will redirect
@@ -273,32 +217,6 @@ const Checkout = () => {
                       <>
                         <CreditCard className="w-4 h-4 mr-2" />
                         Continue to Payment - ${price}
-                      </>
-                    )}
-                  </Button>
-
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-background px-2 text-muted-foreground">Testing Only</span>
-                    </div>
-                  </div>
-
-                  <Button 
-                    type="button"
-                    onClick={handleTestMode}
-                    variant="secondary" 
-                    className="w-full" 
-                    size="lg"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      "Creating Test Account..."
-                    ) : (
-                      <>
-                        🧪 Create Test Account (Password: testpassword123)
                       </>
                     )}
                   </Button>
