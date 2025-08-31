@@ -86,10 +86,18 @@ export const getUserSubscriptionInfo = async (userId: string): Promise<UserSubsc
       imagesTotal = PLAN_LIMITS[subscription.plan_name as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.basic;
     }
 
-    // Get current usage
+    // Get current usage - use profile plan limit if no subscription
     const now = new Date();
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
+    
+    // If no subscription, use plan from profile
+    if (!subscription) {
+      const userPlan = profile.plan || 'basic';
+      planName = userPlan.charAt(0).toUpperCase() + userPlan.slice(1);
+      features = PLAN_FEATURES[userPlan as keyof typeof PLAN_FEATURES] || PLAN_FEATURES.basic;
+      imagesTotal = PLAN_LIMITS[userPlan as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.basic;
+    }
 
     const { data: usage } = await supabase
       .from('usage_tracking')
@@ -146,6 +154,21 @@ export const consumeImageCredit = async (userId: string): Promise<{ success: boo
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
 
+    // First get user profile to determine their plan limit
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (profileError || !profile) {
+      return { success: false, remaining: 0, error: 'User profile not found' };
+    }
+
+    // Determine limit based on user's plan
+    const userPlan = profile.plan || 'basic';
+    const planLimit = PLAN_LIMITS[userPlan as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.basic;
+
     // Get current usage
     const { data: usage, error: getError } = await supabase
       .from('usage_tracking')
@@ -155,12 +178,35 @@ export const consumeImageCredit = async (userId: string): Promise<{ success: boo
       .eq('year', year)
       .single();
 
-    if (getError && getError.code !== 'PGRST116') {
+    // If no usage record exists, create one
+    if (getError && getError.code === 'PGRST116') {
+      // No usage record for this month, create initial record
+      const { error: createError } = await supabase
+        .from('usage_tracking')
+        .insert({
+          user_id: userId,
+          month,
+          year,
+          images_processed: 1,
+          images_limit: planLimit
+        });
+
+      if (createError) {
+        return { success: false, remaining: 0, error: 'Failed to create usage record' };
+      }
+
+      return {
+        success: true,
+        remaining: planLimit - 1
+      };
+    }
+
+    if (getError) {
       return { success: false, remaining: 0, error: 'Failed to check usage' };
     }
 
     const currentUsage = usage?.images_processed || 0;
-    const limit = usage?.images_limit || 150;
+    const limit = usage?.images_limit || planLimit;
 
     if (currentUsage >= limit) {
       return { 
