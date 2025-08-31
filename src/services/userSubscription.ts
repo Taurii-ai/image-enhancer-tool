@@ -13,6 +13,13 @@ export interface UserSubscriptionInfo {
 }
 
 const PLAN_FEATURES = {
+  free: [
+    '150 images/month',
+    'HD quality enhancement',
+    'All category models included',
+    'Email support',
+    'Standard processing speed'
+  ],
   basic: [
     '150 images/month',
     'HD quality enhancement',
@@ -37,6 +44,7 @@ const PLAN_FEATURES = {
 };
 
 const PLAN_LIMITS = {
+  free: 150, // For existing users with "free" plan
   basic: 150,
   pro: 400,
   premium: 1300
@@ -54,14 +62,14 @@ export const getUserSubscriptionInfo = async (userId: string): Promise<UserSubsc
     if (profileError || !profile) {
       // Return default if no profile
       return {
-        planName: 'Basic',
+        planName: 'Free',
         status: 'active',
         imagesRemaining: 150,
         imagesTotal: 150,
         usagePercentage: 0,
         daysRemaining: 30,
         billing: 'monthly',
-        features: PLAN_FEATURES.basic,
+        features: PLAN_FEATURES.free,
         canUpgrade: true
       };
     }
@@ -93,10 +101,10 @@ export const getUserSubscriptionInfo = async (userId: string): Promise<UserSubsc
     
     // If no subscription, use plan from profile
     if (!subscription) {
-      const userPlan = profile.plan || 'basic';
+      const userPlan = profile.plan || 'free';
       planName = userPlan.charAt(0).toUpperCase() + userPlan.slice(1);
-      features = PLAN_FEATURES[userPlan as keyof typeof PLAN_FEATURES] || PLAN_FEATURES.basic;
-      imagesTotal = PLAN_LIMITS[userPlan as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.basic;
+      features = PLAN_FEATURES[userPlan as keyof typeof PLAN_FEATURES] || PLAN_FEATURES.free;
+      imagesTotal = PLAN_LIMITS[userPlan as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
     }
 
     const { data: usage } = await supabase
@@ -135,14 +143,14 @@ export const getUserSubscriptionInfo = async (userId: string): Promise<UserSubsc
     console.error('Error fetching user subscription info:', error);
     // Return default on error
     return {
-      planName: 'Basic',
+      planName: 'Free',
       status: 'active',
       imagesRemaining: 150,
       imagesTotal: 150,
       usagePercentage: 0,
       daysRemaining: 30,
       billing: 'monthly',
-      features: PLAN_FEATURES.basic,
+      features: PLAN_FEATURES.free,
       canUpgrade: true
     };
   }
@@ -166,8 +174,8 @@ export const consumeImageCredit = async (userId: string): Promise<{ success: boo
     }
 
     // Determine limit based on user's plan
-    const userPlan = profile.plan || 'basic';
-    const planLimit = PLAN_LIMITS[userPlan as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.basic;
+    const userPlan = profile.plan || 'free';
+    const planLimit = PLAN_LIMITS[userPlan as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
 
     // Get current usage
     const { data: usage, error: getError } = await supabase
