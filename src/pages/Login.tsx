@@ -42,11 +42,14 @@ const Login = () => {
     const plan = searchParams.get('plan');
     const billing = searchParams.get('billing');
     
+    // Handle checkout redirect immediately - don't check user profiles for checkout flow
     if (redirect === 'checkout' && plan && billing) {
       navigate(`/checkout?plan=${plan}&billing=${billing}`);
+      return;
     } else if (redirect === 'dashboard') {
       // After payment, allow access to dashboard
       navigate('/dashboard');
+      return;
     } else {
       // Check if user has an active subscription
       const { data: { user } } = await supabase.auth.getUser();
@@ -284,7 +287,11 @@ const Login = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="px-4 md:px-6">
-            <Tabs defaultValue={defaultTab} className="w-full">
+            <Tabs defaultValue={defaultTab} className="w-full" onValueChange={(value) => {
+              if (value === 'signup') {
+                navigate('/pricing');
+              }
+            }}>
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="login" className="text-sm">Sign In</TabsTrigger>
                 <TabsTrigger value="signup" className="text-sm">Sign Up</TabsTrigger>
