@@ -196,6 +196,19 @@ async function handleSubscriptionCreated(subscription) {
       return;
     }
 
+    // Update profile with correct plan and credits
+    const { error: profileUpdateError } = await supabase
+      .from('profiles')
+      .update({
+        plan: planInfo.plan,
+        credits_remaining: PLAN_LIMITS[planInfo.plan] || 150,
+      })
+      .eq('id', user.id);
+
+    if (profileUpdateError) {
+      console.error('Error updating profile with plan:', profileUpdateError);
+    }
+
     // Initialize usage tracking for the current month
     const now = new Date();
     const month = now.getMonth() + 1;

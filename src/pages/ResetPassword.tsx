@@ -18,23 +18,43 @@ const ResetPassword = () => {
   const [isValidSession, setIsValidSession] = useState(false);
 
   useEffect(() => {
-    // Check if we have a valid password reset session
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+    // Check if we have URL parameters for password reset
+    const accessToken = searchParams.get('access_token');
+    const refreshToken = searchParams.get('refresh_token');
+    const type = searchParams.get('type');
+    
+    if (accessToken && refreshToken && type === 'recovery') {
+      // Set the session with the tokens from URL
+      supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken
+      }).then(() => {
         setIsValidSession(true);
-      } else {
+      }).catch((error) => {
+        console.error('Error setting session:', error);
         toast({
           title: 'Invalid Reset Link',
           description: 'This password reset link is invalid or has expired.',
           variant: 'destructive'
         });
         navigate('/login');
-      }
-    };
-
-    checkSession();
-  }, [navigate, toast]);
+      });
+    } else {
+      // Check if we already have a session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          setIsValidSession(true);
+        } else {
+          toast({
+            title: 'Invalid Reset Link',
+            description: 'This password reset link is invalid or has expired.',
+            variant: 'destructive'
+          });
+          navigate('/login');
+        }
+      });
+    }
+  }, [navigate, toast, searchParams]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();

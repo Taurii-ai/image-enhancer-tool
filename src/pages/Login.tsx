@@ -60,31 +60,27 @@ const Login = () => {
           .single();
 
         if (profile) {
-          // Check for active subscription using profile ID
-          const { data: subscription, error: subError } = await supabase
-            .from('subscriptions')
-            .select('*')
-            .eq('user_id', profile.id)
-            .eq('status', 'active')
-            .single();
-            
-          if (subscription) {
-            // User has active subscription, go to dashboard
+          // User has a profile, let them access dashboard
+          // The dashboard will handle subscription limits and show upgrade options if needed
+          navigate('/dashboard');
+        } else if (profileError && profileError.code === 'PGRST116') {
+          // Profile doesn't exist - create a basic profile for them
+          const { error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              id: user.id,
+              email: user.email || '',
+              plan: 'basic',
+              credits_remaining: 150,
+              total_uploads: 0
+            });
+          
+          if (!createError) {
             navigate('/dashboard');
           } else {
-            // Check if user has Stripe customer ID (means they've been through payment process)
-            if (profile.stripe_customer_id) {
-              // User has gone through payment process, go to dashboard
-              navigate('/dashboard');
-            } else {
-              // User exists but no payment history, redirect to pricing
-              navigate('/pricing');
-            }
+            // Profile creation failed, go to pricing
+            navigate('/pricing');
           }
-        } else if (profileError && profileError.code === 'PGRST116') {
-          // Profile doesn't exist - this is a new Google OAuth user
-          // Redirect new Google OAuth users to pricing
-          navigate('/pricing');
         } else {
           // Other profile error, go to pricing
           navigate('/pricing');
