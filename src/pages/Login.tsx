@@ -165,8 +165,8 @@ const Login = () => {
         return;
       }
 
-      // Check if user has a stripe_customer_id (indicating they've paid)
-      if (!profile.stripe_customer_id) {
+      // Check if user has payment info (stripe_customer_id OR stripe_subscription_id)
+      if (!profile.stripe_customer_id && !profile.stripe_subscription_id) {
         toast({
           title: 'Account Not Active',
           description: 'This account has not completed payment. Please complete your subscription to reset your password.',
