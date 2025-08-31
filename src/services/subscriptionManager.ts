@@ -30,28 +30,28 @@ export const PLAN_LIMITS: Record<string, PlanLimits> = {
     imagesPerMonth: 3,
     maxScale: 4,
     quality: 'basic',
-    features: ['3 images total', '4x upscaling', 'Basic AI model'],
+    features: ['3 images total', 'HD quality enhancement', 'All category models included'],
     priority: 'low'
   },
   basic: {
     imagesPerMonth: 150,
     maxScale: 4,
     quality: 'basic',
-    features: ['150 images/month', '4x upscaling', 'Basic quality enhancement', 'Email support', 'Standard processing speed'],
+    features: ['150 images/month', 'HD quality enhancement', 'All category models included', 'Email support', 'Standard processing speed'],
     priority: 'low'
   },
   pro: {
     imagesPerMonth: 400,
     maxScale: 8,
     quality: 'premium',
-    features: ['400 images/month', '8x upscaling', 'Premium quality enhancement', 'Priority support', 'Batch processing'],
+    features: ['400 images/month', 'Ultra-HD quality enhancement', 'Advanced AI model selection', 'Priority support', 'Batch processing'],
     priority: 'medium'
   },
   premium: {
     imagesPerMonth: 1300,
     maxScale: 16,
     quality: 'ultra',
-    features: ['1,300 images/month', '16x upscaling', 'Ultra quality enhancement', '24/7 priority support', 'API access & integrations'],
+    features: ['1,300 images/month', 'Maximum quality enhancement', 'Fastest processing times', '24/7 priority support', 'API access & integrations'],
     priority: 'high'
   }
 };

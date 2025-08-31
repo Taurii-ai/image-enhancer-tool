@@ -53,7 +53,7 @@ const Login = () => {
       
       if (user) {
         // First check if user has a profile
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
@@ -61,7 +61,7 @@ const Login = () => {
 
         if (profile) {
           // Check for active subscription using profile ID
-          const { data: subscription } = await supabase
+          const { data: subscription, error: subError } = await supabase
             .from('subscriptions')
             .select('*')
             .eq('user_id', profile.id)
@@ -72,11 +72,30 @@ const Login = () => {
             // User has active subscription, go to dashboard
             navigate('/dashboard');
           } else {
-            // No subscription, go to pricing
+            // No active subscription found, but user exists - go to dashboard anyway
+            // They might have credits or be on a trial
+            navigate('/dashboard');
+          }
+        } else if (profileError && profileError.code === 'PGRST116') {
+          // Profile doesn't exist, create one and go to dashboard
+          const { error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              id: user.id,
+              email: user.email || '',
+              plan: 'free',
+              credits_remaining: 3,
+              total_uploads: 0
+            });
+          
+          if (!createError) {
+            navigate('/dashboard');
+          } else {
+            // Profile creation failed, go to pricing
             navigate('/pricing');
           }
         } else {
-          // No profile found, go to pricing
+          // Other profile error, go to pricing
           navigate('/pricing');
         }
       } else {

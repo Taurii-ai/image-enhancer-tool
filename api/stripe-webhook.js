@@ -167,7 +167,7 @@ async function handleSubscriptionCreated(subscription) {
 
     // Get user by Stripe customer ID
     const { data: user, error: userError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('*')
       .eq('stripe_customer_id', subscription.customer)
       .single();
