@@ -42,11 +42,8 @@ const Login = () => {
     const plan = searchParams.get('plan');
     const billing = searchParams.get('billing');
     
-    console.log('🔍 LOGIN DEBUG - Redirect params:', { redirect, plan, billing, url: window.location.href });
-    
     // Handle checkout redirect immediately - don't check user profiles for checkout flow
     if (redirect === 'checkout' && plan && billing) {
-      console.log('✅ LOGIN DEBUG - Redirecting to checkout:', `/checkout?plan=${plan}&billing=${billing}`);
       navigate(`/checkout?plan=${plan}&billing=${billing}`);
       return;
     } else if (redirect === 'dashboard') {
@@ -152,6 +149,33 @@ const Login = () => {
     setIsLoading(true);
 
     try {
+      // First check if this email has a completed profile with payment
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', forgotPasswordEmail.trim())
+        .single();
+
+      if (profileError || !profile) {
+        toast({
+          title: 'Account Not Found',
+          description: 'No active account found with this email address. Please sign up for a plan first.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Check if user has a stripe_customer_id (indicating they've paid)
+      if (!profile.stripe_customer_id) {
+        toast({
+          title: 'Account Not Active',
+          description: 'This account has not completed payment. Please complete your subscription to reset your password.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Only send reset email to paying customers
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
