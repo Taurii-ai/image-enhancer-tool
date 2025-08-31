@@ -67,23 +67,9 @@ const Login = () => {
           // The dashboard will handle subscription limits and show upgrade options if needed
           navigate('/dashboard');
         } else if (profileError && profileError.code === 'PGRST116') {
-          // Profile doesn't exist - create a basic profile for them
-          const { error: createError } = await supabase
-            .from('profiles')
-            .insert({
-              id: user.id,
-              email: user.email || '',
-              plan: 'basic',
-              credits_remaining: 150,
-              total_uploads: 0
-            });
-          
-          if (!createError) {
-            navigate('/dashboard');
-          } else {
-            // Profile creation failed, go to pricing
-            navigate('/pricing');
-          }
+          // Profile doesn't exist - for new Google users, go to pricing
+          // Don't create profiles here - let the payment flow handle it
+          navigate('/pricing');
         } else {
           // Other profile error, go to pricing
           navigate('/pricing');
