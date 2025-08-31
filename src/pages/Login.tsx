@@ -83,8 +83,8 @@ const Login = () => {
             .insert({
               id: user.id,
               email: user.email || '',
-              plan: 'free',
-              credits_remaining: 3,
+              plan: 'basic',
+              credits_remaining: 150,
               total_uploads: 0
             });
           

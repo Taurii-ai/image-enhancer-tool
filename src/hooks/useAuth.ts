@@ -58,8 +58,8 @@ export const useAuth = () => {
             .insert({
               id: userId,
               email: user?.email || '',
-              plan: 'free',
-              credits_remaining: 3,
+              plan: 'basic',
+              credits_remaining: 150,
               total_uploads: 0
             })
             .select()
@@ -80,6 +80,8 @@ export const useAuth = () => {
   const signOut = async () => {
     await supabase.auth.signOut()
     setUser(null)
+    // Clear any localStorage data
+    localStorage.removeItem('userSubscription')
   }
 
   return {

@@ -21,7 +21,7 @@ type ProcessingState = 'idle' | 'processing' | 'completed';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading, signOut } = useAuth();
   const [processingState, setProcessingState] = useState<ProcessingState>('idle');
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [progress, setProgress] = useState<EnhancementProgress | null>(null);
@@ -140,7 +140,10 @@ const Dashboard = () => {
             >
               <Settings className="w-4 h-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/')}>
+            <Button variant="outline" size="sm" onClick={async () => {
+              await signOut();
+              navigate('/');
+            }}>
               <LogOut className="w-4 h-4 mr-2" />
               Logout
             </Button>
