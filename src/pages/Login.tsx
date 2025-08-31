@@ -52,19 +52,31 @@ const Login = () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        // Check for active subscription
-        const { data: subscription } = await supabase
-          .from('subscriptions')
+        // First check if user has a profile
+        const { data: profile } = await supabase
+          .from('profiles')
           .select('*')
-          .eq('user_id', user.id)
-          .eq('status', 'active')
+          .eq('id', user.id)
           .single();
-          
-        if (subscription) {
-          // User has active subscription, go to dashboard
-          navigate('/dashboard');
+
+        if (profile) {
+          // Check for active subscription using profile ID
+          const { data: subscription } = await supabase
+            .from('subscriptions')
+            .select('*')
+            .eq('user_id', profile.id)
+            .eq('status', 'active')
+            .single();
+            
+          if (subscription) {
+            // User has active subscription, go to dashboard
+            navigate('/dashboard');
+          } else {
+            // No subscription, go to pricing
+            navigate('/pricing');
+          }
         } else {
-          // No subscription, go to pricing
+          // No profile found, go to pricing
           navigate('/pricing');
         }
       } else {
