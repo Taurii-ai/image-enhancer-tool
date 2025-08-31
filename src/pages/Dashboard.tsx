@@ -9,12 +9,12 @@ import { ProcessingStatus } from '@/components/ProcessingStatus';
 import { ResultsDisplay } from '@/components/ResultsDisplay';
 import { enhanceImage, EnhancementProgress, EnhancementResult } from '@/services/imageEnhancement';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 import { 
-  getUserSubscription, 
-  consumeImageCredit, 
-  formatSubscriptionInfo,
-  getCurrentPlanLimits 
-} from '@/services/subscriptionManager';
+  getUserSubscriptionInfo,
+  consumeImageCredit,
+  type UserSubscriptionInfo
+} from '@/services/userSubscription';
 import { Sparkles, Crown, Settings, LogOut, Upload, History } from 'lucide-react';
 
 type ProcessingState = 'idle' | 'processing' | 'completed';
@@ -22,17 +22,20 @@ type ProcessingState = 'idle' | 'processing' | 'completed';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, loading, signOut } = useAuth();
+  const { toast } = useToast();
   const [processingState, setProcessingState] = useState<ProcessingState>('idle');
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [progress, setProgress] = useState<EnhancementProgress | null>(null);
   const [result, setResult] = useState<EnhancementResult | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<EnhancementCategory>('general');
-  const [subscriptionInfo, setSubscriptionInfo] = useState(formatSubscriptionInfo());
+  const [subscriptionInfo, setSubscriptionInfo] = useState<UserSubscriptionInfo | null>(null);
 
-  // Update subscription info when component mounts
+  // Update subscription info when component mounts and user changes
   useEffect(() => {
-    setSubscriptionInfo(formatSubscriptionInfo());
-  }, []);
+    if (user?.id) {
+      getUserSubscriptionInfo(user.id).then(setSubscriptionInfo);
+    }
+  }, [user?.id]);
 
   // Authentication check
   useEffect(() => {
@@ -41,8 +44,8 @@ const Dashboard = () => {
     }
   }, [isAuthenticated, loading, navigate]);
 
-  // Show loading state while checking authentication
-  if (loading) {
+  // Show loading state while checking authentication or subscription info
+  if (loading || !subscriptionInfo) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -69,6 +72,19 @@ const Dashboard = () => {
       fileType: file.type
     });
     
+    // Check and consume image credit before processing
+    if (user?.id) {
+      const creditResult = await consumeImageCredit(user.id);
+      if (!creditResult.success) {
+        toast({
+          title: 'Credit Limit Reached',
+          description: creditResult.error || 'You have reached your monthly limit.',
+          variant: 'destructive'
+        });
+        return;
+      }
+    }
+    
     setCurrentFile(file);
     setProcessingState('processing');
     setProgress(null);
@@ -92,8 +108,10 @@ const Dashboard = () => {
       setResult(enhancementResult);
       setProcessingState('completed');
       
-      // Update subscription info after successful enhancement
-      setSubscriptionInfo(formatSubscriptionInfo());
+      // Refresh subscription info after successful enhancement
+      if (user?.id) {
+        getUserSubscriptionInfo(user.id).then(setSubscriptionInfo);
+      }
       debugLog('info', '🔧 UPDATING UI STATE');
     } catch (error) {
       debugLog('error', '❌ ENHANCEMENT FAILED', {
@@ -229,11 +247,11 @@ const Dashboard = () => {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Max Scale:</span>
-                  <span className="text-sm font-semibold text-primary">{subscriptionInfo.maxScale}x</span>
+                  <span className="text-sm font-semibold text-primary">High</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Quality:</span>
-                  <span className="text-sm font-semibold text-accent capitalize">{subscriptionInfo.quality}</span>
+                  <span className="text-sm font-semibold text-accent capitalize">High</span>
                 </div>
               </CardContent>
             </Card>

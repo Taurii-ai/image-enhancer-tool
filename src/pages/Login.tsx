@@ -173,6 +173,23 @@ const Login = () => {
     setIsLoading(true);
 
     try {
+      // First check if user exists
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', forgotPasswordEmail.trim())
+        .single();
+
+      if (!existingUser) {
+        toast({
+          title: 'Account Not Found',
+          description: 'No account found with this email address.',
+          variant: 'destructive'
+        });
+        setIsLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
