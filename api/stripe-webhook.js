@@ -95,7 +95,7 @@ async function handleCheckoutCompleted(session) {
 
     // Check if user already exists
     const { data: existingUser } = await supabase
-      .from('users')
+      .from('profiles')
       .select('*')
       .eq('email', customerEmail)
       .single();
@@ -104,7 +104,7 @@ async function handleCheckoutCompleted(session) {
     if (existingUser) {
       // Update existing user with Stripe customer ID
       const { data: updatedUser, error: updateError } = await supabase
-        .from('users')
+        .from('profiles')
         .update({ stripe_customer_id: stripeCustomerId })
         .eq('email', customerEmail)
         .select()
@@ -118,10 +118,10 @@ async function handleCheckoutCompleted(session) {
     } else {
       // Create new user
       const { data: newUser, error: createError } = await supabase
-        .from('users')
+        .from('profiles')
         .insert({
           email: customerEmail,
-          name: customerName,
+          full_name: customerName,
           stripe_customer_id: stripeCustomerId,
         })
         .select()
