@@ -19,6 +19,11 @@ export const AuthRedirectHandler = () => {
       // If we have password reset tokens and we're not already on the reset page
       if (accessToken && refreshToken && type === 'recovery' && location.pathname !== '/reset-password') {
         console.log('Password reset tokens detected, redirecting to reset page');
+        // Store tokens in session storage for cross-tab access
+        sessionStorage.setItem('reset_access_token', accessToken);
+        sessionStorage.setItem('reset_refresh_token', refreshToken);
+        sessionStorage.setItem('reset_type', type);
+        
         // Redirect to reset password page with the tokens
         const params = new URLSearchParams();
         params.set('access_token', accessToken);

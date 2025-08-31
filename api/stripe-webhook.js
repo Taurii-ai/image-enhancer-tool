@@ -128,6 +128,21 @@ async function handleCheckoutCompleted(session) {
         return;
       }
 
+      // Send password reset email to new customer so they can set their password
+      try {
+        await supabase.auth.admin.generateLink({
+          type: 'recovery',
+          email: customerEmail,
+          options: {
+            redirectTo: `${process.env.SITE_URL || 'https://enhpix.com'}/reset-password`
+          }
+        });
+        console.log('Password reset email sent to new customer:', customerEmail);
+      } catch (resetError) {
+        console.error('Error sending password reset email:', resetError);
+        // Don't fail the whole process if password reset email fails
+      }
+
       // Create profile with auth user ID
       const { data: newUser, error: createError } = await supabase
         .from('profiles')

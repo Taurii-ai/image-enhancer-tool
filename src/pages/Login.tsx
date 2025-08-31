@@ -200,9 +200,10 @@ const Login = () => {
       const plan = searchParams.get('plan');
       const billing = searchParams.get('billing');
       
-      let redirectTo = `${window.location.origin}/pricing`;
+      // Always redirect to login so handleRedirectAfterAuth can run proper logic
+      let redirectTo = `${window.location.origin}/login`;
       if (redirect === 'checkout' && plan && billing) {
-        redirectTo = `${window.location.origin}/checkout?plan=${plan}&billing=${billing}`;
+        redirectTo = `${window.location.origin}/login?redirect=checkout&plan=${plan}&billing=${billing}`;
       }
 
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -458,7 +459,7 @@ const Login = () => {
               </TabsContent>
             </Tabs>
 
-            <div className="mt-6 text-center space-y-2">
+            <div className="mt-6 text-center">
               <p className="text-sm text-muted-foreground">
                 Need a subscription?{' '}
                 <button 
@@ -466,15 +467,6 @@ const Login = () => {
                   className="text-primary hover:underline"
                 >
                   View pricing plans
-                </button>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Reset password not working?{' '}
-                <button 
-                  onClick={() => navigate('/reset-password')}
-                  className="text-primary hover:underline"
-                >
-                  Try direct reset
                 </button>
               </p>
             </div>

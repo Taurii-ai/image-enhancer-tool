@@ -81,7 +81,7 @@ const Checkout = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/checkout?plan=${planId}&billing=${billing}`
+          redirectTo: `${window.location.origin}/login?redirect=checkout&plan=${planId}&billing=${billing}`
         }
       });
 
