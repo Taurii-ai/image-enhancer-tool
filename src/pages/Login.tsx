@@ -37,7 +37,7 @@ const Login = () => {
     }
   }, [isAuthenticated, searchParams]);
 
-  const handleRedirectAfterAuth = () => {
+  const handleRedirectAfterAuth = async () => {
     const redirect = searchParams.get('redirect');
     const plan = searchParams.get('plan');
     const billing = searchParams.get('billing');
@@ -48,8 +48,29 @@ const Login = () => {
       // After payment, allow access to dashboard
       navigate('/dashboard');
     } else {
-      // Default: redirect to pricing for plan selection
-      navigate('/pricing');
+      // Check if user has an active subscription
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        // Check for active subscription
+        const { data: subscription } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .single();
+          
+        if (subscription) {
+          // User has active subscription, go to dashboard
+          navigate('/dashboard');
+        } else {
+          // No subscription, go to pricing
+          navigate('/pricing');
+        }
+      } else {
+        // No user, go to pricing
+        navigate('/pricing');
+      }
     }
   };
 
