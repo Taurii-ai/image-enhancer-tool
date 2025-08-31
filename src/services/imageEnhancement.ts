@@ -220,20 +220,15 @@ export const enhanceImage = async (
   const startTime = Date.now();
   
   try {
-    onProgress({ status: 'starting', progress: 0, message: 'Checking subscription...' });
+    onProgress({ status: 'starting', progress: 0, message: 'Starting enhancement...' });
     
-    // Check user authentication and limits
+    // Check user authentication
     if (!userEmail) {
       throw new Error('User authentication required');
     }
 
-    // Check if user can process images and decrement usage
-    const usageCheck = await UserService.processImageForUser(userEmail);
-    if (!usageCheck.success) {
-      throw new Error(usageCheck.message);
-    }
-
-    onProgress({ status: 'starting', progress: 5, message: 'Starting enhancement...' });
+    // Credit checking is now handled by the calling component (Dashboard)
+    onProgress({ status: 'starting', progress: 5, message: 'Preparing image...' });
     
     let enhancedUrl: string;
     
