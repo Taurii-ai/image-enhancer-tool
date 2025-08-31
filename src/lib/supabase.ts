@@ -10,6 +10,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Database types
+export interface Profile {
+  id: string;
+  email: string;
+  full_name?: string;
+  stripe_customer_id?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface User {
   id: string;
   email: string;

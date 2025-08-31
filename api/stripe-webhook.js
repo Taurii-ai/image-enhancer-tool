@@ -116,10 +116,23 @@ async function handleCheckoutCompleted(session) {
       }
       user = updatedUser;
     } else {
-      // Create new user
+      // Create Supabase Auth user first
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: customerEmail,
+        password: Math.random().toString(36).slice(-12), // Random password
+        email_confirm: true // Auto-confirm email
+      });
+
+      if (authError) {
+        console.error('Error creating auth user:', authError);
+        return;
+      }
+
+      // Create profile with auth user ID
       const { data: newUser, error: createError } = await supabase
         .from('profiles')
         .insert({
+          id: authData.user.id, // Link to auth user
           email: customerEmail,
           full_name: customerName,
           stripe_customer_id: stripeCustomerId,
@@ -128,7 +141,7 @@ async function handleCheckoutCompleted(session) {
         .single();
       
       if (createError) {
-        console.error('Error creating user:', createError);
+        console.error('Error creating profile:', createError);
         return;
       }
       user = newUser;
