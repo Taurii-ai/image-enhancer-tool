@@ -156,10 +156,20 @@ const Login = () => {
     setIsGoogleLoading(true);
     
     try {
+      // Check if we're coming from a specific plan selection
+      const redirect = searchParams.get('redirect');
+      const plan = searchParams.get('plan');
+      const billing = searchParams.get('billing');
+      
+      let redirectTo = `${window.location.origin}/pricing`;
+      if (redirect === 'checkout' && plan && billing) {
+        redirectTo = `${window.location.origin}/checkout?plan=${plan}&billing=${billing}`;
+      }
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/pricing`
+          redirectTo: redirectTo
         }
       });
 
