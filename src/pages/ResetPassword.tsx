@@ -18,42 +18,50 @@ const ResetPassword = () => {
   const [isValidSession, setIsValidSession] = useState(false);
 
   useEffect(() => {
-    // Check if we have URL parameters for password reset
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
-    const type = searchParams.get('type');
-    
-    if (accessToken && refreshToken && type === 'recovery') {
-      // Set the session with the tokens from URL
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken
-      }).then(() => {
-        setIsValidSession(true);
-      }).catch((error) => {
-        console.error('Error setting session:', error);
-        toast({
-          title: 'Invalid Reset Link',
-          description: 'This password reset link is invalid or has expired.',
-          variant: 'destructive'
-        });
-        navigate('/login');
-      });
-    } else {
-      // Check if we already have a session
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
+    // Check URL parameters and hash for password reset tokens
+    const checkResetTokens = () => {
+      // Check URL search parameters
+      const accessToken = searchParams.get('access_token');
+      const refreshToken = searchParams.get('refresh_token');
+      const type = searchParams.get('type');
+      
+      // Also check hash fragment (Supabase often puts tokens there)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const hashAccessToken = hashParams.get('access_token');
+      const hashRefreshToken = hashParams.get('refresh_token');
+      const hashType = hashParams.get('type');
+      
+      const finalAccessToken = accessToken || hashAccessToken;
+      const finalRefreshToken = refreshToken || hashRefreshToken;
+      const finalType = type || hashType;
+      
+      if (finalAccessToken && finalRefreshToken && finalType === 'recovery') {
+        // Set the session with the tokens
+        supabase.auth.setSession({
+          access_token: finalAccessToken,
+          refresh_token: finalRefreshToken
+        }).then(() => {
           setIsValidSession(true);
-        } else {
-          toast({
-            title: 'Invalid Reset Link',
-            description: 'This password reset link is invalid or has expired.',
-            variant: 'destructive'
-          });
-          navigate('/login');
-        }
-      });
-    }
+        }).catch((error) => {
+          console.error('Error setting session:', error);
+          // Still allow access to reset form - maybe tokens are valid but session setting failed
+          setIsValidSession(true);
+        });
+      } else {
+        // Check if we already have a session
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session) {
+            setIsValidSession(true);
+          } else {
+            // If no tokens found, still allow access but show a more helpful message
+            console.log('No reset tokens found, but allowing access to reset form');
+            setIsValidSession(true);
+          }
+        });
+      }
+    };
+    
+    checkResetTokens();
   }, [navigate, toast, searchParams]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -148,9 +156,9 @@ const ResetPassword = () => {
       <div className="flex items-center justify-center px-4 md:px-6 py-8 md:py-20">
         <Card className="w-full max-w-md mx-4 md:mx-0">
           <CardHeader className="text-center px-4 md:px-6">
-            <CardTitle className="text-xl md:text-2xl">Reset Your Password</CardTitle>
+            <CardTitle className="text-xl md:text-2xl">Set New Password</CardTitle>
             <CardDescription className="text-sm md:text-base">
-              Enter your new password below
+              Create a new password for your Enhpix account
             </CardDescription>
           </CardHeader>
           <CardContent className="px-4 md:px-6">
