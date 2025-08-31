@@ -42,8 +42,11 @@ const Login = () => {
     const plan = searchParams.get('plan');
     const billing = searchParams.get('billing');
     
+    console.log('🔍 LOGIN DEBUG - Redirect params:', { redirect, plan, billing, url: window.location.href });
+    
     // Handle checkout redirect immediately - don't check user profiles for checkout flow
     if (redirect === 'checkout' && plan && billing) {
+      console.log('✅ LOGIN DEBUG - Redirecting to checkout:', `/checkout?plan=${plan}&billing=${billing}`);
       navigate(`/checkout?plan=${plan}&billing=${billing}`);
       return;
     } else if (redirect === 'dashboard') {
