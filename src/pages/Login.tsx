@@ -72,28 +72,19 @@ const Login = () => {
             // User has active subscription, go to dashboard
             navigate('/dashboard');
           } else {
-            // No active subscription found, but user exists - go to dashboard anyway
-            // They might have credits or be on a trial
-            navigate('/dashboard');
+            // Check if user has Stripe customer ID (means they've been through payment process)
+            if (profile.stripe_customer_id) {
+              // User has gone through payment process, go to dashboard
+              navigate('/dashboard');
+            } else {
+              // User exists but no payment history, redirect to pricing
+              navigate('/pricing');
+            }
           }
         } else if (profileError && profileError.code === 'PGRST116') {
-          // Profile doesn't exist, create one and go to dashboard
-          const { error: createError } = await supabase
-            .from('profiles')
-            .insert({
-              id: user.id,
-              email: user.email || '',
-              plan: 'basic',
-              credits_remaining: 150,
-              total_uploads: 0
-            });
-          
-          if (!createError) {
-            navigate('/dashboard');
-          } else {
-            // Profile creation failed, go to pricing
-            navigate('/pricing');
-          }
+          // Profile doesn't exist - this is a new Google OAuth user
+          // Redirect new Google OAuth users to pricing
+          navigate('/pricing');
         } else {
           // Other profile error, go to pricing
           navigate('/pricing');
@@ -173,23 +164,6 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // First check if user exists
-      const { data: existingUser } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('email', forgotPasswordEmail.trim())
-        .single();
-
-      if (!existingUser) {
-        toast({
-          title: 'Account Not Found',
-          description: 'No account found with this email address.',
-          variant: 'destructive'
-        });
-        setIsLoading(false);
-        return;
-      }
-
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
         redirectTo: `${window.location.origin}/reset-password`,
       });

@@ -51,21 +51,10 @@ export const useAuth = () => {
         .single()
 
       if (error) {
-        // Create profile if it doesn't exist
+        // Don't auto-create profiles for new users anymore
+        // Let the Login redirect logic handle new vs existing users
         if (error.code === 'PGRST116') {
-          const { data: newProfile, error: createError } = await supabase
-            .from('profiles')
-            .insert({
-              id: userId,
-              email: user?.email || '',
-              plan: 'basic',
-              credits_remaining: 150,
-              total_uploads: 0
-            })
-            .select()
-            .single()
-
-          if (!createError) return newProfile
+          return undefined; // Profile doesn't exist, return undefined
         }
         throw error
       }
