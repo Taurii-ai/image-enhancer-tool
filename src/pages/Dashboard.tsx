@@ -150,9 +150,7 @@ const Dashboard = () => {
               variant="ghost" 
               size="sm"
               onClick={() => {
-                // For now, redirect to pricing page for account management
-                // In the future, this could go to a dedicated settings page
-                navigate('/pricing');
+                navigate('/settings');
               }}
               title="Account Settings"
             >

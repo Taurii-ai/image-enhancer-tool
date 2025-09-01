@@ -159,133 +159,156 @@ export const ResultsDisplay = ({
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
       if (isMobile) {
-        // Mobile approach - open clean image in new tab for long-press save
-        const imageUrl = window.URL.createObjectURL(blob);
-        
-        // For mobile, create a clean page with just the enhanced image
-        const newWindow = window.open('', '_blank');
-        if (newWindow) {
-          newWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-              <head>
-                <title>Enhanced Image - Long press to save</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-                <style>
-                  * {
-                    box-sizing: border-box;
-                    margin: 0;
-                    padding: 0;
-                  }
-                  body { 
-                    background: #000; 
-                    display: flex; 
-                    flex-direction: column;
-                    justify-content: center; 
-                    align-items: center; 
-                    min-height: 100vh;
-                    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-                    padding: 60px 10px 20px;
-                  }
-                  .image-container {
-                    flex: 1;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    width: 100%;
-                    position: relative;
-                  }
-                  img { 
-                    max-width: 100%; 
-                    max-height: 100%;
-                    object-fit: contain;
-                    display: block;
-                    /* Disable any touch interactions that might interfere */
-                    pointer-events: auto;
-                    user-select: none;
-                    -webkit-user-select: none;
-                    -webkit-touch-callout: default;
-                  }
-                  .instructions {
-                    position: fixed;
-                    top: 10px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    background: rgba(0,0,0,0.9);
-                    color: white;
-                    padding: 12px 20px;
-                    border-radius: 25px;
-                    font-size: 14px;
-                    text-align: center;
-                    z-index: 1000;
-                    font-weight: 500;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-                  }
-                  .close-btn {
-                    position: fixed;
-                    top: 10px;
-                    right: 15px;
-                    background: rgba(255,255,255,0.9);
-                    color: #000;
-                    border: none;
-                    padding: 12px;
-                    border-radius: 50%;
-                    cursor: pointer;
-                    font-size: 18px;
-                    z-index: 1000;
-                    width: 40px;
-                    height: 40px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-                    font-weight: bold;
-                  }
-                  .download-hint {
-                    position: fixed;
-                    bottom: 20px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    background: rgba(0,0,0,0.8);
-                    color: white;
-                    padding: 10px 20px;
-                    border-radius: 20px;
-                    font-size: 12px;
-                    text-align: center;
-                    z-index: 1000;
-                  }
-                  /* Ensure the image is fully interactive for long press */
-                  img:hover {
-                    cursor: pointer;
-                  }
-                </style>
-              </head>
-              <body>
-                <div class="instructions">📱 Long press image below to save to Photos</div>
-                <button class="close-btn" onclick="window.close()" aria-label="Close">&times;</button>
-                <div class="image-container">
-                  <img src="${imageUrl}" alt="Enhanced Image - Long press to save" />
-                </div>
-                <div class="download-hint">💡 Tap and hold the image, then select "Save to Photos"</div>
-                <script>
-                  // Ensure the image is fully loaded and interactable
-                  const img = document.querySelector('img');
-                  img.addEventListener('load', function() {
-                    console.log('Image loaded and ready for long-press save');
-                  });
-                  
-                  // Prevent any default behaviors that might interfere
-                  document.addEventListener('touchstart', function(e) {
-                    if (e.target.tagName === 'IMG') {
-                      // Allow the touch to proceed normally for long-press save
-                      return true;
-                    }
-                  });
-                </script>
-              </body>
-            </html>
-          `);
+        // Try Web Share API first (works on mobile for sharing/saving)
+        if (navigator.share && navigator.canShare) {
+          try {
+            const file = new File([blob], enhancedFileName, { type: blob.type });
+            
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                title: 'Enhanced Image',
+                text: 'Save this enhanced image to your photos',
+                files: [file]
+              });
+              
+              toast({
+                title: "Share opened!",
+                description: "Choose 'Save to Photos' from the share options",
+              });
+              return;
+            }
+          } catch (shareError) {
+            console.log('Web Share API failed, falling back to traditional method');
+          }
         }
+        
+        // Fallback: Use data URL approach for better mobile compatibility
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = function() {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx?.drawImage(img, 0, 0);
+          
+          // Convert to high-quality data URL
+          const dataUrl = canvas.toDataURL('image/png', 1.0);
+          
+          // Create a simple download page with data URL
+          const newWindow = window.open('', '_blank');
+          if (newWindow) {
+            newWindow.document.write(`
+              <!DOCTYPE html>
+              <html>
+                <head>
+                  <title>Save Enhanced Image</title>
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { 
+                      background: #000; 
+                      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                      display: flex;
+                      flex-direction: column;
+                      min-height: 100vh;
+                      align-items: center;
+                      justify-content: center;
+                      padding: 20px;
+                    }
+                    .header {
+                      position: fixed;
+                      top: 0;
+                      left: 0;
+                      right: 0;
+                      background: rgba(0,0,0,0.9);
+                      color: white;
+                      padding: 15px;
+                      text-align: center;
+                      z-index: 100;
+                      font-size: 14px;
+                      font-weight: 500;
+                    }
+                    .close-btn {
+                      position: fixed;
+                      top: 15px;
+                      right: 15px;
+                      background: white;
+                      color: black;
+                      border: none;
+                      width: 35px;
+                      height: 35px;
+                      border-radius: 50%;
+                      font-size: 18px;
+                      cursor: pointer;
+                      z-index: 101;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      font-weight: bold;
+                    }
+                    .image-container {
+                      flex: 1;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      width: 100%;
+                      margin-top: 60px;
+                      margin-bottom: 80px;
+                    }
+                    img { 
+                      max-width: 100%;
+                      max-height: 100%;
+                      object-fit: contain;
+                      background: white;
+                      border-radius: 8px;
+                      box-shadow: 0 4px 20px rgba(255,255,255,0.1);
+                    }
+                    .footer {
+                      position: fixed;
+                      bottom: 0;
+                      left: 0;
+                      right: 0;
+                      background: rgba(0,0,0,0.9);
+                      color: white;
+                      padding: 15px;
+                      text-align: center;
+                      font-size: 12px;
+                      z-index: 100;
+                    }
+                    .download-btn {
+                      background: #007AFF;
+                      color: white;
+                      border: none;
+                      padding: 12px 24px;
+                      border-radius: 20px;
+                      font-size: 14px;
+                      font-weight: 500;
+                      margin: 10px;
+                      cursor: pointer;
+                      display: inline-block;
+                      text-decoration: none;
+                    }
+                  </style>
+                </head>
+                <body>
+                  <div class="header">📱 Long press image to save to Photos</div>
+                  <button class="close-btn" onclick="window.close()">&times;</button>
+                  <div class="image-container">
+                    <img src="${dataUrl}" alt="Enhanced Image" />
+                  </div>
+                  <div class="footer">
+                    <div>💡 Touch and hold the image above</div>
+                    <div>Then select "Save to Photos" or "Add to Photos"</div>
+                    <a href="${dataUrl}" download="${enhancedFileName}" class="download-btn">📥 Or tap here to download</a>
+                  </div>
+                </body>
+              </html>
+            `);
+          }
+        };
+        
+        img.src = window.URL.createObjectURL(blob);
         
         // Clean up after 30 seconds
         setTimeout(() => {

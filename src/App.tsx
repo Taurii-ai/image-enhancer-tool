@@ -15,6 +15,7 @@ import Checkout from "./pages/Checkout";
 import DemoPayment from "./pages/DemoPayment";
 import Dashboard from "./pages/Dashboard";
 import DashboardSimple from "./pages/DashboardSimple";
+import Settings from "./pages/Settings";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Support from "./pages/Support";
@@ -54,6 +55,7 @@ const App = () => {
             <Route path="/demo-payment" element={<DemoPayment />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard-simple" element={<DashboardSimple />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/support" element={<Support />} />
