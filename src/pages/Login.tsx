@@ -63,9 +63,14 @@ const Login = () => {
           .single();
 
         if (profile) {
-          // User has a profile, let them access dashboard
-          // The dashboard will handle subscription limits and show upgrade options if needed
-          navigate('/dashboard');
+          // Profile exists - check if they actually paid (have a Stripe customer ID)
+          if (profile.stripe_customer_id) {
+            // User has paid - they can access dashboard
+            navigate('/dashboard');
+          } else {
+            // User has a profile but hasn't paid - redirect to pricing
+            navigate('/pricing');
+          }
         } else if (profileError && profileError.code === 'PGRST116') {
           // Profile doesn't exist - for new Google users, go to pricing
           // Don't create profiles here - let the payment flow handle it

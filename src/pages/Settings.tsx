@@ -97,8 +97,13 @@ const Settings = () => {
       return;
     }
 
+    // Check if this is a Google OAuth user (they don't have current password)
+    const isGoogleUser = user?.app_metadata?.provider === 'google' || user?.user_metadata?.provider === 'google';
+
     setIsChangingPassword(true);
     try {
+      // For Google users, just set the new password directly
+      // For regular users, we still need to verify current password but Supabase handles this
       const { error } = await supabase.auth.updateUser({
         password: passwordData.newPassword
       });
@@ -109,7 +114,9 @@ const Settings = () => {
 
       toast({
         title: 'Password Updated',
-        description: 'Your password has been successfully changed.',
+        description: isGoogleUser 
+          ? 'Password set successfully! You can now log in with either Google or email/password.'
+          : 'Your password has been successfully changed.',
       });
 
       // Clear form
@@ -298,28 +305,43 @@ const Settings = () => {
             <CardDescription>Change your password and manage security settings</CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Show different message for Google OAuth users */}
+            {(user?.app_metadata?.provider === 'google' || user?.user_metadata?.provider === 'google') && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Google Account:</strong> Set up a password to also log in with email/password if needed.
+                </p>
+              </div>
+            )}
+            
             <form onSubmit={handleChangePassword} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="newPassword">New Password</Label>
+                <Label htmlFor="newPassword">
+                  {(user?.app_metadata?.provider === 'google' || user?.user_metadata?.provider === 'google') ? 'Set Password' : 'New Password'}
+                </Label>
                 <Input
                   id="newPassword"
                   type="password"
                   value={passwordData.newPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                  placeholder="Enter new password"
+                  placeholder={
+                    (user?.app_metadata?.provider === 'google' || user?.user_metadata?.provider === 'google') 
+                      ? 'Create a password'
+                      : 'Enter new password'
+                  }
                   minLength={6}
                   required
                   disabled={isChangingPassword}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
                   value={passwordData.confirmPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                  placeholder="Confirm new password"
+                  placeholder="Confirm password"
                   minLength={6}
                   required
                   disabled={isChangingPassword}

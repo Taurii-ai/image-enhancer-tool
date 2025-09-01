@@ -173,10 +173,16 @@ async function handleSubscriptionCreated(subscription) {
   
   try {
     const priceId = subscription.items.data[0]?.price?.id;
-    const planInfo = PRICE_TO_PLAN[priceId];
     
-    if (!planInfo) {
-      console.error('Unknown price ID:', priceId);
+    // Get plan info from the plan_mappings table
+    const { data: planInfo, error: planError } = await supabase
+      .from('plan_mappings')
+      .select('*')
+      .eq('stripe_price_id', priceId)
+      .single();
+    
+    if (planError || !planInfo) {
+      console.error('Unknown price ID or plan mapping error:', priceId, 'Error:', planError);
       return;
     }
 
@@ -231,8 +237,8 @@ async function handleSubscriptionCreated(subscription) {
         user_id: user.id,
         stripe_subscription_id: subscription.id,
         stripe_price_id: priceId,
-        plan_name: planInfo.plan,
-        billing_cycle: planInfo.billing,
+        plan_name: planInfo.plan_name,
+        billing_cycle: planInfo.billing_cycle,
         status: subscription.status,
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
@@ -247,8 +253,8 @@ async function handleSubscriptionCreated(subscription) {
     const { error: profileUpdateError } = await supabase
       .from('profiles')
       .update({
-        plan: planInfo.plan,
-        credits_remaining: PLAN_LIMITS[planInfo.plan] || 150,
+        plan: planInfo.plan_name,
+        credits_remaining: planInfo.credits,
       })
       .eq('id', user.id);
 
@@ -256,11 +262,35 @@ async function handleSubscriptionCreated(subscription) {
       console.error('Error updating profile with plan:', profileUpdateError);
     }
 
+    // Add user to user_plans table for individual tracking
+    const { error: userPlanError } = await supabase
+      .from('user_plans')
+      .upsert({
+        user_id: user.id,
+        stripe_customer_id: subscription.customer,
+        stripe_subscription_id: subscription.id,
+        stripe_price_id: priceId,
+        plan_name: planInfo.plan_name,
+        credits_allocated: planInfo.credits,
+        credits_remaining: planInfo.credits,
+        billing_cycle: planInfo.billing_cycle,
+        status: 'active',
+        subscription_start: new Date(subscription.current_period_start * 1000).toISOString(),
+        subscription_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id'
+      });
+
+    if (userPlanError) {
+      console.error('Error creating user plan:', userPlanError);
+    }
+
     // Initialize usage tracking for the current month
     const now = new Date();
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
-    const limit = PLAN_LIMITS[planInfo.plan] || 150;
+    const limit = planInfo.credits;
 
     const { error: usageError } = await supabase
       .from('usage_tracking')

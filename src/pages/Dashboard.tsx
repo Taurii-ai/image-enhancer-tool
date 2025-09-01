@@ -15,6 +15,7 @@ import {
   consumeImageCredit,
   type UserSubscriptionInfo
 } from '@/services/userSubscription';
+import { verifyUserPlan, correctUserPlan } from '@/services/planVerification';
 import { Sparkles, Crown, Settings, LogOut, Upload, History, AlertCircle } from 'lucide-react';
 
 type ProcessingState = 'idle' | 'processing' | 'completed';
@@ -33,7 +34,43 @@ const Dashboard = () => {
   // Update subscription info when component mounts and user changes
   useEffect(() => {
     if (user?.id) {
+      // First get subscription info
       getUserSubscriptionInfo(user.id).then(setSubscriptionInfo);
+      
+      // Also verify plan against Stripe and auto-correct if needed
+      verifyUserPlan(user.id).then(async (verification) => {
+        if (verification.needsUpdate && !verification.error) {
+          debugLog('info', '🔧 PLAN VERIFICATION: Auto-correcting plan mismatch', {
+            currentPlan: verification.currentPlan,
+            correctPlan: verification.correctPlan,
+            currentCredits: verification.currentCredits,
+            correctCredits: verification.correctCredits
+          });
+          
+          const corrected = await correctUserPlan(user.id, verification.correctPlan, verification.correctCredits);
+          if (corrected) {
+            // Refresh subscription info after correction
+            getUserSubscriptionInfo(user.id).then(setSubscriptionInfo);
+            
+            toast({
+              title: 'Plan Updated',
+              description: `Your ${verification.correctPlan} plan has been activated with ${verification.correctCredits} credits.`,
+              variant: 'default'
+            });
+          }
+        } else if (verification.error) {
+          debugLog('warning', '🔧 PLAN VERIFICATION: Could not verify plan', {
+            error: verification.error
+          });
+        } else {
+          debugLog('info', '🔧 PLAN VERIFICATION: Plan is correct', {
+            plan: verification.currentPlan,
+            credits: verification.currentCredits
+          });
+        }
+      }).catch(error => {
+        debugLog('error', '🔧 PLAN VERIFICATION: Error during verification', error);
+      });
     }
   }, [user?.id]);
 

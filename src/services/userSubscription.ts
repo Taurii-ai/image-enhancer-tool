@@ -144,7 +144,7 @@ export const getUserSubscriptionInfo = async (userId: string): Promise<UserSubsc
       daysRemaining,
       billing,
       features,
-      canUpgrade: planName !== 'Premium'
+      canUpgrade: planName !== 'Premium' && planName !== 'Cancelled'
     };
 
   } catch (error) {
