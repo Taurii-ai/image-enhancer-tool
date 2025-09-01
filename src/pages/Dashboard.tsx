@@ -15,7 +15,7 @@ import {
   consumeImageCredit,
   type UserSubscriptionInfo
 } from '@/services/userSubscription';
-import { Sparkles, Crown, Settings, LogOut, Upload, History } from 'lucide-react';
+import { Sparkles, Crown, Settings, LogOut, Upload, History, AlertCircle } from 'lucide-react';
 
 type ProcessingState = 'idle' | 'processing' | 'completed';
 
@@ -76,6 +76,20 @@ const Dashboard = () => {
     if (user?.id) {
       const creditResult = await consumeImageCredit(user.id);
       if (!creditResult.success) {
+        // Check if it's a cancelled subscription
+        if (creditResult.error?.includes('cancelled')) {
+          toast({
+            title: 'Subscription Cancelled',
+            description: 'Please choose a new plan to continue enhancing images.',
+            variant: 'destructive'
+          });
+          // Redirect to pricing page after 2 seconds
+          setTimeout(() => {
+            navigate('/pricing');
+          }, 2000);
+          return;
+        }
+        
         toast({
           title: 'Credit Limit Reached',
           description: creditResult.error || 'You have reached your monthly limit.',
@@ -289,7 +303,28 @@ const Dashboard = () => {
                       />
                     </div>
 
-                    {subscriptionInfo.imagesRemaining <= 0 && (
+                    {/* Show cancelled subscription message */}
+                    {subscriptionInfo.planName === 'Cancelled' && (
+                      <div className="mt-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                        <div className="flex items-center gap-2 text-destructive mb-2">
+                          <AlertCircle className="w-4 h-4" />
+                          <span className="font-medium">Subscription Cancelled</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Your subscription has been cancelled. Please choose a new plan to continue enhancing images.
+                        </p>
+                        <Button 
+                          onClick={() => navigate('/pricing')} 
+                          className="w-full"
+                          variant="destructive"
+                        >
+                          Choose New Plan
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {/* Show no credits message for active users */}
+                    {subscriptionInfo.imagesRemaining <= 0 && subscriptionInfo.planName !== 'Cancelled' && (
                       <div className="mt-6 p-4 bg-accent/10 rounded-lg">
                         <p className="text-sm text-muted-foreground">
                           No credits remaining.{' '}

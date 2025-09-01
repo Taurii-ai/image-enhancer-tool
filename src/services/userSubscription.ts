@@ -103,8 +103,16 @@ export const getUserSubscriptionInfo = async (userId: string): Promise<UserSubsc
     if (!subscription) {
       const userPlan = profile.plan || 'free';
       planName = userPlan.charAt(0).toUpperCase() + userPlan.slice(1);
-      features = PLAN_FEATURES[userPlan as keyof typeof PLAN_FEATURES] || PLAN_FEATURES.free;
-      imagesTotal = PLAN_LIMITS[userPlan as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
+      
+      // For cancelled users, show they need to resubscribe
+      if (userPlan === 'cancelled') {
+        planName = 'Cancelled';
+        features = ['Subscription cancelled', 'Choose a new plan to continue'];
+        imagesTotal = 0;
+      } else {
+        features = PLAN_FEATURES[userPlan as keyof typeof PLAN_FEATURES] || PLAN_FEATURES.free;
+        imagesTotal = PLAN_LIMITS[userPlan as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
+      }
     }
 
     const { data: usage } = await supabase
@@ -171,6 +179,15 @@ export const consumeImageCredit = async (userId: string): Promise<{ success: boo
 
     if (profileError || !profile) {
       return { success: false, remaining: 0, error: 'User profile not found' };
+    }
+
+    // Check if user's subscription is cancelled
+    if (profile.plan === 'cancelled') {
+      return { 
+        success: false, 
+        remaining: 0, 
+        error: 'Subscription cancelled - Please choose a new plan to continue' 
+      };
     }
 
     // Determine limit based on user's plan
