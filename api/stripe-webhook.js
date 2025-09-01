@@ -188,8 +188,40 @@ async function handleSubscriptionCreated(subscription) {
       .single();
 
     if (userError || !user) {
-      console.error('User not found for customer:', subscription.customer);
-      return;
+      console.error('User not found for customer:', subscription.customer, 'Error:', userError);
+      // Try to find by customer email from Stripe
+      try {
+        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+        const customer = await stripe.customers.retrieve(subscription.customer);
+        
+        const { data: userByEmail, error: emailError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('email', customer.email)
+          .single();
+          
+        if (emailError || !userByEmail) {
+          console.error('User not found by email either:', customer.email);
+          return;
+        }
+        
+        // Update user with stripe customer ID
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ stripe_customer_id: subscription.customer })
+          .eq('id', userByEmail.id);
+          
+        if (updateError) {
+          console.error('Error updating user with stripe customer ID:', updateError);
+          return;
+        }
+        
+        user = userByEmail;
+        console.log('Found and updated user by email:', customer.email);
+      } catch (stripeError) {
+        console.error('Error fetching customer from Stripe:', stripeError);
+        return;
+      }
     }
 
     // Create subscription record

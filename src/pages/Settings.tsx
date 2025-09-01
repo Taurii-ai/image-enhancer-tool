@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { EnhpixLogo } from '@/components/ui/enhpix-logo';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { getUserSubscriptionInfo, type UserSubscriptionInfo } from '@/services/userSubscription';
-import { ArrowLeft, CreditCard, User, Shield, AlertTriangle, Crown } from 'lucide-react';
+import { ArrowLeft, CreditCard, User, Shield, AlertTriangle, Crown, Key } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 const Settings = () => {
@@ -16,6 +18,14 @@ const Settings = () => {
   const [subscriptionInfo, setSubscriptionInfo] = useState<UserSubscriptionInfo | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  
+  // Password change state
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
 
   useEffect(() => {
     if (!loading && !user) {
@@ -63,6 +73,60 @@ const Settings = () => {
       });
     } finally {
       setIsCancelling(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        title: 'Password Mismatch',
+        description: 'New passwords do not match.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      toast({
+        title: 'Password Too Short',
+        description: 'Password must be at least 6 characters long.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: 'Password Updated',
+        description: 'Your password has been successfully changed.',
+      });
+
+      // Clear form
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+    } catch (error: any) {
+      console.error('Password change error:', error);
+      toast({
+        title: 'Password Change Failed',
+        description: error.message || 'There was an error changing your password.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -221,6 +285,57 @@ const Settings = () => {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Password Management */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Key className="w-5 h-5 text-primary" />
+              <CardTitle>Password & Security</CardTitle>
+            </div>
+            <CardDescription>Change your password and manage security settings</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                  placeholder="Enter new password"
+                  minLength={6}
+                  required
+                  disabled={isChangingPassword}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                  placeholder="Confirm new password"
+                  minLength={6}
+                  required
+                  disabled={isChangingPassword}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Password must be at least 6 characters long
+              </p>
+              <Button
+                type="submit"
+                disabled={isChangingPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+                className="w-full"
+              >
+                {isChangingPassword ? 'Changing Password...' : 'Change Password'}
+              </Button>
+            </form>
           </CardContent>
         </Card>
 
