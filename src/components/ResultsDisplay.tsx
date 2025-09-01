@@ -141,7 +141,6 @@ export const ResultsDisplay = ({
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      // Download the enhanced image
       console.log('🔄 Attempting to download:', finalEnhancedImage);
       const response = await fetch(finalEnhancedImage);
       
@@ -156,19 +155,99 @@ export const ResultsDisplay = ({
       const baseName = originalFile.name.replace(/\.[^/.]+$/, '');
       const enhancedFileName = `${baseName}_enhanced.${fileExtension}`;
       
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = enhancedFileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(downloadUrl);
+      // Check if we're on mobile
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        // Mobile approach - open image in new tab for long-press save
+        const imageUrl = window.URL.createObjectURL(blob);
+        
+        // For mobile, we'll open the image directly so users can long-press to save
+        const newWindow = window.open('', '_blank');
+        if (newWindow) {
+          newWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <title>Enhanced Image - Long press to save</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                  body { 
+                    margin: 0; 
+                    background: #000; 
+                    display: flex; 
+                    justify-content: center; 
+                    align-items: center; 
+                    min-height: 100vh;
+                    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                  }
+                  img { 
+                    max-width: 100%; 
+                    max-height: 100vh; 
+                    object-fit: contain;
+                  }
+                  .instructions {
+                    position: fixed;
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(0,0,0,0.8);
+                    color: white;
+                    padding: 10px 20px;
+                    border-radius: 20px;
+                    font-size: 14px;
+                    text-align: center;
+                    z-index: 100;
+                  }
+                  .close-btn {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: rgba(0,0,0,0.8);
+                    color: white;
+                    border: none;
+                    padding: 10px 15px;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    font-size: 18px;
+                    z-index: 100;
+                  }
+                </style>
+              </head>
+              <body>
+                <div class="instructions">Long press image to save to Photos</div>
+                <button class="close-btn" onclick="window.close()">&times;</button>
+                <img src="${imageUrl}" alt="Enhanced Image" />
+              </body>
+            </html>
+          `);
+        }
+        
+        // Clean up after 30 seconds
+        setTimeout(() => {
+          window.URL.revokeObjectURL(imageUrl);
+        }, 30000);
+        
+        toast({
+          title: "Image opened!",
+          description: "Long press the image to save to your Photos app",
+        });
+      } else {
+        // Desktop approach - traditional download
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = enhancedFileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
 
-      toast({
-        title: "Download complete!",
-        description: `Enhanced image saved as ${enhancedFileName}`,
-      });
+        toast({
+          title: "Download complete!",
+          description: `Enhanced image saved as ${enhancedFileName}`,
+        });
+      }
     } catch (error) {
       toast({
         title: "Download failed",
