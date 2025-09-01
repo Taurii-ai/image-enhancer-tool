@@ -129,26 +129,20 @@ const Settings = () => {
               <span className="text-sm text-muted-foreground">Images Remaining:</span>
               <span className="text-sm font-medium">{subscriptionInfo.imagesRemaining} / {subscriptionInfo.imagesTotal}</span>
             </div>
-            {subscriptionInfo.daysRemaining > 0 && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Days Remaining:</span>
-                <span className="text-sm font-medium">{subscriptionInfo.daysRemaining} days</span>
-              </div>
-            )}
           </CardContent>
         </Card>
 
         {/* Subscription Management */}
-        {subscriptionInfo.planName !== 'Free' && subscriptionInfo.planName !== 'Cancelled' && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-primary" />
-                <CardTitle>Subscription Management</CardTitle>
-              </div>
-              <CardDescription>Manage your subscription and billing</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-primary" />
+              <CardTitle>Subscription Management</CardTitle>
+            </div>
+            <CardDescription>Manage your subscription and billing</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {subscriptionInfo.planName !== 'Free' && subscriptionInfo.planName !== 'Cancelled' ? (
               <div className="flex justify-between items-center">
                 <div>
                   <p className="font-medium">Current Subscription</p>
@@ -163,54 +157,72 @@ const Settings = () => {
                   Upgrade Plan
                 </Button>
               </div>
-              
-              <div className="border-t pt-4">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-destructive mt-0.5" />
-                  <div className="flex-1">
-                    <h4 className="font-medium text-destructive">Cancel Subscription</h4>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      You can cancel your subscription at any time. You'll keep access to your remaining credits until the end of your current billing period.
-                    </p>
-                    {!showCancelConfirm ? (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setShowCancelConfirm(true)}
-                      >
-                        Cancel Subscription
-                      </Button>
-                    ) : (
-                      <div className="space-y-3">
-                        <p className="text-sm font-medium text-destructive">
-                          Are you sure you want to cancel your subscription?
-                        </p>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={handleCancelSubscription}
-                            disabled={isCancelling}
-                          >
-                            {isCancelling ? 'Cancelling...' : 'Yes, Cancel'}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setShowCancelConfirm(false)}
-                            disabled={isCancelling}
-                          >
-                            Keep Subscription
-                          </Button>
-                        </div>
+            ) : (
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-medium">No Active Subscription</p>
+                  <p className="text-sm text-muted-foreground">
+                    You're currently on a free or cancelled plan
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/pricing')}
+                >
+                  Upgrade to Premium
+                </Button>
+              </div>
+            )}
+            
+            <div className="border-t pt-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-destructive mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="font-medium text-destructive">Cancel Subscription</h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {subscriptionInfo.planName !== 'Free' && subscriptionInfo.planName !== 'Cancelled' 
+                      ? "You can cancel your subscription at any time. You'll keep access to your remaining credits until the end of your current billing period."
+                      : "If you have any active subscriptions or recurring payments, you can cancel them here. This will prevent future charges."
+                    }
+                  </p>
+                  {!showCancelConfirm ? (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setShowCancelConfirm(true)}
+                    >
+                      Cancel Any Active Subscriptions
+                    </Button>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-destructive">
+                        Are you sure you want to cancel all active subscriptions and prevent future charges?
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleCancelSubscription}
+                          disabled={isCancelling}
+                        >
+                          {isCancelling ? 'Cancelling...' : 'Yes, Cancel All Subscriptions'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowCancelConfirm(false)}
+                          disabled={isCancelling}
+                        >
+                          Keep Active
+                        </Button>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Support */}
         <Card>
