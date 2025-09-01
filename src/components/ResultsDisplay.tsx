@@ -159,10 +159,10 @@ export const ResultsDisplay = ({
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
       if (isMobile) {
-        // Mobile approach - open image in new tab for long-press save
+        // Mobile approach - open clean image in new tab for long-press save
         const imageUrl = window.URL.createObjectURL(blob);
         
-        // For mobile, we'll open the image directly so users can long-press to save
+        // For mobile, create a clean page with just the enhanced image
         const newWindow = window.open('', '_blank');
         if (newWindow) {
           newWindow.document.write(`
@@ -170,54 +170,118 @@ export const ResultsDisplay = ({
             <html>
               <head>
                 <title>Enhanced Image - Long press to save</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
                 <style>
+                  * {
+                    box-sizing: border-box;
+                    margin: 0;
+                    padding: 0;
+                  }
                   body { 
-                    margin: 0; 
                     background: #000; 
                     display: flex; 
+                    flex-direction: column;
                     justify-content: center; 
                     align-items: center; 
                     min-height: 100vh;
                     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                    padding: 60px 10px 20px;
+                  }
+                  .image-container {
+                    flex: 1;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    width: 100%;
+                    position: relative;
                   }
                   img { 
                     max-width: 100%; 
-                    max-height: 100vh; 
+                    max-height: 100%;
                     object-fit: contain;
+                    display: block;
+                    /* Disable any touch interactions that might interfere */
+                    pointer-events: auto;
+                    user-select: none;
+                    -webkit-user-select: none;
+                    -webkit-touch-callout: default;
                   }
                   .instructions {
                     position: fixed;
-                    top: 20px;
+                    top: 10px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(0,0,0,0.9);
+                    color: white;
+                    padding: 12px 20px;
+                    border-radius: 25px;
+                    font-size: 14px;
+                    text-align: center;
+                    z-index: 1000;
+                    font-weight: 500;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                  }
+                  .close-btn {
+                    position: fixed;
+                    top: 10px;
+                    right: 15px;
+                    background: rgba(255,255,255,0.9);
+                    color: #000;
+                    border: none;
+                    padding: 12px;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    font-size: 18px;
+                    z-index: 1000;
+                    width: 40px;
+                    height: 40px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                    font-weight: bold;
+                  }
+                  .download-hint {
+                    position: fixed;
+                    bottom: 20px;
                     left: 50%;
                     transform: translateX(-50%);
                     background: rgba(0,0,0,0.8);
                     color: white;
                     padding: 10px 20px;
                     border-radius: 20px;
-                    font-size: 14px;
+                    font-size: 12px;
                     text-align: center;
-                    z-index: 100;
+                    z-index: 1000;
                   }
-                  .close-btn {
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: rgba(0,0,0,0.8);
-                    color: white;
-                    border: none;
-                    padding: 10px 15px;
-                    border-radius: 50%;
+                  /* Ensure the image is fully interactive for long press */
+                  img:hover {
                     cursor: pointer;
-                    font-size: 18px;
-                    z-index: 100;
                   }
                 </style>
               </head>
               <body>
-                <div class="instructions">Long press image to save to Photos</div>
-                <button class="close-btn" onclick="window.close()">&times;</button>
-                <img src="${imageUrl}" alt="Enhanced Image" />
+                <div class="instructions">📱 Long press image below to save to Photos</div>
+                <button class="close-btn" onclick="window.close()" aria-label="Close">&times;</button>
+                <div class="image-container">
+                  <img src="${imageUrl}" alt="Enhanced Image - Long press to save" />
+                </div>
+                <div class="download-hint">💡 Tap and hold the image, then select "Save to Photos"</div>
+                <script>
+                  // Ensure the image is fully loaded and interactable
+                  const img = document.querySelector('img');
+                  img.addEventListener('load', function() {
+                    console.log('Image loaded and ready for long-press save');
+                  });
+                  
+                  // Prevent any default behaviors that might interfere
+                  document.addEventListener('touchstart', function(e) {
+                    if (e.target.tagName === 'IMG') {
+                      // Allow the touch to proceed normally for long-press save
+                      return true;
+                    }
+                  });
+                </script>
               </body>
             </html>
           `);
