@@ -214,50 +214,6 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      console.log('🔍 DEBUG: Looking for email:', forgotPasswordEmail.trim());
-      
-      // Check if email exists in profiles
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', forgotPasswordEmail.trim())
-        .single();
-
-      console.log('🔍 DEBUG: Profile result:', { profile, profileError });
-
-      if (profileError || !profile) {
-        console.log('❌ DEBUG: No profile found');
-        toast({
-          title: 'Account Not Found',
-          description: 'No active account found with this email address. Please sign up for a plan first.',
-          variant: 'destructive'
-        });
-        return;
-      }
-
-      console.log('✅ DEBUG: Found profile, checking user_plans for user_id:', profile.id);
-
-      // Check if their user_id is also in user_plans
-      const { data: userPlan, error: planError } = await supabase
-        .from('user_plans')
-        .select('*')
-        .eq('user_id', profile.id)
-        .eq('status', 'active')
-        .single();
-
-      console.log('🔍 DEBUG: User plan result:', { userPlan, planError });
-
-      if (!userPlan) {
-        console.log('❌ DEBUG: No user plan found');
-        toast({
-          title: 'No Active Subscription',
-          description: 'Please choose a plan to reset your password.',
-          variant: 'destructive'
-        });
-        return;
-      }
-
-      console.log('✅ DEBUG: All checks passed, sending reset email');
 
       // Send reset email (Supabase will handle if account exists)
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
