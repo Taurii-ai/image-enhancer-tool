@@ -80,6 +80,7 @@ const Settings = () => {
           .from('user_plans')
           .update({ 
             status: 'cancelled',
+            cancellation_date: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })
           .eq('user_id', user.id)
