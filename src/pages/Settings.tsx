@@ -5,6 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EnhpixLogo } from '@/components/ui/enhpix-logo';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { getUserSubscriptionInfo, type UserSubscriptionInfo } from '@/services/userSubscription';
@@ -72,6 +82,24 @@ const Settings = () => {
           console.error('Error calling Stripe API:', stripeError);
           // Continue with local cancellation even if Stripe fails
         }
+      }
+
+      // Add user to cancelled_users tracking table
+      const { error: cancelledUserError } = await supabase
+        .from('cancelled_users')
+        .insert({
+          user_id: user.id,
+          email: user.email || 'unknown',
+          plan_name: subscriptionInfo.planName,
+          cancellation_date: new Date().toISOString(),
+          stripe_subscription_id: userPlan?.stripe_subscription_id || null,
+          credits_remaining: subscriptionInfo.imagesRemaining,
+          cancellation_reason: 'User initiated cancellation via settings'
+        });
+
+      if (cancelledUserError) {
+        console.error('Error adding to cancelled_users table:', cancelledUserError);
+        // Don't fail the cancellation if this fails
       }
 
       // Update user_plans table to cancelled status
@@ -305,39 +333,13 @@ const Settings = () => {
                       : "If you have any active subscriptions or recurring payments, you can cancel them here. This will prevent future charges."
                     }
                   </p>
-                  {!showCancelConfirm ? (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setShowCancelConfirm(true)}
-                    >
-                      Cancel Any Active Subscriptions
-                    </Button>
-                  ) : (
-                    <div className="space-y-3">
-                      <p className="text-sm font-medium text-destructive">
-                        Are you sure you want to cancel all active subscriptions and prevent future charges?
-                      </p>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={handleCancelSubscription}
-                          disabled={isCancelling}
-                        >
-                          {isCancelling ? 'Cancelling...' : 'Yes, Cancel All Subscriptions'}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowCancelConfirm(false)}
-                          disabled={isCancelling}
-                        >
-                          Keep Active
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setShowCancelConfirm(true)}
+                  >
+                    Cancel Any Active Subscriptions
+                  </Button>
                 </div>
               </div>
             </div>
@@ -432,6 +434,41 @@ const Settings = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Cancellation Confirmation Dialog */}
+      <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to cancel your subscription?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                This action will:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Cancel your {subscriptionInfo?.planName} subscription</li>
+                <li>Stop all future charges immediately</li>
+                <li>Block access to image enhancement features</li>
+                <li>Require choosing a new plan to continue</li>
+              </ul>
+              <p className="text-destructive font-medium mt-3">
+                This cannot be undone. You will need to subscribe again to continue enhancing images.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCancelling}>
+              Keep Subscription
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelSubscription}
+              disabled={isCancelling}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isCancelling ? 'Cancelling...' : 'Yes, Cancel Subscription'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
