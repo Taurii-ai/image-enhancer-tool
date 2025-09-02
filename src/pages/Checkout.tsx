@@ -20,7 +20,9 @@ const Checkout = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerName, setCustomerName] = useState('');
+  const [customerPassword, setCustomerPassword] = useState('');
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [useGoogleAuth, setUseGoogleAuth] = useState(false);
   
   // Get plan and billing from URL params
   const planId = searchParams.get('plan') || 'pro';
@@ -39,15 +41,23 @@ const Checkout = () => {
     }
   }, [selectedPlan, navigate, toast]);
 
-  // Pre-fill form if user is authenticated
+  // Pre-fill form if user came from Google OAuth
   useEffect(() => {
-    if (user) {
+    const fromGoogle = searchParams.get('google_oauth') === 'true';
+    
+    if (user && fromGoogle) {
       setCustomerEmail(user.email || '');
       // Try to get name from user metadata
       const name = user.user_metadata?.full_name || user.user_metadata?.name || '';
       setCustomerName(name);
+      setUseGoogleAuth(true);
+    } else {
+      // Clear any existing user data if not coming from Google
+      setCustomerEmail('');
+      setCustomerName('');
+      setUseGoogleAuth(false);
     }
-  }, [user]);
+  }, [user, searchParams]);
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,11 +71,58 @@ const Checkout = () => {
       return;
     }
 
+    // For non-Google users, require password
+    if (!useGoogleAuth && !customerPassword.trim()) {
+      toast({
+        title: "Password Required", 
+        description: "Please create a password for your account.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!useGoogleAuth && customerPassword.length < 6) {
+      toast({
+        title: "Password Too Short", 
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!selectedPlan) return;
 
     setIsLoading(true);
 
     try {
+      // Create account if not using Google auth and not already logged in
+      if (!useGoogleAuth && !user) {
+        const { data, error } = await supabase.auth.signUp({
+          email: customerEmail.trim(),
+          password: customerPassword,
+          options: {
+            data: {
+              full_name: customerName.trim(),
+            }
+          }
+        });
+
+        if (error) {
+          toast({
+            title: 'Account Creation Failed',
+            description: error.message,
+            variant: 'destructive'
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        toast({
+          title: 'Account Created!',
+          description: 'Please check your email to confirm your account, then complete payment.',
+        });
+      }
+
       const paymentData: PaymentData = {
         planId: selectedPlan.id,
         billing,
@@ -93,7 +150,7 @@ const Checkout = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/login?redirect=checkout&plan=${planId}&billing=${billing}`
+          redirectTo: `${window.location.origin}/checkout?plan=${planId}&billing=${billing}&google_oauth=true`
         }
       });
 
@@ -247,7 +304,31 @@ const Checkout = () => {
                       required
                       disabled={isLoading}
                     />
+                    {useGoogleAuth && (
+                      <p className="text-xs text-green-600 mt-1">
+                        ✓ Signed in with Google
+                      </p>
+                    )}
                   </div>
+
+                  {!useGoogleAuth && (
+                    <div>
+                      <Label htmlFor="password">Create Password</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={customerPassword}
+                        onChange={(e) => setCustomerPassword(e.target.value)}
+                        placeholder="Create a secure password"
+                        required
+                        disabled={isLoading}
+                        minLength={6}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Password must be at least 6 characters long
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-4">
