@@ -163,7 +163,13 @@ const Dashboard = () => {
       
       // Refresh subscription info after successful enhancement
       if (user?.id) {
-        getUserSubscriptionInfo(user.id).then(setSubscriptionInfo);
+        console.log('🔄 DASHBOARD: Refreshing subscription info after enhancement...');
+        setTimeout(() => {
+          getUserSubscriptionInfo(user.id).then((newInfo) => {
+            console.log('🔄 DASHBOARD: New subscription info:', newInfo);
+            setSubscriptionInfo(newInfo);
+          });
+        }, 1000); // Small delay to ensure database updates are complete
       }
       debugLog('info', '🔧 UPDATING UI STATE');
     } catch (error) {
@@ -284,7 +290,40 @@ const Dashboard = () => {
                   </div>
                 </div>
                 
-                {subscriptionInfo.canUpgrade && (
+                {subscriptionInfo.imagesRemaining === 0 && (
+                  <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-sm font-medium text-red-800 dark:text-red-200 mb-2">
+                      🚫 No Credits Remaining
+                    </p>
+                    <p className="text-xs text-red-700 dark:text-red-300 mb-3">
+                      You've used all {subscriptionInfo.imagesTotal} images for this month. Your credits will reset automatically on your billing day, or upgrade now for more images.
+                    </p>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                        onClick={() => navigate('/pricing')}
+                      >
+                        Upgrade Now
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
+                        onClick={() => {
+                          toast({
+                            title: 'Credits Reset Info',
+                            description: 'Your credits will automatically reset on your monthly billing day.',
+                          });
+                        }}
+                      >
+                        When Reset?
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
+                {subscriptionInfo.canUpgrade && subscriptionInfo.imagesRemaining > 0 && (
                   <Button 
                     className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 transition-all"
                     onClick={() => navigate('/pricing')}
