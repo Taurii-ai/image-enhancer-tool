@@ -109,16 +109,13 @@ const Dashboard = () => {
       fileType: file.type
     });
     
-    // Check if user has credits before processing (don't consume yet)
+    // Check if user has credits before processing
     if (user?.id) {
       console.log('🚀 DASHBOARD: Checking user credits before enhancement...');
-      const { data: userPlan } = await supabase
-        .from('user_plans')
-        .select('credits_remaining, status')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!userPlan || userPlan.credits_remaining <= 0) {
+      
+      // Quick credit check using our existing service
+      const subscriptionCheck = await getUserSubscriptionInfo(user.id);
+      if (subscriptionCheck.imagesRemaining <= 0) {
         toast({
           title: 'No Credits Remaining',
           description: 'Please upgrade your plan or wait for monthly reset.',
