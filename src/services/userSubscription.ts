@@ -171,6 +171,8 @@ export const getUserSubscriptionInfo = async (userId: string): Promise<UserSubsc
 
 export const consumeImageCredit = async (userId: string): Promise<{ success: boolean; remaining: number; error?: string }> => {
   try {
+    console.log('💳 CREDIT CONSUMPTION: Starting for user:', userId);
+    
     // Get user plan from user_plans table (including cancelled plans with remaining credits)
     const { data: userPlan, error: planError } = await supabase
       .from('user_plans')
@@ -180,6 +182,8 @@ export const consumeImageCredit = async (userId: string): Promise<{ success: boo
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
+    
+    console.log('💳 CREDIT CONSUMPTION: User plan found:', userPlan);
 
     if (!userPlan) {
       return { 
@@ -213,6 +217,8 @@ export const consumeImageCredit = async (userId: string): Promise<{ success: boo
 
     // Decrease credit count in user_plans table
     const newCreditsRemaining = currentCredits - 1;
+    console.log(`💳 CREDIT CONSUMPTION: Updating ${currentCredits} -> ${newCreditsRemaining} for plan ID:`, userPlan.id);
+    
     const { error: updateError } = await supabase
       .from('user_plans')
       .update({ 
@@ -223,9 +229,11 @@ export const consumeImageCredit = async (userId: string): Promise<{ success: boo
       .eq('id', userPlan.id);
 
     if (updateError) {
-      console.error('Failed to update user_plans credits:', updateError);
+      console.error('💳 CREDIT CONSUMPTION ERROR: Failed to update user_plans credits:', updateError);
       return { success: false, remaining: currentCredits, error: 'Failed to update credits' };
     }
+    
+    console.log('💳 CREDIT CONSUMPTION: Successfully updated credits');
 
     // Also update usage_tracking table for reporting (optional - keeps historical data)
     const now = new Date();

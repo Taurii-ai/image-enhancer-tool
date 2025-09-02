@@ -273,38 +273,14 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // First, find the user by email in profiles table
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', forgotPasswordEmail.trim())
-        .single();
-
-      if (!profile) {
-        toast({
-          title: 'Account Not Found',
-          description: 'No account found with this email address.',
-          variant: 'destructive'
-        });
-        return;
-      }
-
-      // Then check if user exists in user_plans (only paying customers can reset)
-      const { data: userPlan } = await supabase
-        .from('user_plans')
-        .select('*')
-        .eq('user_id', profile.id)
-        .eq('status', 'active')
-        .single();
-
-      if (!userPlan) {
-        toast({
-          title: 'No Active Subscription',
-          description: 'Only customers with active subscriptions can reset passwords. Please sign up for a plan first.',
-          variant: 'destructive'
-        });
-        return;
-      }
+      // For now, let's allow password reset for any registered user and check subscription status later
+      // This is more user-friendly - we'll verify subscription when they try to use the service
+      
+      // Just check if user exists in auth (they have an account)
+      console.log('🔍 Checking password reset for email:', forgotPasswordEmail.trim());
+      
+      // Simply send the reset email - Supabase Auth will handle if account exists
+      // We'll check subscription status when they actually log in
 
       // Send reset email (Supabase will handle if account exists)
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
@@ -436,11 +412,7 @@ const Login = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="px-4 md:px-6">
-            <Tabs defaultValue={defaultTab} className="w-full" onValueChange={(value) => {
-              if (value === 'signup') {
-                navigate('/pricing');
-              }
-            }}>
+            <Tabs defaultValue={defaultTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="login" className="text-sm">Sign In</TabsTrigger>
                 <TabsTrigger value="signup" className="text-sm">Sign Up</TabsTrigger>
