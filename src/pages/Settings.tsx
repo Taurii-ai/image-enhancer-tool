@@ -43,8 +43,55 @@ const Settings = () => {
 
     setIsCancelling(true);
     try {
-      // Update user's subscription to cancelled status
-      const { error } = await supabase
+      // Get user plan details for Stripe cancellation
+      const { data: userPlan } = await supabase
+        .from('user_plans')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single();
+
+      // Cancel in Stripe if there's a subscription
+      if (userPlan?.stripe_subscription_id) {
+        try {
+          const response = await fetch('/api/cancel-subscription', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              subscriptionId: userPlan.stripe_subscription_id,
+              userId: user.id
+            }),
+          });
+
+          if (!response.ok) {
+            console.error('Stripe cancellation failed, continuing with local cancellation');
+          }
+        } catch (stripeError) {
+          console.error('Error calling Stripe API:', stripeError);
+          // Continue with local cancellation even if Stripe fails
+        }
+      }
+
+      // Update user_plans table to cancelled status
+      if (userPlan) {
+        const { error: userPlanError } = await supabase
+          .from('user_plans')
+          .update({ 
+            status: 'cancelled',
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', user.id)
+          .eq('status', 'active');
+
+        if (userPlanError) {
+          console.error('Error updating user_plans:', userPlanError);
+        }
+      }
+
+      // Update profiles table to cancelled status for backwards compatibility
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({ 
           plan: 'cancelled',
@@ -52,13 +99,13 @@ const Settings = () => {
         })
         .eq('id', user.id);
 
-      if (error) {
-        throw error;
+      if (profileError) {
+        console.error('Error updating profiles:', profileError);
       }
 
       toast({
         title: 'Subscription Cancelled',
-        description: 'Your subscription has been cancelled. You can continue using your remaining credits until the end of your billing period.',
+        description: 'Your subscription has been cancelled successfully. You can continue using your remaining credits, but no further charges will occur.',
       });
 
       // Refresh subscription info

@@ -52,12 +52,14 @@ const PLAN_LIMITS = {
 
 export const getUserSubscriptionInfo = async (userId: string): Promise<UserSubscriptionInfo> => {
   try {
-    // Get user plan from user_plans table (primary source)
+    // Get user plan from user_plans table (primary source) - include both active and cancelled
     const { data: userPlan, error: planError } = await supabase
       .from('user_plans')
       .select('*')
       .eq('user_id', userId)
-      .eq('status', 'active')
+      .in('status', ['active', 'cancelled'])
+      .order('created_at', { ascending: false })
+      .limit(1)
       .single();
 
     // Get user profile as fallback
@@ -74,11 +76,17 @@ export const getUserSubscriptionInfo = async (userId: string): Promise<UserSubsc
     let imagesTotal = 150;
 
     if (userPlan) {
-      // User has active plan in user_plans table
-      planName = userPlan.plan_name.charAt(0).toUpperCase() + userPlan.plan_name.slice(1);
+      // User has plan in user_plans table (active or cancelled)
+      if (userPlan.status === 'cancelled') {
+        planName = 'Cancelled';
+        features = ['Subscription cancelled', 'Choose a new plan to continue'];
+        imagesTotal = userPlan.credits_allocated || 0;
+      } else {
+        planName = userPlan.plan_name.charAt(0).toUpperCase() + userPlan.plan_name.slice(1);
+        features = PLAN_FEATURES[userPlan.plan_name as keyof typeof PLAN_FEATURES] || PLAN_FEATURES.basic;
+        imagesTotal = userPlan.credits_allocated || PLAN_LIMITS[userPlan.plan_name as keyof typeof PLAN_LIMITS] || 150;
+      }
       billing = userPlan.billing_cycle;
-      features = PLAN_FEATURES[userPlan.plan_name as keyof typeof PLAN_FEATURES] || PLAN_FEATURES.basic;
-      imagesTotal = userPlan.credits_allocated || PLAN_LIMITS[userPlan.plan_name as keyof typeof PLAN_LIMITS] || 150;
       console.log('📊 Using user_plans data:', userPlan);
     } else if (profile && !profileError) {
       // Fallback to profile data
@@ -115,7 +123,8 @@ export const getUserSubscriptionInfo = async (userId: string): Promise<UserSubsc
     // Use credits_remaining from user_plans if available, otherwise calculate
     let imagesRemaining;
     if (userPlan) {
-      imagesRemaining = userPlan.credits_remaining || 0;
+      // For cancelled users, they can use remaining credits but no more
+      imagesRemaining = userPlan.status === 'cancelled' ? Math.max(0, userPlan.credits_remaining || 0) : (userPlan.credits_remaining || 0);
     } else {
       const imagesUsed = usage?.images_processed || 0;
       imagesRemaining = Math.max(0, imagesTotal - imagesUsed);
@@ -162,36 +171,68 @@ export const getUserSubscriptionInfo = async (userId: string): Promise<UserSubsc
 
 export const consumeImageCredit = async (userId: string): Promise<{ success: boolean; remaining: number; error?: string }> => {
   try {
+    // Get user plan from user_plans table (including cancelled plans with remaining credits)
+    const { data: userPlan, error: planError } = await supabase
+      .from('user_plans')
+      .select('*')
+      .eq('user_id', userId)
+      .in('status', ['active', 'cancelled'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!userPlan) {
+      return { 
+        success: false, 
+        remaining: 0, 
+        error: 'No subscription found - Please choose a plan to continue' 
+      };
+    }
+
+    // Check if user's subscription is cancelled but still has credits
+    if (userPlan.status === 'cancelled') {
+      const remainingCredits = userPlan.credits_remaining || 0;
+      if (remainingCredits <= 0) {
+        return { 
+          success: false, 
+          remaining: 0, 
+          error: 'Subscription cancelled and no credits remaining - Please choose a new plan' 
+        };
+      }
+    }
+
+    // Check if user has remaining credits
+    const currentCredits = userPlan.credits_remaining || 0;
+    if (currentCredits <= 0) {
+      return { 
+        success: false, 
+        remaining: 0, 
+        error: 'No credits remaining - Your plan limit has been reached' 
+      };
+    }
+
+    // Decrease credit count in user_plans table
+    const newCreditsRemaining = currentCredits - 1;
+    const { error: updateError } = await supabase
+      .from('user_plans')
+      .update({ 
+        credits_remaining: newCreditsRemaining,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId)
+      .eq('status', 'active');
+
+    if (updateError) {
+      console.error('Failed to update user_plans credits:', updateError);
+      return { success: false, remaining: currentCredits, error: 'Failed to update credits' };
+    }
+
+    // Also update usage_tracking table for reporting (optional - keeps historical data)
     const now = new Date();
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
 
-    // First get user profile to determine their plan limit
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
-    if (profileError || !profile) {
-      return { success: false, remaining: 0, error: 'User profile not found' };
-    }
-
-    // Check if user's subscription is cancelled
-    if (profile.plan === 'cancelled') {
-      return { 
-        success: false, 
-        remaining: 0, 
-        error: 'Subscription cancelled - Please choose a new plan to continue' 
-      };
-    }
-
-    // Determine limit based on user's plan
-    const userPlan = profile.plan || 'free';
-    const planLimit = PLAN_LIMITS[userPlan as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
-
-    // Get current usage
-    const { data: usage, error: getError } = await supabase
+    const { data: usage } = await supabase
       .from('usage_tracking')
       .select('*')
       .eq('user_id', userId)
@@ -199,64 +240,24 @@ export const consumeImageCredit = async (userId: string): Promise<{ success: boo
       .eq('year', year)
       .single();
 
-    // If no usage record exists, create one
-    if (getError && getError.code === 'PGRST116') {
-      // No usage record for this month, create initial record
-      const { error: createError } = await supabase
-        .from('usage_tracking')
-        .insert({
-          user_id: userId,
-          month,
-          year,
-          images_processed: 1,
-          images_limit: planLimit
-        });
-
-      if (createError) {
-        return { success: false, remaining: 0, error: 'Failed to create usage record' };
-      }
-
-      return {
-        success: true,
-        remaining: planLimit - 1
-      };
-    }
-
-    if (getError) {
-      return { success: false, remaining: 0, error: 'Failed to check usage' };
-    }
-
-    const currentUsage = usage?.images_processed || 0;
-    const limit = usage?.images_limit || planLimit;
-
-    if (currentUsage >= limit) {
-      return { 
-        success: false, 
-        remaining: 0, 
-        error: 'Monthly limit reached' 
-      };
-    }
-
-    // Update usage
-    const { error: updateError } = await supabase
+    // Update or create usage tracking record
+    await supabase
       .from('usage_tracking')
       .upsert({
         user_id: userId,
         month,
         year,
-        images_processed: currentUsage + 1,
-        images_limit: limit
+        images_processed: (usage?.images_processed || 0) + 1,
+        images_limit: userPlan.credits_allocated
       }, {
         onConflict: 'user_id,month,year'
       });
 
-    if (updateError) {
-      return { success: false, remaining: 0, error: 'Failed to update usage' };
-    }
+    console.log(`💳 Credit consumed for user ${userId}: ${currentCredits} -> ${newCreditsRemaining}`);
 
     return {
       success: true,
-      remaining: limit - (currentUsage + 1)
+      remaining: newCreditsRemaining
     };
 
   } catch (error) {
