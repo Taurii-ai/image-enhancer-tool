@@ -214,55 +214,29 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // First check if this email has a profile
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', forgotPasswordEmail.trim())
-        .single();
+      // Check if this email exists in user_plans (simple check for active subscription)
+      const { data: userPlans, error: userPlanError } = await supabase
+        .from('user_plans')
+        .select('user_id, profiles!inner(email)')
+        .eq('profiles.email', forgotPasswordEmail.trim())
+        .eq('status', 'active');
 
-      // If no profile found by email, check user_plans table directly (for Google users)
-      if (profileError || !profile) {
-        // Try to find user in user_plans by checking if any active plan exists with this email
-        const { data: userPlans, error: userPlanError } = await supabase
-          .from('user_plans')
-          .select('*, profiles!inner(email)')
-          .eq('profiles.email', forgotPasswordEmail.trim())
-          .eq('status', 'active');
+      console.log('🔍 PASSWORD RESET: Checking user_plans for email:', forgotPasswordEmail.trim());
+      console.log('🔍 PASSWORD RESET: Result:', { userPlans, userPlanError });
 
-        if (userPlanError || !userPlans || userPlans.length === 0) {
-          toast({
-            title: 'Account Not Found',
-            description: 'No active account found with this email address. Please sign up for a plan first.',
-            variant: 'destructive'
-          });
-          return;
-        }
-        
-        console.log('✅ PASSWORD RESET: Found user in user_plans table');
-      } else {
-        // Profile exists, check if they have active plan
-        const { data: userPlan, error: planError } = await supabase
-          .from('user_plans')
-          .select('*')
-          .eq('user_id', profile.id)
-          .eq('status', 'active')
-          .single();
-
-        if (!userPlan) {
-          toast({
-            title: 'No Active Subscription',
-            description: 'Please choose a plan to reset your password.',
-            variant: 'destructive'
-          });
-          return;
-        }
-        
-        console.log('✅ PASSWORD RESET: Found user with active plan');
+      if (userPlanError || !userPlans || userPlans.length === 0) {
+        toast({
+          title: 'Account Not Found',
+          description: 'No active subscription found with this email address. Please sign up for a plan first.',
+          variant: 'destructive'
+        });
+        return;
       }
 
-      // Only send reset email to paying customers
-      const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
+      console.log('✅ PASSWORD RESET: Found user with active plan, sending reset email');
+
+      // Send reset email (Supabase will handle if account exists)
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
