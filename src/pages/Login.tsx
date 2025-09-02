@@ -48,6 +48,7 @@ const Login = () => {
     const redirect = searchParams.get('redirect');
     const plan = searchParams.get('plan');
     const billing = searchParams.get('billing');
+    const isGoogleOAuth = searchParams.get('google_oauth') === 'true';
     
     // Handle checkout redirect immediately - don't check user profiles for checkout flow
     if (redirect === 'checkout' && plan && billing) {
@@ -82,26 +83,41 @@ const Login = () => {
             // User has an active plan - they can access dashboard
             console.log('✅ LOGIN: User found in user_plans, accessing dashboard', userPlan);
             navigate('/dashboard');
-          } else {
-            // User has no active plan - redirect to pricing with error
-            console.log('❌ LOGIN: User not in user_plans or inactive plan');
+          } else if (isGoogleOAuth) {
+            // Only show error and redirect to pricing for Google OAuth users without plans
+            console.log('❌ LOGIN: Google OAuth user not in user_plans');
             toast({
               title: 'No Active Subscription',
               description: 'Please choose a plan to access the image enhancer.',
               variant: 'destructive'
             });
             navigate('/pricing');
+          } else {
+            // Regular users without plans - just stay on login page (they can try email/password)
+            console.log('ℹ️ LOGIN: Regular user not in user_plans - staying on login');
           }
-        } else if (profileError && profileError.code === 'PGRST116') {
+        } else if (profileError && profileError.code === 'PGRST116' && isGoogleOAuth) {
           // Profile doesn't exist - for new Google users, go to pricing
-          // Don't create profiles here - let the payment flow handle it
+          console.log('❌ LOGIN: New Google OAuth user - redirecting to pricing');
+          toast({
+            title: 'Account Not Found',
+            description: 'Create an account by choosing a subscription plan.',
+            variant: 'destructive'
+          });
           navigate('/pricing');
-        } else {
-          // Other profile error, go to pricing
+        } else if (profileError && isGoogleOAuth) {
+          // Other profile error for Google OAuth, go to pricing
+          console.log('❌ LOGIN: Google OAuth profile error - redirecting to pricing');
+          toast({
+            title: 'Choose a Plan First', 
+            description: 'Select a subscription plan to continue.',
+            variant: 'destructive'
+          });
           navigate('/pricing');
         }
-      } else {
-        // No user, go to pricing
+      } else if (isGoogleOAuth) {
+        // No user from Google OAuth, go to pricing
+        console.log('❌ LOGIN: No user from Google OAuth - redirecting to pricing');
         navigate('/pricing');
       }
     }
@@ -250,9 +266,10 @@ const Login = () => {
       const billing = searchParams.get('billing');
       
       // Always redirect to login so handleRedirectAfterAuth can run proper logic
-      let redirectTo = `${window.location.origin}/login`;
+      // Add a flag to indicate this is a Google OAuth attempt
+      let redirectTo = `${window.location.origin}/login?google_oauth=true`;
       if (redirect === 'checkout' && plan && billing) {
-        redirectTo = `${window.location.origin}/login?redirect=checkout&plan=${plan}&billing=${billing}`;
+        redirectTo = `${window.location.origin}/login?redirect=checkout&plan=${plan}&billing=${billing}&google_oauth=true`;
       }
 
       const { data, error } = await supabase.auth.signInWithOAuth({
