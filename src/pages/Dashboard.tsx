@@ -115,21 +115,26 @@ const Dashboard = () => {
       
       // Quick credit check using our existing service
       const subscriptionCheck = await getUserSubscriptionInfo(user.id);
-      if (subscriptionCheck.planName === 'Cancelled') {
-        toast({
-          title: 'Subscription Cancelled',
-          description: 'Your subscription has been cancelled. Please choose a new plan to continue enhancing images.',
-          variant: 'destructive'
-        });
+      if (subscriptionCheck.imagesRemaining <= 0) {
+        if (subscriptionCheck.planName === 'Cancelled') {
+          toast({
+            title: 'No Active Plan',
+            description: 'Your subscription was cancelled and you have no credits remaining. Please choose a new plan to continue.',
+            variant: 'destructive'
+          });
+        } else {
+          toast({
+            title: 'No Credits Remaining',
+            description: 'Please upgrade your plan or wait for monthly reset.',
+            variant: 'destructive'
+          });
+        }
         return;
       }
-      if (subscriptionCheck.imagesRemaining <= 0) {
-        toast({
-          title: 'No Credits Remaining',
-          description: 'Please upgrade your plan or wait for monthly reset.',
-          variant: 'destructive'
-        });
-        return;
+      
+      // Show warning for cancelled users with remaining credits
+      if (subscriptionCheck.planName === 'Cancelled' && subscriptionCheck.imagesRemaining > 0) {
+        console.log(`⚠️ CANCELLED USER: Has ${subscriptionCheck.imagesRemaining} credits remaining from cancelled subscription`);
       }
     }
     

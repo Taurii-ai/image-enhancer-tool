@@ -150,7 +150,7 @@ const Settings = () => {
         console.log('✅ Cancellation verified - user is now blocked from enhancements');
         toast({
           title: 'Subscription Cancelled Successfully',
-          description: 'Your subscription has been cancelled and all future charges have been stopped. You are now blocked from enhancing images until you choose a new plan.',
+          description: `Your subscription has been cancelled and all future charges stopped. You can still use your remaining ${subscriptionInfo.imagesRemaining} credits this month, then you'll need a new plan.`,
           variant: 'destructive'
         });
       } else {
@@ -471,11 +471,11 @@ const Settings = () => {
               <ul className="list-disc list-inside space-y-1 text-sm">
                 <li>Cancel your {subscriptionInfo?.planName} subscription</li>
                 <li>Stop all future charges immediately</li>
-                <li>Block access to image enhancement features</li>
-                <li>Require choosing a new plan to continue</li>
+                <li>Allow you to use remaining {subscriptionInfo?.imagesRemaining} credits this month</li>
+                <li>Require choosing a new plan after credits are used</li>
               </ul>
               <p className="text-destructive font-medium mt-3">
-                This cannot be undone. You will need to subscribe again to continue enhancing images.
+                This cannot be undone. Once your remaining credits are used, you'll need to subscribe again.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>

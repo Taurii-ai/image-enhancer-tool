@@ -206,13 +206,18 @@ export const consumeImageCredit = async (userId: string): Promise<{ success: boo
       };
     }
 
-    // BLOCK ALL cancelled users from enhancing images
+    // Allow cancelled users to use remaining credits but prevent going over
     if (userPlan.status === 'cancelled') {
-      return { 
-        success: false, 
-        remaining: userPlan.credits_remaining || 0, 
-        error: 'Subscription cancelled - Please choose a new plan to continue enhancing images' 
-      };
+      const remainingCredits = userPlan.credits_remaining || 0;
+      if (remainingCredits <= 0) {
+        return { 
+          success: false, 
+          remaining: 0, 
+          error: 'No active plan - Your subscription was cancelled. Please choose a new plan to continue enhancing images' 
+        };
+      }
+      // Let them use remaining credits from their cancelled subscription
+      console.log(`💳 CANCELLED USER: Allowing credit usage, ${remainingCredits} remaining`);
     }
 
     // Check if user has remaining credits
