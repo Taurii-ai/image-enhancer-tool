@@ -214,26 +214,38 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // Check if this email exists in user_plans (simple check for active subscription)
-      const { data: userPlans, error: userPlanError } = await supabase
-        .from('user_plans')
-        .select('user_id, profiles!inner(email)')
-        .eq('profiles.email', forgotPasswordEmail.trim())
-        .eq('status', 'active');
+      // Simple approach: Check if email exists in profiles table and if that user has active plan
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', forgotPasswordEmail.trim())
+        .single();
 
-      console.log('🔍 PASSWORD RESET: Checking user_plans for email:', forgotPasswordEmail.trim());
-      console.log('🔍 PASSWORD RESET: Result:', { userPlans, userPlanError });
+      if (profile) {
+        // Check if this user has active plan
+        const { data: userPlan } = await supabase
+          .from('user_plans')
+          .select('user_id')
+          .eq('user_id', profile.id)
+          .eq('status', 'active')
+          .single();
 
-      if (userPlanError || !userPlans || userPlans.length === 0) {
+        if (!userPlan) {
+          toast({
+            title: 'Account Not Found',
+            description: 'No active subscription found. Please sign up for a plan first.',
+            variant: 'destructive'
+          });
+          return;
+        }
+      } else {
         toast({
           title: 'Account Not Found',
-          description: 'No active subscription found with this email address. Please sign up for a plan first.',
+          description: 'No account found with this email address.',
           variant: 'destructive'
         });
         return;
       }
-
-      console.log('✅ PASSWORD RESET: Found user with active plan, sending reset email');
 
       // Send reset email (Supabase will handle if account exists)
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
