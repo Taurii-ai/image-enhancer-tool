@@ -184,11 +184,18 @@ const Login = () => {
         return;
       }
 
-      // Check if user has payment info (stripe_customer_id OR stripe_subscription_id)
-      if (!profile.stripe_customer_id && !profile.stripe_subscription_id) {
+      // Check if user has active plan in user_plans table
+      const { data: userPlan, error: planError } = await supabase
+        .from('user_plans')
+        .select('*')
+        .eq('user_id', profile.id)
+        .eq('status', 'active')
+        .single();
+
+      if (!userPlan) {
         toast({
-          title: 'Account Not Active',
-          description: 'This account has not completed payment. Please complete your subscription to reset your password.',
+          title: 'No Active Subscription',
+          description: 'Please choose a plan to reset your password.',
           variant: 'destructive'
         });
         return;
