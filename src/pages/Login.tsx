@@ -133,7 +133,15 @@ const Login = () => {
       } else if (isGoogleOAuth) {
         // No user from Google OAuth, go to pricing
         console.log('❌ LOGIN: No user from Google OAuth - redirecting to pricing');
+        toast({
+          title: 'Create an Account First',
+          description: 'Please choose a subscription plan to create your account.',
+          variant: 'destructive'
+        });
         navigate('/pricing');
+      } else {
+        // Non-Google auth users without user data - just stay on login
+        console.log('ℹ️ LOGIN: No user data for non-Google auth - staying on login');
       }
     }
   };
@@ -206,37 +214,51 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // First check if this email has a completed profile with payment
+      // First check if this email has a profile
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('email', forgotPasswordEmail.trim())
         .single();
 
+      // If no profile found by email, check user_plans table directly (for Google users)
       if (profileError || !profile) {
-        toast({
-          title: 'Account Not Found',
-          description: 'No active account found with this email address. Please sign up for a plan first.',
-          variant: 'destructive'
-        });
-        return;
-      }
+        // Try to find user in user_plans by checking if any active plan exists with this email
+        const { data: userPlans, error: userPlanError } = await supabase
+          .from('user_plans')
+          .select('*, profiles!inner(email)')
+          .eq('profiles.email', forgotPasswordEmail.trim())
+          .eq('status', 'active');
 
-      // Check if user has active plan in user_plans table
-      const { data: userPlan, error: planError } = await supabase
-        .from('user_plans')
-        .select('*')
-        .eq('user_id', profile.id)
-        .eq('status', 'active')
-        .single();
+        if (userPlanError || !userPlans || userPlans.length === 0) {
+          toast({
+            title: 'Account Not Found',
+            description: 'No active account found with this email address. Please sign up for a plan first.',
+            variant: 'destructive'
+          });
+          return;
+        }
+        
+        console.log('✅ PASSWORD RESET: Found user in user_plans table');
+      } else {
+        // Profile exists, check if they have active plan
+        const { data: userPlan, error: planError } = await supabase
+          .from('user_plans')
+          .select('*')
+          .eq('user_id', profile.id)
+          .eq('status', 'active')
+          .single();
 
-      if (!userPlan) {
-        toast({
-          title: 'No Active Subscription',
-          description: 'Please choose a plan to reset your password.',
-          variant: 'destructive'
-        });
-        return;
+        if (!userPlan) {
+          toast({
+            title: 'No Active Subscription',
+            description: 'Please choose a plan to reset your password.',
+            variant: 'destructive'
+          });
+          return;
+        }
+        
+        console.log('✅ PASSWORD RESET: Found user with active plan');
       }
 
       // Only send reset email to paying customers
