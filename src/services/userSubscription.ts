@@ -225,7 +225,6 @@ export const consumeImageCredit = async (userId: string): Promise<{ success: boo
         credits_remaining: newCreditsRemaining,
         updated_at: new Date().toISOString()
       })
-      .eq('user_id', userId)
       .eq('id', userPlan.id);
 
     if (updateError) {

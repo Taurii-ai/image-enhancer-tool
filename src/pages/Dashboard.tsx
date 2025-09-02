@@ -111,7 +111,9 @@ const Dashboard = () => {
     
     // Check and consume image credit before processing
     if (user?.id) {
+      console.log('🚀 DASHBOARD: About to consume image credit for user:', user.id);
       const creditResult = await consumeImageCredit(user.id);
+      console.log('🚀 DASHBOARD: Credit consumption result:', creditResult);
       if (!creditResult.success) {
         // Check if it's a cancelled subscription
         if (creditResult.error?.includes('cancelled')) {
@@ -247,6 +249,25 @@ const Dashboard = () => {
                     <span className="text-sm text-muted-foreground">Plan:</span>
                     <span className="text-sm font-semibold text-foreground">{subscriptionInfo.planName}</span>
                   </div>
+                  
+                  {subscriptionInfo.planName === 'Cancelled' && (
+                    <div className="p-3 bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-lg">
+                      <p className="text-sm font-medium text-orange-800 dark:text-orange-200 mb-2">
+                        🚫 Subscription Cancelled
+                      </p>
+                      <p className="text-xs text-orange-700 dark:text-orange-300 mb-3">
+                        Your subscription has been cancelled. You can still use your remaining {subscriptionInfo.imagesRemaining} credits, but you won't be charged again.
+                      </p>
+                      <Button 
+                        size="sm" 
+                        className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                        onClick={() => navigate('/pricing')}
+                      >
+                        Reactivate Subscription
+                      </Button>
+                    </div>
+                  )}
+                  
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Images left:</span>
                     <span className="text-sm font-bold text-primary">{subscriptionInfo.imagesRemaining}</span>
