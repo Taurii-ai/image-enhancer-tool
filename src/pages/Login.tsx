@@ -48,7 +48,22 @@ const Login = () => {
     const redirect = searchParams.get('redirect');
     const plan = searchParams.get('plan');
     const billing = searchParams.get('billing');
-    const isGoogleOAuth = searchParams.get('google_oauth') === 'true';
+    const isGoogleOAuth = searchParams.get('google_oauth') === 'true' || 
+                         sessionStorage.getItem('google_oauth_attempt') === 'true';
+    
+    // Clear session storage flag after checking
+    if (sessionStorage.getItem('google_oauth_attempt') === 'true') {
+      sessionStorage.removeItem('google_oauth_attempt');
+      console.log('🔍 GOOGLE OAUTH: Found session storage flag, clearing it');
+    }
+    
+    console.log('🔍 REDIRECT DEBUG:', { 
+      redirect, 
+      plan, 
+      billing, 
+      isGoogleOAuth,
+      allParams: Object.fromEntries(searchParams.entries())
+    });
     
     // Handle checkout redirect immediately - don't check user profiles for checkout flow
     if (redirect === 'checkout' && plan && billing) {
@@ -264,6 +279,10 @@ const Login = () => {
       const redirect = searchParams.get('redirect');
       const plan = searchParams.get('plan');
       const billing = searchParams.get('billing');
+      
+      // Store Google OAuth attempt in session storage as backup
+      sessionStorage.setItem('google_oauth_attempt', 'true');
+      console.log('🔍 GOOGLE OAUTH: Setting session storage flag');
       
       // Always redirect to login so handleRedirectAfterAuth can run proper logic
       // Add a flag to indicate this is a Google OAuth attempt
