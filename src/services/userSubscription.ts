@@ -52,57 +52,41 @@ const PLAN_LIMITS = {
 
 export const getUserSubscriptionInfo = async (userId: string): Promise<UserSubscriptionInfo> => {
   try {
-    // Get user profile
+    // Get user plan from user_plans table (primary source)
+    const { data: userPlan, error: planError } = await supabase
+      .from('user_plans')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .single();
+
+    // Get user profile as fallback
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
-    if (profileError || !profile) {
-      // Return default if no profile
-      return {
-        planName: 'Free',
-        status: 'active',
-        imagesRemaining: 150,
-        imagesTotal: 150,
-        usagePercentage: 0,
-        daysRemaining: 30,
-        billing: 'monthly',
-        features: PLAN_FEATURES.free,
-        canUpgrade: true
-      };
-    }
-
-    // Get active subscription
-    const { data: subscription, error: subError } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .single();
-
-    let planName = 'Basic';
+    // Use user_plans data as primary source, fallback to profile
+    let planName = 'Free';
     let billing = 'monthly';
-    let features = PLAN_FEATURES.basic;
-    let imagesTotal = PLAN_LIMITS.basic;
+    let features = PLAN_FEATURES.free;
+    let imagesTotal = 150;
 
-    if (!subError && subscription) {
-      planName = subscription.plan_name.charAt(0).toUpperCase() + subscription.plan_name.slice(1);
-      billing = subscription.billing_cycle;
-      features = PLAN_FEATURES[subscription.plan_name as keyof typeof PLAN_FEATURES] || PLAN_FEATURES.basic;
-      imagesTotal = PLAN_LIMITS[subscription.plan_name as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.basic;
-    }
-
-    // Get current usage - use profile plan limit if no subscription
-    const now = new Date();
-    const month = now.getMonth() + 1;
-    const year = now.getFullYear();
-    
-    // If no subscription, use plan from profile
-    if (!subscription) {
+    if (userPlan) {
+      // User has active plan in user_plans table
+      planName = userPlan.plan_name.charAt(0).toUpperCase() + userPlan.plan_name.slice(1);
+      billing = userPlan.billing_cycle;
+      features = PLAN_FEATURES[userPlan.plan_name as keyof typeof PLAN_FEATURES] || PLAN_FEATURES.basic;
+      imagesTotal = userPlan.credits_allocated || PLAN_LIMITS[userPlan.plan_name as keyof typeof PLAN_LIMITS] || 150;
+      console.log('📊 Using user_plans data:', userPlan);
+    } else if (profile && !profileError) {
+      // Fallback to profile data
       const userPlan = profile.plan || 'free';
       planName = userPlan.charAt(0).toUpperCase() + userPlan.slice(1);
+      features = PLAN_FEATURES[userPlan as keyof typeof PLAN_FEATURES] || PLAN_FEATURES.free;
+      imagesTotal = PLAN_LIMITS[userPlan as keyof typeof PLAN_LIMITS] || 150;
+      console.log('📊 Using profile data as fallback:', profile);
       
       // For cancelled users, show they need to resubscribe
       if (userPlan === 'cancelled') {
@@ -115,6 +99,11 @@ export const getUserSubscriptionInfo = async (userId: string): Promise<UserSubsc
       }
     }
 
+    // Get current usage
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+
     const { data: usage } = await supabase
       .from('usage_tracking')
       .select('*')
@@ -123,21 +112,28 @@ export const getUserSubscriptionInfo = async (userId: string): Promise<UserSubsc
       .eq('year', year)
       .single();
 
-    const imagesUsed = usage?.images_processed || 0;
-    const imagesRemaining = Math.max(0, imagesTotal - imagesUsed);
-    const usagePercentage = imagesTotal > 0 ? Math.round((imagesUsed / imagesTotal) * 100) : 0;
+    // Use credits_remaining from user_plans if available, otherwise calculate
+    let imagesRemaining;
+    if (userPlan) {
+      imagesRemaining = userPlan.credits_remaining || 0;
+    } else {
+      const imagesUsed = usage?.images_processed || 0;
+      imagesRemaining = Math.max(0, imagesTotal - imagesUsed);
+    }
 
-    // Calculate days remaining (simplified to 30 days)
+    const usagePercentage = imagesTotal > 0 ? Math.round(((imagesTotal - imagesRemaining) / imagesTotal) * 100) : 0;
+
+    // Calculate days remaining
     let daysRemaining = 30;
-    if (subscription) {
-      const endDate = new Date(subscription.current_period_end);
+    if (userPlan && userPlan.subscription_end) {
+      const endDate = new Date(userPlan.subscription_end);
       const diffTime = endDate.getTime() - now.getTime();
       daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
     }
 
     return {
       planName,
-      status: subscription?.status || 'active',
+      status: userPlan?.status || 'active',
       imagesRemaining,
       imagesTotal,
       usagePercentage,

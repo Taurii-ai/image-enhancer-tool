@@ -63,12 +63,26 @@ const Login = () => {
           .single();
 
         if (profile) {
-          // Profile exists - check if they actually paid (have a Stripe customer ID)
-          if (profile.stripe_customer_id) {
-            // User has paid - they can access dashboard
+          // Profile exists - check if they have an active plan in user_plans table
+          const { data: userPlan, error: planError } = await supabase
+            .from('user_plans')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('status', 'active')
+            .single();
+
+          if (userPlan) {
+            // User has an active plan - they can access dashboard
+            console.log('✅ LOGIN: User found in user_plans, accessing dashboard', userPlan);
             navigate('/dashboard');
           } else {
-            // User has a profile but hasn't paid - redirect to pricing
+            // User has no active plan - redirect to pricing with error
+            console.log('❌ LOGIN: User not in user_plans or inactive plan');
+            toast({
+              title: 'No Active Subscription',
+              description: 'Please choose a plan to access the image enhancer.',
+              variant: 'destructive'
+            });
             navigate('/pricing');
           }
         } else if (profileError && profileError.code === 'PGRST116') {
