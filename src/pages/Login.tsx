@@ -22,20 +22,27 @@ const Login = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [defaultTab, setDefaultTab] = useState('login');
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [hasRedirected, setHasRedirected] = useState(false);
 
   useEffect(() => {
-    // Redirect if already authenticated
-    if (isAuthenticated) {
-      handleRedirectAfterAuth();
-      return;
-    }
-
     // Check for tab parameter
     const tab = searchParams.get('tab');
     if (tab === 'signup') {
       setDefaultTab('signup');
     }
-  }, [isAuthenticated, searchParams]);
+
+    // Reset redirect flag when user logs out
+    if (!isAuthenticated && hasRedirected) {
+      setHasRedirected(false);
+    }
+
+    // Redirect if already authenticated - but only once
+    if (isAuthenticated && !hasRedirected) {
+      setHasRedirected(true);
+      handleRedirectAfterAuth();
+      return;
+    }
+  }, [isAuthenticated, hasRedirected, searchParams]);
 
   const handleRedirectAfterAuth = async () => {
     const redirect = searchParams.get('redirect');
