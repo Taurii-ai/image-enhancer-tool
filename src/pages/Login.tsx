@@ -273,14 +273,38 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // For now, let's allow password reset for any registered user and check subscription status later
-      // This is more user-friendly - we'll verify subscription when they try to use the service
-      
-      // Just check if user exists in auth (they have an account)
-      console.log('🔍 Checking password reset for email:', forgotPasswordEmail.trim());
-      
-      // Simply send the reset email - Supabase Auth will handle if account exists
-      // We'll check subscription status when they actually log in
+      // Check if user exists in profiles table first
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', forgotPasswordEmail.trim())
+        .single();
+
+      if (!profile) {
+        toast({
+          title: 'No Account Found',
+          description: 'No account exists with this email address.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Check if user has active subscription in user_plans
+      const { data: userPlan, error: planError } = await supabase
+        .from('user_plans')
+        .select('*')
+        .eq('user_id', profile.id)
+        .eq('status', 'active')
+        .single();
+
+      if (!userPlan) {
+        toast({
+          title: 'No Active Subscription',
+          description: 'Only customers with active subscriptions can reset passwords. Please purchase a plan first.',
+          variant: 'destructive'
+        });
+        return;
+      }
 
       // Send reset email (Supabase will handle if account exists)
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {

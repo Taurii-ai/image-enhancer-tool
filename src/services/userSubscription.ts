@@ -230,10 +230,25 @@ export const consumeImageCredit = async (userId: string): Promise<{ success: boo
 
     if (updateError) {
       console.error('💳 CREDIT CONSUMPTION ERROR: Failed to update user_plans credits:', updateError);
+      console.error('💳 CREDIT CONSUMPTION ERROR: Update details:', {
+        userId,
+        planId: userPlan.id,
+        currentCredits,
+        newCreditsRemaining
+      });
       return { success: false, remaining: currentCredits, error: 'Failed to update credits' };
     }
     
     console.log('💳 CREDIT CONSUMPTION: Successfully updated credits');
+    
+    // Verify the update worked by reading back the value
+    const { data: verifyPlan } = await supabase
+      .from('user_plans')
+      .select('credits_remaining')
+      .eq('id', userPlan.id)
+      .single();
+    
+    console.log('💳 CREDIT CONSUMPTION: Verification - credits now:', verifyPlan?.credits_remaining);
 
     // Also update usage_tracking table for reporting (optional - keeps historical data)
     const now = new Date();
