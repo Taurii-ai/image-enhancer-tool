@@ -214,35 +214,34 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // Use same logic as login: check profiles table, then user_plans table
-      const { data: profile } = await supabase
+      // OLD WAY THAT WORKED: Check if email exists in profiles
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('id')
+        .select('*')
         .eq('email', forgotPasswordEmail.trim())
         .single();
 
-      if (profile) {
-        const { data: userPlan } = await supabase
-          .from('user_plans')
-          .select('*')
-          .eq('user_id', profile.id)
-          .eq('status', 'active')
-          .single();
-
-        if (userPlan) {
-          console.log('✅ Found user in user_plans - sending reset email');
-        } else {
-          toast({
-            title: 'No Active Subscription',
-            description: 'Please choose a plan to reset your password.',
-            variant: 'destructive'
-          });
-          return;
-        }
-      } else {
+      if (profileError || !profile) {
         toast({
           title: 'Account Not Found',
-          description: 'No account found with this email address.',
+          description: 'No active account found with this email address. Please sign up for a plan first.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // NEW ADDITION: Check if their user_id is also in user_plans
+      const { data: userPlan } = await supabase
+        .from('user_plans')
+        .select('user_id')
+        .eq('user_id', profile.id)
+        .eq('status', 'active')
+        .single();
+
+      if (!userPlan) {
+        toast({
+          title: 'No Active Subscription',
+          description: 'Please choose a plan to reset your password.',
           variant: 'destructive'
         });
         return;
