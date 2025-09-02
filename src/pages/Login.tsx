@@ -118,17 +118,18 @@ const Login = () => {
               });
               navigate('/pricing');
             } else if (isGoogleOAuth) {
-            // Only show error and redirect to pricing for Google OAuth users without plans
-            console.log('❌ LOGIN: Google OAuth user not in user_plans');
-            toast({
-              title: 'No Active Subscription',
-              description: 'Please choose a plan to access the image enhancer.',
-              variant: 'destructive'
-            });
-            navigate('/pricing');
-          } else {
-            // Regular users without plans - just stay on login page (they can try email/password)
-            console.log('ℹ️ LOGIN: Regular user not in user_plans - staying on login');
+              // Only show error and redirect to pricing for Google OAuth users without plans
+              console.log('❌ LOGIN: Google OAuth user not in user_plans');
+              toast({
+                title: 'No Active Subscription',
+                description: 'Please choose a plan to access the image enhancer.',
+                variant: 'destructive'
+              });
+              navigate('/pricing');
+            } else {
+              // Regular users without plans - just stay on login page (they can try email/password)
+              console.log('ℹ️ LOGIN: Regular user not in user_plans - staying on login');
+            }
           }
         } else if (profileError && profileError.code === 'PGRST116' && isGoogleOAuth) {
           // Profile doesn't exist - for new Google users, go to pricing
