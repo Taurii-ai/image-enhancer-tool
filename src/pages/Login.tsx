@@ -214,31 +214,16 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // Simple approach: Check if email exists in profiles table and if that user has active plan
-      const { data: profile } = await supabase
+      // Step 1: Find user by email in profiles table
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
         .eq('email', forgotPasswordEmail.trim())
         .single();
 
-      if (profile) {
-        // Check if this user has active plan
-        const { data: userPlan } = await supabase
-          .from('user_plans')
-          .select('user_id')
-          .eq('user_id', profile.id)
-          .eq('status', 'active')
-          .single();
+      console.log('🔍 Step 1 - Profile lookup:', { profile, profileError, email: forgotPasswordEmail.trim() });
 
-        if (!userPlan) {
-          toast({
-            title: 'Account Not Found',
-            description: 'No active subscription found. Please sign up for a plan first.',
-            variant: 'destructive'
-          });
-          return;
-        }
-      } else {
+      if (profileError || !profile) {
         toast({
           title: 'Account Not Found',
           description: 'No account found with this email address.',
@@ -246,6 +231,27 @@ const Login = () => {
         });
         return;
       }
+
+      // Step 2: Check if this user_id has active plan in user_plans table
+      const { data: userPlan, error: planError } = await supabase
+        .from('user_plans')
+        .select('user_id')
+        .eq('user_id', profile.id)
+        .eq('status', 'active')
+        .single();
+
+      console.log('🔍 Step 2 - User plan lookup:', { userPlan, planError, userId: profile.id });
+
+      if (planError || !userPlan) {
+        toast({
+          title: 'No Active Subscription',
+          description: 'Please choose a plan to reset your password.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      console.log('✅ Both checks passed - sending reset email');
 
       // Send reset email (Supabase will handle if account exists)
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
