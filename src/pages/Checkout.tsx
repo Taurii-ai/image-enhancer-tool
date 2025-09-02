@@ -20,9 +20,7 @@ const Checkout = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerName, setCustomerName] = useState('');
-  const [customerPassword, setCustomerPassword] = useState('');
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [signupMethod, setSignupMethod] = useState<'email' | 'google'>('email');
   
   // Get plan and billing from URL params
   const planId = searchParams.get('plan') || 'pro';
@@ -63,61 +61,11 @@ const Checkout = () => {
       return;
     }
 
-    if (signupMethod === 'email' && !customerPassword.trim()) {
-      toast({
-        title: "Password Required", 
-        description: "Please create a password for your account.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (signupMethod === 'email' && customerPassword.length < 6) {
-      toast({
-        title: "Password Too Short", 
-        description: "Password must be at least 6 characters long.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     if (!selectedPlan) return;
 
     setIsLoading(true);
 
     try {
-      // Create account if using email method and not already logged in
-      if (signupMethod === 'email' && !user) {
-        const { data, error } = await supabase.auth.signUp({
-          email: customerEmail.trim(),
-          password: customerPassword,
-          options: {
-            data: {
-              full_name: customerName.trim(),
-            }
-          }
-        });
-
-        if (error) {
-          toast({
-            title: 'Account Creation Failed',
-            description: error.message,
-            variant: 'destructive'
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        toast({
-          title: 'Account Created!',
-          description: 'Please check your email to confirm your account, then complete payment.',
-        });
-      } else if (signupMethod === 'google') {
-        // Redirect to Google OAuth for account creation
-        await handleGoogleSignIn();
-        return;
-      }
-
       const paymentData: PaymentData = {
         planId: selectedPlan.id,
         billing,
@@ -300,50 +248,6 @@ const Checkout = () => {
                       disabled={isLoading}
                     />
                   </div>
-
-                  {/* Signup Method Selection */}
-                  <div className="space-y-3">
-                    <Label>Account Creation Method</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        type="button"
-                        variant={signupMethod === 'email' ? 'default' : 'outline'}
-                        onClick={() => setSignupMethod('email')}
-                        disabled={isLoading || isGoogleLoading}
-                        className="text-sm"
-                      >
-                        Email & Password
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={signupMethod === 'google' ? 'default' : 'outline'}
-                        onClick={() => setSignupMethod('google')}
-                        disabled={isLoading || isGoogleLoading}
-                        className="text-sm"
-                      >
-                        Google Account
-                      </Button>
-                    </div>
-                  </div>
-
-                  {signupMethod === 'email' && (
-                    <div>
-                      <Label htmlFor="password">Create Password</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={customerPassword}
-                        onChange={(e) => setCustomerPassword(e.target.value)}
-                        placeholder="Create a secure password"
-                        required={signupMethod === 'email'}
-                        disabled={isLoading}
-                        minLength={6}
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Password must be at least 6 characters long
-                      </p>
-                    </div>
-                  )}
                 </div>
 
                 <div className="space-y-4">
