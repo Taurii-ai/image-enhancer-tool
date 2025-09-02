@@ -193,6 +193,16 @@ export const consumeImageCredit = async (userId: string): Promise<{ success: boo
       };
     }
 
+    // Check if user has any credits remaining
+    const remainingCredits = userPlan.credits_remaining || 0;
+    if (remainingCredits <= 0) {
+      return { 
+        success: false, 
+        remaining: 0, 
+        error: 'No credits remaining - Your monthly limit has been reached. Credits will reset on your billing day or upgrade your plan for more images.' 
+      };
+    }
+
     // Check if user's subscription is cancelled but still has credits
     if (userPlan.status === 'cancelled') {
       const remainingCredits = userPlan.credits_remaining || 0;
