@@ -273,14 +273,31 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // Check if user exists in user_plans (only paying customers can reset)
-      const { data: userPlans } = await supabase
-        .from('user_plans')
-        .select('user_id, profiles!inner(email)')
-        .eq('profiles.email', forgotPasswordEmail.trim())
-        .eq('status', 'active');
+      // First, find the user by email in profiles table
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', forgotPasswordEmail.trim())
+        .single();
 
-      if (!userPlans || userPlans.length === 0) {
+      if (!profile) {
+        toast({
+          title: 'Account Not Found',
+          description: 'No account found with this email address.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Then check if user exists in user_plans (only paying customers can reset)
+      const { data: userPlan } = await supabase
+        .from('user_plans')
+        .select('*')
+        .eq('user_id', profile.id)
+        .eq('status', 'active')
+        .single();
+
+      if (!userPlan) {
         toast({
           title: 'No Active Subscription',
           description: 'Only customers with active subscriptions can reset passwords. Please sign up for a plan first.',

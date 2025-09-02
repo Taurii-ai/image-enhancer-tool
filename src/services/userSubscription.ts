@@ -220,7 +220,7 @@ export const consumeImageCredit = async (userId: string): Promise<{ success: boo
         updated_at: new Date().toISOString()
       })
       .eq('user_id', userId)
-      .eq('status', 'active');
+      .eq('id', userPlan.id);
 
     if (updateError) {
       console.error('Failed to update user_plans credits:', updateError);
