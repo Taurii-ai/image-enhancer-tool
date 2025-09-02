@@ -154,14 +154,11 @@ const Dashboard = () => {
         const creditResult = await consumeImageCredit(user.id);
         console.log('🚀 DASHBOARD: Credit consumption result:', creditResult);
         
-        // Refresh subscription info after credit consumption
+        // Refresh subscription info after credit consumption  
         console.log('🔄 DASHBOARD: Refreshing subscription info after credit consumption...');
-        setTimeout(() => {
-          getUserSubscriptionInfo(user.id).then((newInfo) => {
-            console.log('🔄 DASHBOARD: New subscription info:', newInfo);
-            setSubscriptionInfo(newInfo);
-          });
-        }, 1000); // Small delay to ensure database updates are complete
+        const newInfo = await getUserSubscriptionInfo(user.id);
+        console.log('🔄 DASHBOARD: New subscription info:', newInfo);
+        setSubscriptionInfo(newInfo);
       }
       debugLog('info', '🔧 UPDATING UI STATE');
     } catch (error) {

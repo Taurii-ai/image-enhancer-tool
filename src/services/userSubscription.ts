@@ -120,15 +120,18 @@ export const getUserSubscriptionInfo = async (userId: string): Promise<UserSubsc
       .eq('year', year)
       .single();
 
-    // Use credits_remaining from user_plans if available, otherwise calculate
-    let imagesRemaining;
-    if (userPlan) {
-      // For cancelled users, they can use remaining credits but no more
-      imagesRemaining = userPlan.status === 'cancelled' ? Math.max(0, userPlan.credits_remaining || 0) : (userPlan.credits_remaining || 0);
-    } else {
-      const imagesUsed = usage?.images_processed || 0;
-      imagesRemaining = Math.max(0, imagesTotal - imagesUsed);
-    }
+    // Calculate remaining credits from usage_tracking (this is the working source)
+    const imagesUsed = usage?.images_processed || 0;
+    let imagesRemaining = Math.max(0, imagesTotal - imagesUsed);
+    
+    console.log('📊 CREDIT CALCULATION:', {
+      imagesTotal,
+      imagesUsed, 
+      imagesRemaining,
+      userId,
+      month,
+      year
+    });
 
     const usagePercentage = imagesTotal > 0 ? Math.round(((imagesTotal - imagesRemaining) / imagesTotal) * 100) : 0;
 
