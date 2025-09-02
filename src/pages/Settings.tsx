@@ -84,22 +84,29 @@ const Settings = () => {
         }
       }
 
-      // Add user to cancelled_users tracking table
-      const { error: cancelledUserError } = await supabase
-        .from('cancelled_users')
-        .insert({
-          user_id: user.id,
-          email: user.email || 'unknown',
-          plan_name: subscriptionInfo.planName,
-          cancellation_date: new Date().toISOString(),
-          stripe_subscription_id: userPlan?.stripe_subscription_id || null,
-          credits_remaining: subscriptionInfo.imagesRemaining,
-          cancellation_reason: 'User initiated cancellation via settings'
-        });
+      // Add user to cancelled_users tracking table (if table exists)
+      try {
+        const { error: cancelledUserError } = await supabase
+          .from('cancelled_users')
+          .insert({
+            user_id: user.id,
+            email: user.email || 'unknown',
+            plan_name: subscriptionInfo.planName,
+            cancellation_date: new Date().toISOString(),
+            stripe_subscription_id: userPlan?.stripe_subscription_id || null,
+            credits_remaining: subscriptionInfo.imagesRemaining,
+            cancellation_reason: 'User initiated cancellation via settings'
+          });
 
-      if (cancelledUserError) {
-        console.error('Error adding to cancelled_users table:', cancelledUserError);
-        // Don't fail the cancellation if this fails
+        if (cancelledUserError) {
+          console.error('Error adding to cancelled_users table:', cancelledUserError);
+          // Don't fail the cancellation if tracking table doesn't exist
+        } else {
+          console.log('✅ User added to cancelled_users tracking table');
+        }
+      } catch (trackingError) {
+        console.error('Cancelled users tracking failed (table may not exist):', trackingError);
+        // Continue with cancellation even if tracking fails
       }
 
       // Update user_plans table to cancelled status
@@ -132,11 +139,28 @@ const Settings = () => {
         console.error('Error updating profiles:', profileError);
       }
 
-      toast({
-        title: 'Subscription Cancelled Successfully',
-        description: 'Your subscription has been cancelled and all future charges have been stopped. To continue enhancing images, please choose a new plan.',
-        variant: 'destructive'
-      });
+      // Verify cancellation worked by checking status
+      const { data: verifyPlan } = await supabase
+        .from('user_plans')
+        .select('status')
+        .eq('user_id', user.id)
+        .single();
+
+      if (verifyPlan?.status === 'cancelled') {
+        console.log('✅ Cancellation verified - user is now blocked from enhancements');
+        toast({
+          title: 'Subscription Cancelled Successfully',
+          description: 'Your subscription has been cancelled and all future charges have been stopped. You are now blocked from enhancing images until you choose a new plan.',
+          variant: 'destructive'
+        });
+      } else {
+        console.error('⚠️ Cancellation may not have completed properly');
+        toast({
+          title: 'Cancellation Processed',
+          description: 'Your cancellation has been processed. If you can still enhance images, please contact support.',
+          variant: 'destructive'
+        });
+      }
 
       // Refresh subscription info
       getUserSubscriptionInfo(user.id).then(setSubscriptionInfo);
