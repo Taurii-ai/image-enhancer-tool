@@ -109,29 +109,19 @@ const Dashboard = () => {
       fileType: file.type
     });
     
-    // Check and consume image credit before processing
+    // Check if user has credits before processing (don't consume yet)
     if (user?.id) {
-      console.log('🚀 DASHBOARD: About to consume image credit for user:', user.id);
-      const creditResult = await consumeImageCredit(user.id);
-      console.log('🚀 DASHBOARD: Credit consumption result:', creditResult);
-      if (!creditResult.success) {
-        // Check if it's a cancelled subscription
-        if (creditResult.error?.includes('cancelled')) {
-          toast({
-            title: 'Subscription Cancelled',
-            description: 'Please choose a new plan to continue enhancing images.',
-            variant: 'destructive'
-          });
-          // Redirect to pricing page after 2 seconds
-          setTimeout(() => {
-            navigate('/pricing');
-          }, 2000);
-          return;
-        }
-        
+      console.log('🚀 DASHBOARD: Checking user credits before enhancement...');
+      const { data: userPlan } = await supabase
+        .from('user_plans')
+        .select('credits_remaining, status')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!userPlan || userPlan.credits_remaining <= 0) {
         toast({
-          title: 'Credit Limit Reached',
-          description: creditResult.error || 'You have reached your monthly limit.',
+          title: 'No Credits Remaining',
+          description: 'Please upgrade your plan or wait for monthly reset.',
           variant: 'destructive'
         });
         return;
@@ -161,9 +151,14 @@ const Dashboard = () => {
       setResult(enhancementResult);
       setProcessingState('completed');
       
-      // Refresh subscription info after successful enhancement
+      // Consume credit AFTER successful enhancement
       if (user?.id) {
-        console.log('🔄 DASHBOARD: Refreshing subscription info after enhancement...');
+        console.log('🚀 DASHBOARD: Enhancement successful! Now consuming credit for user:', user.id);
+        const creditResult = await consumeImageCredit(user.id);
+        console.log('🚀 DASHBOARD: Credit consumption result:', creditResult);
+        
+        // Refresh subscription info after credit consumption
+        console.log('🔄 DASHBOARD: Refreshing subscription info after credit consumption...');
         setTimeout(() => {
           getUserSubscriptionInfo(user.id).then((newInfo) => {
             console.log('🔄 DASHBOARD: New subscription info:', newInfo);
