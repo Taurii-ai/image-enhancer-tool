@@ -105,8 +105,9 @@ const Settings = () => {
       }
 
       toast({
-        title: 'Subscription Cancelled',
-        description: 'Your subscription has been cancelled successfully. You can continue using your remaining credits, but no further charges will occur.',
+        title: 'Subscription Cancelled Successfully',
+        description: 'Your subscription has been cancelled and all future charges have been stopped. To continue enhancing images, please choose a new plan.',
+        variant: 'destructive'
       });
 
       // Refresh subscription info

@@ -109,12 +109,20 @@ const Dashboard = () => {
       fileType: file.type
     });
     
-    // Check if user has credits before processing
+    // Check if user has credits and is not cancelled before processing
     if (user?.id) {
-      console.log('🚀 DASHBOARD: Checking user credits before enhancement...');
+      console.log('🚀 DASHBOARD: Checking user credits and status before enhancement...');
       
       // Quick credit check using our existing service
       const subscriptionCheck = await getUserSubscriptionInfo(user.id);
+      if (subscriptionCheck.planName === 'Cancelled') {
+        toast({
+          title: 'Subscription Cancelled',
+          description: 'Your subscription has been cancelled. Please choose a new plan to continue enhancing images.',
+          variant: 'destructive'
+        });
+        return;
+      }
       if (subscriptionCheck.imagesRemaining <= 0) {
         toast({
           title: 'No Credits Remaining',
