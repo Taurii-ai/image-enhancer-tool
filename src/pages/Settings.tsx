@@ -129,24 +129,30 @@ const Settings = () => {
       if (verifyPlan?.status === 'cancelled') {
         console.log('✅ Cancellation verified - user is now blocked from enhancements');
         
-        // Track the cancellation in cancelled_users table
+        // Direct insertion to cancelled_users table (same pattern as usage_tracking)
         try {
-          const trackResponse = await fetch('/api/track-cancellation', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId: user.id,
-              email: user.email
-            })
-          });
+          console.log('📝 DIRECT: Adding to cancelled_users table like usage_tracking...');
+          const { data: cancelledData, error: cancelledError } = await supabase
+            .from('cancelled_users')
+            .upsert({
+              user_id: user.id,
+              email: user.email || 'unknown',
+              plan_name: subscriptionInfo.planName,
+              cancellation_date: new Date().toISOString(),
+              stripe_subscription_id: userPlan?.stripe_subscription_id || null,
+              credits_remaining: subscriptionInfo.imagesRemaining,
+              cancellation_reason: 'User initiated cancellation via settings'
+            }, {
+              onConflict: 'user_id'
+            });
           
-          if (trackResponse.ok) {
-            console.log('✅ TRACK: Successfully added to cancelled_users table');
+          if (cancelledError) {
+            console.error('❌ DIRECT: Error inserting to cancelled_users:', cancelledError);
           } else {
-            console.error('❌ TRACK: Failed to add to cancelled_users table');
+            console.log('✅ DIRECT: Successfully added to cancelled_users table:', cancelledData);
           }
-        } catch (trackError) {
-          console.error('❌ TRACK: Exception calling track-cancellation:', trackError);
+        } catch (directError) {
+          console.error('❌ DIRECT: Exception during cancelled_users insertion:', directError);
         }
         
         toast({
