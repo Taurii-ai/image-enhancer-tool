@@ -484,13 +484,13 @@ const Settings = () => {
                 This action will:
               </p>
               <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Let us know why you want to cancel (helps us improve)</li>
                 <li>Cancel your {subscriptionInfo?.planName} subscription</li>
                 <li>Stop all future charges immediately</li>
-                <li>Allow you to use remaining {subscriptionInfo?.imagesRemaining} credits this month</li>
-                <li>Require choosing a new plan after credits are used</li>
+                <li>You'll keep your remaining {subscriptionInfo?.imagesRemaining} credits this month</li>
               </ul>
-              <p className="text-destructive font-medium mt-3">
-                This cannot be undone. Once your remaining credits are used, you'll need to subscribe again.
+              <p className="text-muted-foreground text-sm mt-3">
+                We'll send you an email template to support@enhpix.com to process your cancellation request.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -499,11 +499,31 @@ const Settings = () => {
               Keep Subscription
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleCancelSubscription}
+              onClick={() => {
+                const subject = encodeURIComponent('Subscription Cancellation Request');
+                const body = encodeURIComponent(`Hi Enhpix Support Team,
+
+I would like to cancel my ${subscriptionInfo?.planName} subscription.
+
+Reason for cancellation:
+[Please tell us why you're cancelling - this helps us improve our service]
+
+Current plan: ${subscriptionInfo?.planName}
+Remaining credits: ${subscriptionInfo?.imagesRemaining}
+Email: ${user?.email}
+
+Please process my cancellation request. I understand I will keep my remaining ${subscriptionInfo?.imagesRemaining} credits for this month.
+
+Thank you,
+${user?.email}`);
+                
+                window.open(`mailto:support@enhpix.com?subject=${subject}&body=${body}`, '_self');
+                setShowCancelConfirm(false);
+              }}
               disabled={isCancelling}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isCancelling ? 'Cancelling...' : 'Yes, Cancel Subscription'}
+              Send Cancellation Email
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
