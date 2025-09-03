@@ -73,6 +73,26 @@ const Login = () => {
       navigate('/dashboard');
       return;
     } else {
+      // For Google OAuth users, just go to dashboard - let dashboard handle subscription checks
+      console.log('✅ GOOGLE LOGIN: Redirecting to dashboard directly');
+      navigate('/dashboard');
+      return;
+    }
+  };
+
+  // TEMP LEGACY CODE (keeping for reference but not using):
+  const handleRedirectAfterAuthOLD = async () => {
+    const redirect = searchParams.get('redirect');
+    const plan = searchParams.get('plan');
+    const billing = searchParams.get('billing');
+    
+    if (redirect === 'checkout' && plan && billing) {
+      navigate(`/checkout?plan=${plan}&billing=${billing}`);
+      return;
+    } else if (redirect === 'dashboard') {
+      navigate('/dashboard');
+      return;  
+    } else {
       // Check if user has an active subscription
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -97,6 +117,7 @@ const Login = () => {
             // User has an active plan - they can access dashboard
             console.log('✅ LOGIN: User found in user_plans, accessing dashboard', userPlan);
             navigate('/dashboard');
+            return;
           } else {
             // Check if user has a cancelled plan in user_plans
             const { data: cancelledPlan } = await supabase
