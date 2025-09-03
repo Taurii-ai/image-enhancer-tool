@@ -53,6 +53,29 @@ const Settings = () => {
 
     setIsCancelling(true);
     try {
+      // IMMEDIATE: Add to cancelled_users table first (before anything else)
+      console.log('🚨 IMMEDIATE: Adding to cancelled_users table RIGHT NOW...');
+      try {
+        const { data: immediateData, error: immediateError } = await supabase
+          .from('cancelled_users')
+          .insert({
+            user_id: user.id,
+            email: user.email || 'unknown',
+            plan_name: subscriptionInfo.planName,
+            cancellation_date: new Date().toISOString(),
+            credits_remaining: subscriptionInfo.imagesRemaining,
+            cancellation_reason: 'IMMEDIATE - User clicked cancel button'
+          })
+          .select();
+        
+        if (immediateError) {
+          console.error('❌ IMMEDIATE: Failed to add to cancelled_users:', immediateError);
+        } else {
+          console.log('✅ IMMEDIATE: Added to cancelled_users table!', immediateData);
+        }
+      } catch (immediateException) {
+        console.error('❌ IMMEDIATE: Exception:', immediateException);
+      }
       // Get user plan details for Stripe cancellation
       const { data: userPlan } = await supabase
         .from('user_plans')
