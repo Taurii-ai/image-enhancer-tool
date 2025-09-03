@@ -22,6 +22,7 @@ const Login = () => {
   const [defaultTab, setDefaultTab] = useState('login');
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [hasRedirected, setHasRedirected] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
     // Check for tab parameter
@@ -33,15 +34,21 @@ const Login = () => {
     // Reset redirect flag when user logs out
     if (!isAuthenticated && hasRedirected) {
       setHasRedirected(false);
+      setIsRedirecting(false);
     }
 
-    // Redirect if already authenticated - but only once
-    if (isAuthenticated && !hasRedirected) {
+    // Redirect if already authenticated - but only once and prevent blue screen
+    if (isAuthenticated && !hasRedirected && !isRedirecting) {
       setHasRedirected(true);
-      handleRedirectAfterAuth();
+      setIsRedirecting(true);
+      
+      // Add small delay to prevent blue screen on refresh
+      setTimeout(() => {
+        handleRedirectAfterAuth();
+      }, 100);
       return;
     }
-  }, [isAuthenticated, hasRedirected, searchParams]);
+  }, [isAuthenticated, hasRedirected, searchParams, isRedirecting]);
 
   const handleRedirectAfterAuth = async () => {
     const redirect = searchParams.get('redirect');

@@ -148,14 +148,28 @@ const Dashboard = () => {
         const newInfo = await getUserSubscriptionInfo(user.id);
         console.log('🔄 MOBILE FIX: New subscription info:', newInfo);
         
-        // Force state update even if data looks the same
+        // STRONGER mobile refresh - multiple state updates to force re-render
         setSubscriptionInfo(null);
+        
+        // Force multiple re-renders with different approaches
         setTimeout(() => {
           setSubscriptionInfo(newInfo);
-        }, 100);
+        }, 50);
         
-        // Also trigger a re-render
-        setResult({ ...enhancementResult, timestamp: Date.now() });
+        setTimeout(() => {
+          setSubscriptionInfo({ ...newInfo, forceUpdate: Date.now() });
+        }, 150);
+        
+        // Force component re-render with result update
+        setResult({ ...enhancementResult, timestamp: Date.now(), mobileUpdate: Math.random() });
+        
+        // Additional mobile-specific refresh trigger
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+          console.log('🔄 MOBILE DETECTED: Extra refresh triggers...');
+          setTimeout(() => {
+            setSubscriptionInfo(prev => prev ? { ...prev, mobileRefresh: Date.now() } : newInfo);
+          }, 300);
+        }
       }
       debugLog('info', '🔧 UPDATING UI STATE');
     } catch (error) {
