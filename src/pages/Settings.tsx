@@ -53,28 +53,26 @@ const Settings = () => {
 
     setIsCancelling(true);
     try {
-      // IMMEDIATE: Add to cancelled_users table first (before anything else)
-      console.log('🚨 IMMEDIATE: Adding to cancelled_users table RIGHT NOW...');
+      // Force insert using API with raw SQL
+      console.log('🚨 FORCE: Using raw SQL to force insert to cancelled_users...');
       try {
-        const { data: immediateData, error: immediateError } = await supabase
-          .from('cancelled_users')
-          .insert({
-            user_id: user.id,
-            email: user.email || 'unknown',
-            plan_name: subscriptionInfo.planName,
-            cancellation_date: new Date().toISOString(),
-            credits_remaining: subscriptionInfo.imagesRemaining,
-            cancellation_reason: 'IMMEDIATE - User clicked cancel button'
+        const response = await fetch('/api/force-cancelled-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            email: user.email
           })
-          .select();
+        });
         
-        if (immediateError) {
-          console.error('❌ IMMEDIATE: Failed to add to cancelled_users:', immediateError);
+        const result = await response.json();
+        if (response.ok) {
+          console.log('✅ FORCE: Raw SQL insert succeeded!', result);
         } else {
-          console.log('✅ IMMEDIATE: Added to cancelled_users table!', immediateData);
+          console.error('❌ FORCE: Raw SQL insert failed:', result);
         }
-      } catch (immediateException) {
-        console.error('❌ IMMEDIATE: Exception:', immediateException);
+      } catch (forceException) {
+        console.error('❌ FORCE: Exception:', forceException);
       }
       // Get user plan details for Stripe cancellation
       const { data: userPlan } = await supabase
