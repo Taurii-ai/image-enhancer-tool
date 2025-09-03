@@ -71,7 +71,10 @@ const Settings = () => {
             },
             body: JSON.stringify({
               subscriptionId: userPlan.stripe_subscription_id,
-              userId: user.id
+              userId: user.id,
+              userEmail: user.email,
+              planName: subscriptionInfo.planName,
+              creditsRemaining: subscriptionInfo.imagesRemaining
             }),
           });
 
@@ -84,60 +87,7 @@ const Settings = () => {
         }
       }
 
-      // Add user to cancelled_users tracking table
-      try {
-        console.log('📝 CANCELLATION: Adding user to cancelled_users table...', {
-          user_id: user.id,
-          email: user.email,
-          plan_name: subscriptionInfo.planName,
-          credits_remaining: subscriptionInfo.imagesRemaining
-        });
-
-        const { data: insertData, error: cancelledUserError } = await supabase
-          .from('cancelled_users')
-          .insert({
-            user_id: user.id,
-            email: user.email || 'unknown',
-            plan_name: subscriptionInfo.planName,
-            cancellation_date: new Date().toISOString(),
-            stripe_subscription_id: userPlan?.stripe_subscription_id || null,
-            credits_remaining: subscriptionInfo.imagesRemaining,
-            cancellation_reason: 'User initiated cancellation via settings'
-          })
-          .select();
-
-        if (cancelledUserError) {
-          console.error('❌ CANCELLATION: Error adding to cancelled_users table:', cancelledUserError);
-          console.error('❌ CANCELLATION: Error details:', JSON.stringify(cancelledUserError, null, 2));
-          
-          // Try alternative approach - insert via service role if needed
-          try {
-            const response = await fetch('/api/add-cancelled-user', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                user_id: user.id,
-                email: user.email || 'unknown',
-                plan_name: subscriptionInfo.planName,
-                stripe_subscription_id: userPlan?.stripe_subscription_id || null,
-                credits_remaining: subscriptionInfo.imagesRemaining
-              })
-            });
-            
-            if (response.ok) {
-              console.log('✅ CANCELLATION: Added to cancelled_users via API');
-            } else {
-              console.error('❌ CANCELLATION: API insertion also failed');
-            }
-          } catch (apiError) {
-            console.error('❌ CANCELLATION: API call failed:', apiError);
-          }
-        } else {
-          console.log('✅ CANCELLATION: User added to cancelled_users tracking table:', insertData);
-        }
-      } catch (trackingError) {
-        console.error('❌ CANCELLATION: Tracking failed with exception:', trackingError);
-      }
+      // Note: cancelled_users table insertion is now handled by the cancel-subscription API
 
       // Update user_plans table to cancelled status
       if (userPlan) {
@@ -187,7 +137,7 @@ const Settings = () => {
         console.error('⚠️ Cancellation may not have completed properly');
         toast({
           title: 'Cancellation Processed',
-          description: 'Your cancellation has been processed. If you can still enhance images, please contact support.',
+          description: `Your cancellation has been processed. You can still use your remaining ${subscriptionInfo.imagesRemaining} credits this month, then you'll need a new plan.`,
           variant: 'destructive'
         });
       }

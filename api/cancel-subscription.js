@@ -12,7 +12,7 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { subscriptionId, userId } = req.body;
+  const { subscriptionId, userId, userEmail, planName, creditsRemaining } = req.body;
 
   if (!subscriptionId || !userId) {
     return res.status(400).json({ error: 'Missing required parameters' });
@@ -53,6 +53,30 @@ module.exports = async (req, res) => {
         updated_at: new Date().toISOString()
       })
       .eq('id', userId);
+
+    // Add user to cancelled_users tracking table
+    try {
+      const { data: cancelledData, error: cancelledError } = await supabase
+        .from('cancelled_users')
+        .insert({
+          user_id: userId,
+          email: userEmail || 'unknown',
+          plan_name: planName || 'Unknown',
+          cancellation_date: new Date().toISOString(),
+          stripe_subscription_id: subscriptionId,
+          credits_remaining: creditsRemaining || 0,
+          cancellation_reason: 'User initiated cancellation via settings'
+        })
+        .select();
+
+      if (cancelledError) {
+        console.error('❌ Error adding to cancelled_users table:', cancelledError);
+      } else {
+        console.log('✅ User added to cancelled_users table:', cancelledData);
+      }
+    } catch (trackingError) {
+      console.error('❌ Cancelled users tracking failed:', trackingError);
+    }
 
     return res.status(200).json({
       success: true,
