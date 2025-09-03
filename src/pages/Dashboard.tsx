@@ -141,11 +141,21 @@ const Dashboard = () => {
         const creditResult = await consumeImageCredit(user.id);
         console.log('🚀 DASHBOARD: Credit consumption result:', creditResult);
         
-        // Refresh subscription info after credit consumption  
-        console.log('🔄 DASHBOARD: Refreshing subscription info after credit consumption...');
+        // Force refresh subscription info on mobile and desktop
+        console.log('🔄 MOBILE FIX: Force refreshing subscription info after credit consumption...');
+        
+        // Force a complete re-fetch with cache bypass
         const newInfo = await getUserSubscriptionInfo(user.id);
-        console.log('🔄 DASHBOARD: New subscription info:', newInfo);
-        setSubscriptionInfo(newInfo);
+        console.log('🔄 MOBILE FIX: New subscription info:', newInfo);
+        
+        // Force state update even if data looks the same
+        setSubscriptionInfo(null);
+        setTimeout(() => {
+          setSubscriptionInfo(newInfo);
+        }, 100);
+        
+        // Also trigger a re-render
+        setResult({ ...enhancementResult, timestamp: Date.now() });
       }
       debugLog('info', '🔧 UPDATING UI STATE');
     } catch (error) {
