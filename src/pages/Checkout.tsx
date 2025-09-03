@@ -103,7 +103,8 @@ const Checkout = () => {
           options: {
             data: {
               full_name: customerName.trim(),
-            }
+            },
+            emailRedirectTo: undefined // Disable email confirmation
           }
         });
 
@@ -117,10 +118,7 @@ const Checkout = () => {
           return;
         }
 
-        toast({
-          title: 'Account Created!',
-          description: 'Please check your email to confirm your account, then complete payment.',
-        });
+        // Removed success popup and email confirmation message
       }
 
       const paymentData: PaymentData = {
