@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { getUserSubscriptionInfo, type UserSubscriptionInfo } from '@/services/userSubscription';
+import { getUserSubscriptionInfo, trackCancelledUser, type UserSubscriptionInfo } from '@/services/userSubscription';
 import { ArrowLeft, CreditCard, User, Shield, AlertTriangle, Crown, Key } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -53,26 +53,13 @@ const Settings = () => {
 
     setIsCancelling(true);
     try {
-      // Force insert using API with raw SQL
-      console.log('🚨 FORCE: Using raw SQL to force insert to cancelled_users...');
-      try {
-        const response = await fetch('/api/force-cancelled-user', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: user.id,
-            email: user.email
-          })
-        });
-        
-        const result = await response.json();
-        if (response.ok) {
-          console.log('✅ FORCE: Raw SQL insert succeeded!', result);
-        } else {
-          console.error('❌ FORCE: Raw SQL insert failed:', result);
-        }
-      } catch (forceException) {
-        console.error('❌ FORCE: Exception:', forceException);
+      // Track cancellation EXACTLY like we track enhancements
+      console.log('🎯 TRACKING: Using EXACT same method as enhancement tracking...');
+      const tracked = await trackCancelledUser(user.id, user.email || 'unknown', subscriptionInfo.planName);
+      if (tracked) {
+        console.log('✅ TRACKING: Cancellation tracked just like enhancements!');
+      } else {
+        console.error('❌ TRACKING: Failed to track cancellation');
       }
       // Get user plan details for Stripe cancellation
       const { data: userPlan } = await supabase

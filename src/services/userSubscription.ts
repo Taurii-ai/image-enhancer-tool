@@ -172,6 +172,32 @@ export const getUserSubscriptionInfo = async (userId: string): Promise<UserSubsc
   }
 };
 
+export const trackCancelledUser = async (userId: string, userEmail: string, planName: string): Promise<boolean> => {
+  try {
+    console.log('📝 TRACKING CANCELLATION: Same way we track enhancements...');
+    
+    // Use EXACT same pattern as enhancement tracking
+    await supabase
+      .from('cancelled_users')
+      .upsert({
+        user_id: userId,
+        email: userEmail,
+        plan_name: planName,
+        cancellation_date: new Date().toISOString(),
+        credits_remaining: 0,
+        cancellation_reason: 'User cancellation - tracked like enhancement'
+      }, {
+        onConflict: 'user_id'
+      });
+    
+    console.log('✅ TRACKING CANCELLATION: Successfully tracked like enhancement!');
+    return true;
+  } catch (error) {
+    console.error('❌ TRACKING CANCELLATION: Failed like it never fails for enhancements:', error);
+    return false;
+  }
+};
+
 export const consumeImageCredit = async (userId: string): Promise<{ success: boolean; remaining: number; error?: string }> => {
   try {
     console.log('💳 CREDIT CONSUMPTION: Starting for user:', userId);
