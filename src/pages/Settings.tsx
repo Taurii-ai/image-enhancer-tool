@@ -84,9 +84,16 @@ const Settings = () => {
         }
       }
 
-      // Add user to cancelled_users tracking table (if table exists)
+      // Add user to cancelled_users tracking table
       try {
-        const { error: cancelledUserError } = await supabase
+        console.log('📝 CANCELLATION: Adding user to cancelled_users table...', {
+          user_id: user.id,
+          email: user.email,
+          plan_name: subscriptionInfo.planName,
+          credits_remaining: subscriptionInfo.imagesRemaining
+        });
+
+        const { data: insertData, error: cancelledUserError } = await supabase
           .from('cancelled_users')
           .insert({
             user_id: user.id,
@@ -96,17 +103,40 @@ const Settings = () => {
             stripe_subscription_id: userPlan?.stripe_subscription_id || null,
             credits_remaining: subscriptionInfo.imagesRemaining,
             cancellation_reason: 'User initiated cancellation via settings'
-          });
+          })
+          .select();
 
         if (cancelledUserError) {
-          console.error('Error adding to cancelled_users table:', cancelledUserError);
-          // Don't fail the cancellation if tracking table doesn't exist
+          console.error('❌ CANCELLATION: Error adding to cancelled_users table:', cancelledUserError);
+          console.error('❌ CANCELLATION: Error details:', JSON.stringify(cancelledUserError, null, 2));
+          
+          // Try alternative approach - insert via service role if needed
+          try {
+            const response = await fetch('/api/add-cancelled-user', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_id: user.id,
+                email: user.email || 'unknown',
+                plan_name: subscriptionInfo.planName,
+                stripe_subscription_id: userPlan?.stripe_subscription_id || null,
+                credits_remaining: subscriptionInfo.imagesRemaining
+              })
+            });
+            
+            if (response.ok) {
+              console.log('✅ CANCELLATION: Added to cancelled_users via API');
+            } else {
+              console.error('❌ CANCELLATION: API insertion also failed');
+            }
+          } catch (apiError) {
+            console.error('❌ CANCELLATION: API call failed:', apiError);
+          }
         } else {
-          console.log('✅ User added to cancelled_users tracking table');
+          console.log('✅ CANCELLATION: User added to cancelled_users tracking table:', insertData);
         }
       } catch (trackingError) {
-        console.error('Cancelled users tracking failed (table may not exist):', trackingError);
-        // Continue with cancellation even if tracking fails
+        console.error('❌ CANCELLATION: Tracking failed with exception:', trackingError);
       }
 
       // Update user_plans table to cancelled status
