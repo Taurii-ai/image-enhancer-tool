@@ -109,34 +109,8 @@ const Dashboard = () => {
       fileType: file.type
     });
     
-    // Check if user has credits and is not cancelled before processing
-    if (user?.id) {
-      console.log('🚀 DASHBOARD: Checking user credits and status before enhancement...');
-      
-      // Quick credit check using our existing service
-      const subscriptionCheck = await getUserSubscriptionInfo(user.id);
-      if (subscriptionCheck.imagesRemaining <= 0) {
-        if (subscriptionCheck.planName === 'Cancelled') {
-          toast({
-            title: 'No Active Plan',
-            description: 'Your subscription was cancelled and you have no credits remaining. Please choose a new plan to continue.',
-            variant: 'destructive'
-          });
-        } else {
-          toast({
-            title: 'No Credits Remaining',
-            description: 'Please upgrade your plan or wait for monthly reset.',
-            variant: 'destructive'
-          });
-        }
-        return;
-      }
-      
-      // Show warning for cancelled users with remaining credits
-      if (subscriptionCheck.planName === 'Cancelled' && subscriptionCheck.imagesRemaining > 0) {
-        console.log(`⚠️ CANCELLED USER: Has ${subscriptionCheck.imagesRemaining} credits remaining from cancelled subscription`);
-      }
-    }
+    // Start enhancement immediately - credit validation happens inside enhanceImage()
+    console.log('🚀 DASHBOARD: Starting enhancement immediately - no delays!');
     
     setCurrentFile(file);
     setProcessingState('processing');
