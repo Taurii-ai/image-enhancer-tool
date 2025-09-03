@@ -128,6 +128,27 @@ const Settings = () => {
 
       if (verifyPlan?.status === 'cancelled') {
         console.log('✅ Cancellation verified - user is now blocked from enhancements');
+        
+        // Track the cancellation in cancelled_users table
+        try {
+          const trackResponse = await fetch('/api/track-cancellation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: user.id,
+              email: user.email
+            })
+          });
+          
+          if (trackResponse.ok) {
+            console.log('✅ TRACK: Successfully added to cancelled_users table');
+          } else {
+            console.error('❌ TRACK: Failed to add to cancelled_users table');
+          }
+        } catch (trackError) {
+          console.error('❌ TRACK: Exception calling track-cancellation:', trackError);
+        }
+        
         toast({
           title: 'Subscription Cancelled Successfully',
           description: `Your subscription has been cancelled and all future charges stopped. You can still use your remaining ${subscriptionInfo.imagesRemaining} credits this month, then you'll need a new plan.`,
