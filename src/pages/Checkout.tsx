@@ -107,6 +107,9 @@ const Checkout = () => {
             emailRedirectTo: undefined // Disable email confirmation
           }
         });
+        
+        console.log('🔧 SIGNUP RESULT:', { data, error });
+        console.log('🔧 USER CREATED:', data?.user?.id, data?.user?.email);
 
         if (error) {
           toast({
@@ -118,7 +121,12 @@ const Checkout = () => {
           return;
         }
 
-        // Removed success popup and email confirmation message
+        // Log successful account creation for debugging
+        console.log('✅ ACCOUNT CREATED:', {
+          userId: data?.user?.id,
+          email: data?.user?.email,
+          confirmed: data?.user?.email_confirmed_at
+        });
       }
 
       const paymentData: PaymentData = {
