@@ -517,7 +517,18 @@ Please process my cancellation request. I understand I will keep my remaining ${
 Thank you,
 ${user?.email}`);
                 
-                window.open(`mailto:support@enhpix.com?subject=${subject}&body=${body}`, '_self');
+                // Try different approaches for email client compatibility
+                const mailtoUrl = `mailto:support@enhpix.com?subject=${subject}&body=${body}`;
+                console.log('🔧 MAILTO URL:', mailtoUrl);
+                
+                try {
+                  // Try window.location.href first (more compatible)
+                  window.location.href = mailtoUrl;
+                } catch (error) {
+                  console.error('Direct mailto failed, trying window.open:', error);
+                  // Fallback to window.open
+                  window.open(mailtoUrl, '_self');
+                }
                 setShowCancelConfirm(false);
               }}
               disabled={isCancelling}
