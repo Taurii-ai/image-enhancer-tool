@@ -252,12 +252,35 @@ const Login = () => {
     setIsLoading(true);
 
     try {
+      console.log('🔧 PASSWORD RESET: Attempting for email:', forgotPasswordEmail.trim());
+      
+      // First check if user exists in profiles
+      const { data: userExists } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', forgotPasswordEmail.trim())
+        .single();
+      
+      if (!userExists) {
+        console.log('❌ PASSWORD RESET: Email not found in profiles');
+        toast({
+          title: 'Account Not Found',
+          description: 'No account found with that email address.',
+          variant: 'destructive'
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log('✅ PASSWORD RESET: Email found in profiles, sending reset...');
+      
       // Send reset email (Supabase will handle if account exists)  
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) {
+        console.error('❌ PASSWORD RESET: Supabase error:', error);
         toast({
           title: 'Reset Failed',
           description: error.message,
@@ -266,9 +289,10 @@ const Login = () => {
         return;
       }
 
+      console.log('✅ PASSWORD RESET: Email sent successfully');
       toast({
         title: 'Password Reset Sent',
-        description: 'Check your email for a password reset link.',
+        description: 'Check your email for a password reset link. Check spam folder if needed.',
       });
       setShowForgotPassword(false);
       setForgotPasswordEmail('');
