@@ -103,17 +103,23 @@ async function handleCheckoutCompleted(session) {
     let user;
     if (existingUser) {
       // Update existing user with Stripe customer ID
+      console.log('🔧 UPDATING existing user with Stripe customer ID:', stripeCustomerId);
       const { data: updatedUser, error: updateError } = await supabase
         .from('profiles')
-        .update({ stripe_customer_id: stripeCustomerId })
+        .update({ 
+          stripe_customer_id: stripeCustomerId,
+          updated_at: new Date().toISOString()
+        })
         .eq('email', customerEmail)
         .select()
         .single();
       
       if (updateError) {
-        console.error('Error updating user:', updateError);
+        console.error('❌ Error updating user with stripe_customer_id:', updateError);
         return;
       }
+      
+      console.log('✅ Successfully updated user with stripe_customer_id:', updatedUser);
       user = updatedUser;
     } else {
       // Create Supabase Auth user first
