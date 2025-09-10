@@ -254,9 +254,64 @@ const Login = () => {
     try {
       console.log('🔧 PASSWORD RESET: Attempting for email:', forgotPasswordEmail.trim());
       
-      console.log('✅ PASSWORD RESET: Attempting reset for any email (let Supabase handle validation)...');
-      
-      // Send reset email (Supabase will handle if account exists)  
+      // Check if user exists in user_plans but not in auth
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .eq('email', forgotPasswordEmail.trim())
+        .single();
+
+      if (userProfile) {
+        const { data: userPlan } = await supabase
+          .from('user_plans')
+          .select('*')
+          .eq('user_id', userProfile.id)
+          .single();
+
+        if (userPlan) {
+          console.log('✅ USER_PLANS: Found user in user_plans, ensuring they have auth account...');
+          
+          // Try to send reset email first
+          const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
+            redirectTo: `${window.location.origin}/reset-password`,
+          });
+
+          if (error && (error.message.includes('not found') || error.message.includes('not registered'))) {
+            // User doesn't have auth account - this is the problem!
+            console.log('❌ USER_PLANS: User in user_plans but no auth account!');
+            toast({
+              title: 'Account Setup Required',
+              description: 'Your account needs to be set up. Please try the checkout process again or contact support.',
+              variant: 'destructive'
+            });
+            setIsLoading(false);
+            return;
+          } else if (error) {
+            console.error('❌ PASSWORD RESET: Other Supabase error:', error);
+            toast({
+              title: 'Reset Failed',
+              description: error.message,
+              variant: 'destructive'
+            });
+            setIsLoading(false);
+            return;
+          } else {
+            // Success for user_plans user
+            console.log('✅ PASSWORD RESET: Email sent to user_plans user');
+            toast({
+              title: 'Password Reset Sent',
+              description: 'Check your email for a password reset link. Check spam folder if needed.',
+            });
+            setShowForgotPassword(false);
+            setForgotPasswordEmail('');
+            setIsLoading(false);
+            return;
+          }
+        }
+      }
+
+      // For non-user_plans users, just try normal reset
+      console.log('🔧 PASSWORD RESET: Attempting normal reset...');
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
         redirectTo: `${window.location.origin}/reset-password`,
       });
@@ -268,6 +323,7 @@ const Login = () => {
           description: error.message,
           variant: 'destructive'
         });
+        setIsLoading(false);
         return;
       }
 
