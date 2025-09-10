@@ -254,25 +254,7 @@ const Login = () => {
     try {
       console.log('🔧 PASSWORD RESET: Attempting for email:', forgotPasswordEmail.trim());
       
-      // First check if user exists in profiles
-      const { data: userExists } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('email', forgotPasswordEmail.trim())
-        .single();
-      
-      if (!userExists) {
-        console.log('❌ PASSWORD RESET: Email not found in profiles');
-        toast({
-          title: 'Account Not Found',
-          description: 'No account found with that email address.',
-          variant: 'destructive'
-        });
-        setIsLoading(false);
-        return;
-      }
-      
-      console.log('✅ PASSWORD RESET: Email found in profiles, sending reset...');
+      console.log('✅ PASSWORD RESET: Attempting reset for any email (let Supabase handle validation)...');
       
       // Send reset email (Supabase will handle if account exists)  
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
