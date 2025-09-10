@@ -32,32 +32,32 @@ BEGIN
       IF FOUND THEN
         -- Map Stripe price IDs to plans and credits
         CASE subscription_record.stripe_price_id
-          -- Basic Plans - LIVE KEYS
-          WHEN 'price_1RveeGHUii3yXltrohFUcH0U' THEN 
+          -- Basic Plans - CORRECT ONES
+          WHEN 'price_1RwL8qHUii3yXltr3wWqsPNo' THEN 
             plan_type := 'basic';
             plan_credits := 150;
             billing_type := 'monthly';
-          WHEN 'price_1RveewHUii3yXltr3t1YMzaT' THEN 
+          WHEN 'price_1RwL9PHUii3yXltrLvMcLtWe' THEN 
             plan_type := 'basic';
             plan_credits := 150;
             billing_type := 'yearly';
             
-          -- Pro Plans - LIVE KEYS
-          WHEN 'price_1RvefxHUii3yXltrTsTN5iQg' THEN 
+          -- Pro Plans - CORRECT ONES
+          WHEN 'price_1RwLAvHUii3yXltrKu9aReLj' THEN 
             plan_type := 'pro';
             plan_credits := 400;
             billing_type := 'monthly';
-          WHEN 'price_1RvegXHUii3yXltrGWxpvpZi' THEN 
+          WHEN 'price_1RwLByHUii3yXltrLgjEyTLH' THEN 
             plan_type := 'pro';
             plan_credits := 400;
             billing_type := 'yearly';
             
-          -- Premium Plans - LIVE KEYS
-          WHEN 'price_1RvehMHUii3yXltrkzeexWpn' THEN 
+          -- Premium Plans - CORRECT ONES
+          WHEN 'price_1RwLDhHUii3yXltrWdHdqqOB' THEN 
             plan_type := 'premium';
             plan_credits := 1300;
             billing_type := 'monthly';
-          WHEN 'price_1RvehtHUii3yXltrSSyM6wr3' THEN 
+          WHEN 'price_1RwLEHHUii3yXltrdCIWUMZa' THEN 
             plan_type := 'premium';
             plan_credits := 1300;
             billing_type := 'yearly';
