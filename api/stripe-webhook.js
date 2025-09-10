@@ -9,14 +9,14 @@ const supabase = createClient(
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-// Plan mapping from Stripe price IDs to plan names
+// Plan mapping from Stripe price IDs to plan names - LIVE KEYS
 const PRICE_TO_PLAN = {
-  'price_1RwL8qHUii3yXltr3wWqsPNo': { plan: 'basic', billing: 'monthly' },
-  'price_1RwL9PHUii3yXltrLvMcLtWe': { plan: 'basic', billing: 'yearly' },
-  'price_1RwLAvHUii3yXltrKu9aReLj': { plan: 'pro', billing: 'monthly' },
-  'price_1RwLByHUii3yXltrLgjEyTLH': { plan: 'pro', billing: 'yearly' },
-  'price_1RwLDhHUii3yXltrWdHdqqOB': { plan: 'premium', billing: 'monthly' },
-  'price_1RwLEHHUii3yXltrdCIWUMZa': { plan: 'premium', billing: 'yearly' },
+  'price_1RveeGHUii3yXltrohFUcH0U': { plan: 'basic', billing: 'monthly' },
+  'price_1RveewHUii3yXltr3t1YMzaT': { plan: 'basic', billing: 'yearly' },
+  'price_1RvefxHUii3yXltrTsTN5iQg': { plan: 'pro', billing: 'monthly' },
+  'price_1RvegXHUii3yXltrGWxpvpZi': { plan: 'pro', billing: 'yearly' },
+  'price_1RvehMHUii3yXltrkzeexWpn': { plan: 'premium', billing: 'monthly' },
+  'price_1RvehtHUii3yXltrSSyM6wr3': { plan: 'premium', billing: 'yearly' },
 };
 
 const PLAN_LIMITS = {
