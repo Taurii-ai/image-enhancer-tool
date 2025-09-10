@@ -180,16 +180,28 @@ async function handleSubscriptionCreated(subscription) {
   try {
     const priceId = subscription.items.data[0]?.price?.id;
     
-    // Get plan info from the plan_mappings table
+    // Get plan info from the plan_mappings table or fallback to PRICE_TO_PLAN
     const { data: planInfo, error: planError } = await supabase
       .from('plan_mappings')
       .select('*')
       .eq('stripe_price_id', priceId)
       .single();
     
+    let finalPlanInfo;
     if (planError || !planInfo) {
-      console.error('Unknown price ID or plan mapping error:', priceId, 'Error:', planError);
-      return;
+      console.log('⚠️ Plan mappings not found, using fallback for price ID:', priceId);
+      const fallbackPlan = PRICE_TO_PLAN[priceId];
+      if (!fallbackPlan) {
+        console.error('❌ Unknown price ID in both mappings and fallback:', priceId);
+        return;
+      }
+      finalPlanInfo = {
+        plan_name: fallbackPlan.plan,
+        billing_cycle: fallbackPlan.billing,
+        credits: PLAN_LIMITS[fallbackPlan.plan] || 150
+      };
+    } else {
+      finalPlanInfo = planInfo;
     }
 
     // Get user by Stripe customer ID
@@ -243,8 +255,8 @@ async function handleSubscriptionCreated(subscription) {
         user_id: user.id,
         stripe_subscription_id: subscription.id,
         stripe_price_id: priceId,
-        plan_name: planInfo.plan_name,
-        billing_cycle: planInfo.billing_cycle,
+        plan_name: finalPlanInfo.plan_name,
+        billing_cycle: finalPlanInfo.billing_cycle,
         status: subscription.status,
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
@@ -259,8 +271,8 @@ async function handleSubscriptionCreated(subscription) {
     const { error: profileUpdateError } = await supabase
       .from('profiles')
       .update({
-        plan: planInfo.plan_name,
-        credits_remaining: planInfo.credits,
+        plan: finalPlanInfo.plan_name,
+        credits_remaining: finalPlanInfo.credits,
       })
       .eq('id', user.id);
 
@@ -276,10 +288,10 @@ async function handleSubscriptionCreated(subscription) {
         stripe_customer_id: subscription.customer,
         stripe_subscription_id: subscription.id,
         stripe_price_id: priceId,
-        plan_name: planInfo.plan_name,
-        credits_allocated: planInfo.credits,
-        credits_remaining: planInfo.credits,
-        billing_cycle: planInfo.billing_cycle,
+        plan_name: finalPlanInfo.plan_name,
+        credits_allocated: finalPlanInfo.credits,
+        credits_remaining: finalPlanInfo.credits,
+        billing_cycle: finalPlanInfo.billing_cycle,
         status: 'active',
         subscription_start: new Date(subscription.current_period_start * 1000).toISOString(),
         subscription_end: new Date(subscription.current_period_end * 1000).toISOString(),
@@ -296,7 +308,7 @@ async function handleSubscriptionCreated(subscription) {
     const now = new Date();
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
-    const limit = planInfo.credits;
+    const limit = finalPlanInfo.credits;
 
     const { error: usageError } = await supabase
       .from('usage_tracking')
