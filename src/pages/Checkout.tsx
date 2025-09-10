@@ -97,48 +97,35 @@ const Checkout = () => {
     try {
       // Create account if not using Google auth and not already logged in
       if (!useGoogleAuth && !user) {
-        // Use admin.createUser to bypass email confirmation
-        console.log('🔧 CREATING USER with admin.createUser for immediate access...');
+        console.log('🔧 CREATING USER with regular signUp...');
         
-        const { data: adminData, error: adminError } = await supabase.auth.admin.createUser({
+        const { data, error } = await supabase.auth.signUp({
           email: customerEmail.trim(),
           password: customerPassword,
-          email_confirm: true, // Auto-confirm email
-          user_metadata: {
-            full_name: customerName.trim(),
+          options: {
+            data: {
+              full_name: customerName.trim(),
+            }
           }
         });
 
-        console.log('🔧 ADMIN SIGNUP RESULT:', { adminData, adminError });
+        console.log('🔧 SIGNUP RESULT:', { data, error });
 
-        if (adminError) {
-          console.error('❌ Admin user creation failed:', adminError);
+        if (error) {
+          console.error('❌ User creation failed:', error);
           toast({
             title: 'Account Creation Failed',
-            description: adminError.message,
+            description: error.message,
             variant: 'destructive'
           });
           setIsLoading(false);
           return;
         }
 
-        // Immediately sign in the user
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: customerEmail.trim(),
-          password: customerPassword,
-        });
-
-        if (signInError) {
-          console.error('❌ Auto sign-in failed:', signInError);
-          // Don't fail checkout, user can login manually later
-        } else {
-          console.log('✅ User auto-signed in after creation');
-        }
-
-        console.log('✅ ACCOUNT CREATED AND CONFIRMED:', {
-          userId: adminData?.user?.id,
-          email: adminData?.user?.email,
-          confirmed: adminData?.user?.email_confirmed_at
+        console.log('✅ ACCOUNT CREATED:', {
+          userId: data?.user?.id,
+          email: data?.user?.email,
+          confirmed: data?.user?.email_confirmed_at
         });
       }
 
