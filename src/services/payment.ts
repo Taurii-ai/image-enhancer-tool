@@ -11,8 +11,8 @@ export const PRICING_PLANS = {
     name: 'Basic',
     priceMonthly: 19,
     priceYearly: 190,
-    priceIdMonthly: import.meta.env.VITE_STRIPE_PRICE_BASIC_MONTHLY,
-    priceIdYearly: import.meta.env.VITE_STRIPE_PRICE_BASIC_YEARLY,
+    priceIdMonthly: 'price_1RwL8qHUii3yXltr3wWqsPNo', // TEST MODE
+    priceIdYearly: 'price_1RwL9PHUii3yXltrLvMcLtWe', // TEST MODE
     features: [
       '150 images/month',
       'HD quality enhancement',
@@ -26,8 +26,8 @@ export const PRICING_PLANS = {
     name: 'Pro',
     priceMonthly: 37,
     priceYearly: 370,
-    priceIdMonthly: import.meta.env.VITE_STRIPE_PRICE_PRO_MONTHLY,
-    priceIdYearly: import.meta.env.VITE_STRIPE_PRICE_PRO_YEARLY,
+    priceIdMonthly: 'price_1RwLAvHUii3yXltrKu9aReLj', // TEST MODE
+    priceIdYearly: 'price_1RwLByHUii3yXltrLgjEyTLH', // TEST MODE
     features: [
       '400 images/month',
       'Ultra-HD quality enhancement',
@@ -41,8 +41,8 @@ export const PRICING_PLANS = {
     name: 'Premium',
     priceMonthly: 90,
     priceYearly: 900,
-    priceIdMonthly: import.meta.env.VITE_STRIPE_PRICE_PREMIUM_MONTHLY,
-    priceIdYearly: import.meta.env.VITE_STRIPE_PRICE_PREMIUM_YEARLY,
+    priceIdMonthly: 'price_1RwLDhHUii3yXltrWdHdqqOB', // TEST MODE
+    priceIdYearly: 'price_1RwLEHHUii3yXltrdCIWUMZa', // TEST MODE
     features: [
       '1,300 images/month',
       'Maximum quality enhancement',
