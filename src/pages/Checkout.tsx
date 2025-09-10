@@ -97,36 +97,62 @@ const Checkout = () => {
     try {
       // Create account if not using Google auth and not already logged in
       if (!useGoogleAuth && !user) {
-        console.log('🔧 CREATING USER with regular signUp...');
+        console.log('🔧 CHECKING if user exists first...');
         
-        const { data, error } = await supabase.auth.signUp({
-          email: customerEmail.trim(),
-          password: customerPassword,
-          options: {
-            data: {
-              full_name: customerName.trim(),
-            }
+        // Check if user already exists
+        const { data: existingUser } = await supabase
+          .from('profiles')
+          .select('id, email, stripe_customer_id')
+          .eq('email', customerEmail.trim())
+          .single();
+        
+        if (existingUser) {
+          if (existingUser.stripe_customer_id) {
+            // User already paid - they should login instead
+            toast({
+              title: 'Account Already Exists',
+              description: 'This email already has a paid account. Please use the login page instead.',
+              variant: 'destructive'
+            });
+            setIsLoading(false);
+            return;
+          } else {
+            // User exists but never paid - allow them to continue with payment
+            console.log('✅ EXISTING USER (no payment): Allowing payment to proceed');
           }
-        });
-
-        console.log('🔧 SIGNUP RESULT:', { data, error });
-
-        if (error) {
-          console.error('❌ User creation failed:', error);
-          toast({
-            title: 'Account Creation Failed',
-            description: error.message,
-            variant: 'destructive'
+        } else {
+          // New user - create account
+          console.log('🔧 CREATING NEW USER with signUp...');
+          
+          const { data, error } = await supabase.auth.signUp({
+            email: customerEmail.trim(),
+            password: customerPassword,
+            options: {
+              data: {
+                full_name: customerName.trim(),
+              }
+            }
           });
-          setIsLoading(false);
-          return;
-        }
 
-        console.log('✅ ACCOUNT CREATED:', {
-          userId: data?.user?.id,
-          email: data?.user?.email,
-          confirmed: data?.user?.email_confirmed_at
-        });
+          console.log('🔧 SIGNUP RESULT:', { data, error });
+
+          if (error && !error.message.includes('already registered')) {
+            console.error('❌ User creation failed:', error);
+            toast({
+              title: 'Account Creation Failed',
+              description: error.message,
+              variant: 'destructive'
+            });
+            setIsLoading(false);
+            return;
+          }
+
+          console.log('✅ ACCOUNT CREATED:', {
+            userId: data?.user?.id,
+            email: data?.user?.email,
+            confirmed: data?.user?.email_confirmed_at
+          });
+        }
       }
 
       const paymentData: PaymentData = {
