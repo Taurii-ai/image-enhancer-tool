@@ -120,6 +120,22 @@ async function handleCheckoutCompleted(session) {
       }
       
       console.log('✅ Successfully updated user with stripe_customer_id:', updatedUser);
+      
+      // Send password reset email to existing customer too (in case they need to set password)
+      try {
+        await supabase.auth.admin.generateLink({
+          type: 'recovery',
+          email: customerEmail,
+          options: {
+            redirectTo: `${process.env.VITE_APP_URL || 'https://enhpix.com'}/reset-password`
+          }
+        });
+        console.log('Password reset email sent to existing customer:', customerEmail);
+      } catch (resetError) {
+        console.error('Error sending password reset email to existing customer:', resetError);
+        // Don't fail the whole process if password reset email fails
+      }
+      
       user = updatedUser;
     } else {
       // Create Supabase Auth user first
@@ -140,7 +156,7 @@ async function handleCheckoutCompleted(session) {
           type: 'recovery',
           email: customerEmail,
           options: {
-            redirectTo: `${process.env.SITE_URL || 'https://enhpix.com'}/reset-password`
+            redirectTo: `${process.env.VITE_APP_URL || 'https://enhpix.com'}/reset-password`
           }
         });
         console.log('Password reset email sent to new customer:', customerEmail);
