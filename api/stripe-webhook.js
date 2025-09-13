@@ -113,6 +113,8 @@ async function handleCheckoutCompleted(session) {
         .eq('email', customerEmail)
         .select()
         .single();
+
+      console.log('💳 STRIPE CUSTOMER ID UPDATE RESULT:', { updatedUser, updateError });
       
       if (updateError) {
         console.error('❌ Error updating user with stripe_customer_id:', updateError);
@@ -284,10 +286,13 @@ async function handleSubscriptionCreated(subscription) {
         }
         
         // Update user with stripe customer ID
+        console.log('💳 UPDATING user found by email with customer ID:', subscription.customer);
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ stripe_customer_id: subscription.customer })
           .eq('id', userByEmail.id);
+        
+        console.log('💳 EMAIL USER STRIPE UPDATE RESULT:', { userByEmail: userByEmail.id, updateError });
           
         if (updateError) {
           console.error('Error updating user with stripe customer ID:', updateError);
