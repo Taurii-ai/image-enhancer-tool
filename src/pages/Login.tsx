@@ -287,8 +287,8 @@ const Login = () => {
         return;
       }
 
-      // Check if user has actual Stripe payment data (they really paid)
-      if (!userPlan.stripe_price_id || !userPlan.stripe_customer_id) {
+      // Check if user has some payment data (less strict for now)
+      if (!userPlan.stripe_price_id && !userPlan.stripe_customer_id && !userPlan.plan_name) {
         toast({
           title: 'Account Not Found',
           description: 'Only customers who have completed payment can reset passwords.',
@@ -297,6 +297,8 @@ const Login = () => {
         setIsLoading(false);
         return;
       }
+
+      console.log('✅ Found user_plan:', userPlan);
 
       // User is verified paid customer - send reset email
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
