@@ -254,15 +254,35 @@ const Login = () => {
     try {
       console.log('🔧 PASSWORD RESET: Attempting for email:', forgotPasswordEmail.trim());
       
-      // Simple: if someone has stripe_customer_id in profiles, they paid
-      const { data: paidCustomer } = await supabase
+      // Check what we actually have in profiles
+      const { data: allCustomers, error: allError } = await supabase
+        .from('profiles')
+        .select('email, stripe_customer_id')
+        .not('stripe_customer_id', 'is', null);
+      
+      console.log('🔍 ALL CUSTOMERS WITH STRIPE IDs:', allCustomers);
+      console.log('🔍 LOOKING FOR EMAIL:', forgotPasswordEmail.trim());
+
+      const { data: paidCustomer, error: customerError } = await supabase
         .from('profiles')
         .select('*')
         .eq('email', forgotPasswordEmail.trim())
-        .not('stripe_customer_id', 'is', null)
         .single();
 
+      console.log('🔍 CUSTOMER FOUND:', paidCustomer);
+      console.log('🔍 CUSTOMER ERROR:', customerError);
+
       if (!paidCustomer) {
+        toast({
+          title: 'Account Not Found',
+          description: 'No profile found with that email.',
+          variant: 'destructive'
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      if (!paidCustomer.stripe_customer_id) {
         toast({
           title: 'Account Not Found',
           description: 'Only paying customers can reset passwords.',
@@ -271,6 +291,8 @@ const Login = () => {
         setIsLoading(false);
         return;
       }
+
+      console.log('✅ CUSTOMER HAS STRIPE ID:', paidCustomer.stripe_customer_id);
 
       // User is verified paid customer - send reset email
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
