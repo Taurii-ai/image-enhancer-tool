@@ -254,14 +254,58 @@ const Login = () => {
     try {
       console.log('🔧 PASSWORD RESET: Attempting for email:', forgotPasswordEmail.trim());
       
-      // Just send the fucking reset email for user_plans users
+      // Check if user is in user_plans with actual Stripe payment data
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', forgotPasswordEmail.trim())
+        .single();
+
+      if (!userProfile) {
+        toast({
+          title: 'Account Not Found',
+          description: 'No subscription account found with that email.',
+          variant: 'destructive'
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      const { data: userPlan } = await supabase
+        .from('user_plans')
+        .select('*')
+        .eq('user_id', userProfile.id)
+        .single();
+
+      if (!userPlan) {
+        toast({
+          title: 'No Active Subscription',
+          description: 'Only customers with active subscriptions can reset passwords.',
+          variant: 'destructive'
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if user has actual Stripe payment data (they really paid)
+      if (!userPlan.stripe_price_id || !userPlan.stripe_customer_id) {
+        toast({
+          title: 'Account Not Found',
+          description: 'Only customers who have completed payment can reset passwords.',
+          variant: 'destructive'
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // User is verified paid customer - send reset email
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      // For user_plans users, always show success even if auth fails
+      // For verified user_plans users, always show success even if auth fails
       if (error) {
-        console.log('Auth error but user is in user_plans, showing success anyway');
+        console.log('Auth error but user is verified paid customer, showing success anyway');
       }
 
       console.log('✅ PASSWORD RESET: Email sent successfully');
