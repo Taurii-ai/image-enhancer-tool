@@ -254,49 +254,23 @@ const Login = () => {
     try {
       console.log('🔧 PASSWORD RESET: Attempting for email:', forgotPasswordEmail.trim());
       
-      // Check if user is in user_plans first
-      const { data: userProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', forgotPasswordEmail.trim())
-        .single();
-
-      if (userProfile) {
-        const { data: userPlan } = await supabase
-          .from('user_plans')
-          .select('*')
-          .eq('user_id', userProfile.id)
-          .single();
-
-        if (!userPlan) {
-          toast({
-            title: 'No Active Subscription',
-            description: 'Only customers with active subscriptions can reset passwords.',
-            variant: 'destructive'
-          });
-          setIsLoading(false);
-          return;
-        }
-      } else {
-        toast({
-          title: 'Account Not Found',
-          description: 'No subscription account found with that email.',
-          variant: 'destructive'
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // User is in user_plans - send reset email
-      const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`,
+      // Use custom API for user_plans password reset
+      const response = await fetch('/api/user-plans-password-reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: forgotPasswordEmail.trim(),
+        }),
       });
 
-      if (error) {
-        console.error('Password reset error:', error);
+      const result = await response.json();
+
+      if (!response.ok) {
         toast({
           title: 'Reset Failed',
-          description: 'Could not send reset email. Your account may need to be set up - try making a new purchase.',
+          description: result.error || 'Could not send reset email.',
           variant: 'destructive'
         });
         setIsLoading(false);
