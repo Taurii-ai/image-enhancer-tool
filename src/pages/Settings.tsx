@@ -44,9 +44,30 @@ const Settings = () => {
     }
 
     if (user?.id) {
-      getUserSubscriptionInfo(user.id).then(setSubscriptionInfo);
+      // Check if user is in user_plans before allowing access
+      const checkUserPlan = async () => {
+        const { data: userPlan } = await supabase
+          .from('user_plans')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!userPlan) {
+          toast({
+            title: 'Access Denied',
+            description: 'Only customers with active subscriptions can access settings.',
+            variant: 'destructive'
+          });
+          navigate('/pricing');
+          return;
+        }
+
+        getUserSubscriptionInfo(user.id).then(setSubscriptionInfo);
+      };
+
+      checkUserPlan();
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, toast]);
 
   const handleCancelSubscription = async () => {
     if (!user?.id || !subscriptionInfo) return;
