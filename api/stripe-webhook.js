@@ -121,8 +121,43 @@ async function handleCheckoutCompleted(session) {
       
       console.log('✅ Successfully updated user with stripe_customer_id:', updatedUser);
       
-      // Send password reset email to existing customer too (in case they need to set password)
+      // Ensure existing customer has auth account
       try {
+        // Check if auth user exists by trying to get user
+        const { data: authUser, error: authCheckError } = await supabase.auth.admin.getUserById(updatedUser.id);
+        
+        if (authCheckError || !authUser.user) {
+          console.log('🔧 EXISTING USER: No auth account found, creating one...');
+          
+          // Create auth account for existing profile
+          const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+            email: customerEmail,
+            password: Math.random().toString(36).slice(-12), // Random password
+            email_confirm: true, // Auto-confirm email
+            user_metadata: {
+              created_from_webhook: true
+            }
+          });
+
+          if (authError) {
+            console.error('❌ Error creating auth user for existing profile:', authError);
+          } else {
+            console.log('✅ EXISTING USER: Auth account created:', authData.user.id);
+            
+            // Update profile to use the new auth user ID
+            await supabase
+              .from('profiles')
+              .update({ id: authData.user.id })
+              .eq('email', customerEmail);
+            
+            // Update user reference for later operations
+            user = { ...updatedUser, id: authData.user.id };
+          }
+        } else {
+          console.log('✅ EXISTING USER: Auth account already exists');
+        }
+        
+        // Send password reset email to existing customer
         await supabase.auth.admin.generateLink({
           type: 'recovery',
           email: customerEmail,
@@ -132,11 +167,14 @@ async function handleCheckoutCompleted(session) {
         });
         console.log('Password reset email sent to existing customer:', customerEmail);
       } catch (resetError) {
-        console.error('Error sending password reset email to existing customer:', resetError);
-        // Don't fail the whole process if password reset email fails
+        console.error('Error handling existing customer auth setup:', resetError);
+        // Don't fail the whole process if auth setup fails
       }
       
-      user = updatedUser;
+      // Set user for existing customer (either original or updated with new auth ID)
+      if (!user) {
+        user = updatedUser;
+      }
     } else {
       // Create Supabase Auth user first
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({

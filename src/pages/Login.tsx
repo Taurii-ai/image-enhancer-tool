@@ -287,16 +287,16 @@ const Login = () => {
         return;
       }
 
-      // User is in user_plans - just send reset email regardless of auth status
+      // User is in user_plans - send reset email
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      // Ignore "user not found" errors for user_plans users - they get handled by webhook
-      if (error && !error.message.includes('not found') && !error.message.includes('not registered')) {
+      if (error) {
+        console.error('Password reset error:', error);
         toast({
           title: 'Reset Failed',
-          description: 'Could not send reset email. Contact support.',
+          description: 'Could not send reset email. Your account may need to be set up - try making a new purchase.',
           variant: 'destructive'
         });
         setIsLoading(false);
