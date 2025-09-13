@@ -254,31 +254,45 @@ const Login = () => {
     try {
       console.log('🔧 PASSWORD RESET: Attempting for email:', forgotPasswordEmail.trim());
       
-      // Direct query: find user_plans by email join with profiles  
-      const { data: userPlans, error: planError } = await supabase
-        .from('user_plans')
-        .select(`
-          *,
-          profiles!inner (
-            email
-          )
-        `)
-        .eq('profiles.email', forgotPasswordEmail.trim());
+      // Try to find profile first  
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .eq('email', forgotPasswordEmail.trim())
+        .single();
 
-      console.log('🔍 DEBUG: Query result:', { userPlans, planError });
+      console.log('🔍 Profile found:', profile);
 
-      if (planError || !userPlans || userPlans.length === 0) {
+      if (!profile) {
         toast({
           title: 'Account Not Found',
-          description: 'Only paying customers can reset passwords. No free accounts allowed.',
+          description: 'No account found with that email.',
           variant: 'destructive'
         });
         setIsLoading(false);
         return;
       }
 
-      const userPlan = userPlans[0];
-      console.log('✅ Found paying customer:', userPlan);
+      // Try to find user_plans entry
+      const { data: userPlan } = await supabase
+        .from('user_plans')
+        .select('*')
+        .eq('user_id', profile.id)
+        .maybeSingle();
+
+      console.log('🔍 User plan found:', userPlan);
+
+      if (!userPlan) {
+        toast({
+          title: 'No Subscription Found',
+          description: 'Only customers with subscriptions can reset passwords.',
+          variant: 'destructive'
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('✅ User is in user_plans, allowing reset');
 
       // User is verified paid customer - send reset email
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
