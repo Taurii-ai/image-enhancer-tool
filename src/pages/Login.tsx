@@ -254,51 +254,31 @@ const Login = () => {
     try {
       console.log('🔧 PASSWORD RESET: Attempting for email:', forgotPasswordEmail.trim());
       
-      // Check if user is in user_plans with actual Stripe payment data
-      const { data: userProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', forgotPasswordEmail.trim())
-        .single();
-
-      if (!userProfile) {
-        toast({
-          title: 'Account Not Found',
-          description: 'No subscription account found with that email.',
-          variant: 'destructive'
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      const { data: userPlan } = await supabase
+      // Direct query: find user_plans by email join with profiles  
+      const { data: userPlans, error: planError } = await supabase
         .from('user_plans')
-        .select('*')
-        .eq('user_id', userProfile.id)
-        .single();
+        .select(`
+          *,
+          profiles!inner (
+            email
+          )
+        `)
+        .eq('profiles.email', forgotPasswordEmail.trim());
 
-      if (!userPlan) {
-        toast({
-          title: 'No Active Subscription',
-          description: 'Only customers with active subscriptions can reset passwords.',
-          variant: 'destructive'
-        });
-        setIsLoading(false);
-        return;
-      }
+      console.log('🔍 DEBUG: Query result:', { userPlans, planError });
 
-      // Check if user has some payment data (less strict for now)
-      if (!userPlan.stripe_price_id && !userPlan.stripe_customer_id && !userPlan.plan_name) {
+      if (planError || !userPlans || userPlans.length === 0) {
         toast({
           title: 'Account Not Found',
-          description: 'Only customers who have completed payment can reset passwords.',
+          description: 'Only paying customers can reset passwords. No free accounts allowed.',
           variant: 'destructive'
         });
         setIsLoading(false);
         return;
       }
 
-      console.log('✅ Found user_plan:', userPlan);
+      const userPlan = userPlans[0];
+      console.log('✅ Found paying customer:', userPlan);
 
       // User is verified paid customer - send reset email
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
