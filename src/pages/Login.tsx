@@ -254,44 +254,23 @@ const Login = () => {
     try {
       console.log('🔧 PASSWORD RESET: Attempting for email:', forgotPasswordEmail.trim());
       
-      // Since user_plans is empty, check subscriptions table instead
-      console.log('🔧 Checking subscriptions table for paid customers...');
-      
-      const { data: profile } = await supabase
+      // Simple: if someone has stripe_customer_id in profiles, they paid
+      const { data: paidCustomer } = await supabase
         .from('profiles')
-        .select('id, email')
+        .select('*')
         .eq('email', forgotPasswordEmail.trim())
+        .not('stripe_customer_id', 'is', null)
         .single();
 
-      if (!profile) {
+      if (!paidCustomer) {
         toast({
           title: 'Account Not Found',
-          description: 'No account found with that email.',
+          description: 'Only paying customers can reset passwords.',
           variant: 'destructive'
         });
         setIsLoading(false);
         return;
       }
-
-      const { data: subscription } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', profile.id)
-        .single();
-
-      console.log('🔍 Found subscription:', subscription);
-
-      if (!subscription) {
-        toast({
-          title: 'No Subscription Found',
-          description: 'Only customers with active subscriptions can reset passwords.',
-          variant: 'destructive'
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      console.log('✅ User has subscription, allowing reset for:', forgotPasswordEmail.trim());
 
       // User is verified paid customer - send reset email
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
