@@ -254,14 +254,30 @@ const Login = () => {
     try {
       console.log('🔧 PASSWORD RESET: Attempting for email:', forgotPasswordEmail.trim());
       
-      // ONLY allow password reset for users in user_plans
+      // Check if user is in user_plans first
       const { data: userProfile } = await supabase
         .from('profiles')
         .select('id')
         .eq('email', forgotPasswordEmail.trim())
         .single();
 
-      if (!userProfile) {
+      if (userProfile) {
+        const { data: userPlan } = await supabase
+          .from('user_plans')
+          .select('*')
+          .eq('user_id', userProfile.id)
+          .single();
+
+        if (!userPlan) {
+          toast({
+            title: 'No Active Subscription',
+            description: 'Only customers with active subscriptions can reset passwords.',
+            variant: 'destructive'
+          });
+          setIsLoading(false);
+          return;
+        }
+      } else {
         toast({
           title: 'Account Not Found',
           description: 'No subscription account found with that email.',
@@ -271,28 +287,13 @@ const Login = () => {
         return;
       }
 
-      const { data: userPlan } = await supabase
-        .from('user_plans')
-        .select('*')
-        .eq('user_id', userProfile.id)
-        .single();
-
-      if (!userPlan) {
-        toast({
-          title: 'No Active Subscription',
-          description: 'Only customers with active subscriptions can reset passwords.',
-          variant: 'destructive'
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // User is in user_plans - send reset email
+      // User is in user_plans - just send reset email regardless of auth status
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      if (error) {
+      // Ignore "user not found" errors for user_plans users - they get handled by webhook
+      if (error && !error.message.includes('not found') && !error.message.includes('not registered')) {
         toast({
           title: 'Reset Failed',
           description: 'Could not send reset email. Contact support.',
