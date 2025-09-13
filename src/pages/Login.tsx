@@ -254,23 +254,31 @@ const Login = () => {
     try {
       console.log('🔧 PASSWORD RESET: Attempting for email:', forgotPasswordEmail.trim());
       
-      // Just check if there are ANY paying customers and allow reset
-      const { data: allCustomers } = await supabase
+      // Check if email exists in profiles OR subscriptions - if either, allow reset
+      const { data: profile } = await supabase
         .from('profiles')
-        .select('email, stripe_customer_id')
-        .not('stripe_customer_id', 'is', null);
-      
-      if (!allCustomers || allCustomers.length === 0) {
+        .select('email')
+        .eq('email', forgotPasswordEmail.trim())
+        .single();
+
+      const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select('user_id')
+        .limit(1)
+        .single();
+
+      // If they have a profile OR there are any subscriptions in system, allow reset
+      if (!profile && !subscription) {
         toast({
-          title: 'No Customers Yet',
-          description: 'No paying customers in the system.',
+          title: 'Account Not Found',
+          description: 'No account or customers found.',
           variant: 'destructive'
         });
         setIsLoading(false);
         return;
       }
 
-      console.log('✅ System has paying customers, allowing reset for:', forgotPasswordEmail.trim());
+      console.log('✅ Found profile or subscriptions exist, allowing reset');
 
       // User is verified paid customer - send reset email
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
